@@ -1,0 +1,22 @@
+# on: push
+actions:
+  build:
+    jobs:
+      - build_and_test:
+          runs-on: ruby:3.4
+          name: Build and Test Apricity
+          mounts:
+            - source: .
+              target: /work/app
+              type: bind
+          steps:
+            - name: Install dependencies
+              run: |
+                cd /work/app
+                gem install bundler
+                bundle install
+
+            - name: Run Apricity Specs
+              run: |
+                cd /work/app
+                bundle exec rspec spec/lib/apricity_spec.rb

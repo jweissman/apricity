@@ -1,0 +1,19 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "bundler/setup"
+require "yaml"
+require "apricity"
+
+file = ARGV.shift
+Apricity::Model::Pipeline.from_yaml(File.read(file)).tap do |pipeline|
+  runner = Apricity::PipelineRunner.new(pipeline)
+  events = runner.run!
+  events.each do |event|
+    puts event.inspect
+    puts "[#{event.status.upcase}] #{event.job.name} :: #{event.step}"
+    puts "STDOUT:\n#{event.stdout}" unless event.stdout.empty?
+    puts "STDERR:\n#{event.stderr}" unless event.stderr.empty?
+    puts "-" * 40
+  end
+end
