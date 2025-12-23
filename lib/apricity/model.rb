@@ -9,23 +9,24 @@ module Apricity
       :action, :job, :step,
       :status, :message,
       :container, :script,
-      :stdout, :stderr,
-      :outputs
+      :stdout, :stderr
+      # :outputs
       # :artifacts
     ) do
       def successful? = status == "success"
       def failed? = status == "failure"
       def skipped? = status == "skipped"
 
-      def inspect = "#<Event #{action}/#{job}:#{step} - #{status} - #{message}>"
+      def inspect = "#<Event #{action}/#{job}:#{step} - #{status} - #{message} // stdout=#{stdout.bytesize} [#{stdout}] bytes, stderr=#{stderr.bytesize} bytes>"
 
-      def self.from_location(location, status:, streams:, outputs: {}, message: nil)
+      def self.from_location(location, status:, streams:, message: nil)
         new(
           action: location.node.action_name, job: location.node.job_name, step: location.step.name,
           status:, message:,
           container: location.node.runs_on,
           script: location.step.run.lines.join("\n"),
-          stdout: streams.stdout, stderr: streams.stderr, outputs:
+          stdout: streams.stdout, stderr: streams.stderr
+          # outputs:
         )
       end
 
@@ -47,16 +48,10 @@ module Apricity
         )
       end
 
-      def self.success(node, step, stdout:, stderr:, outputs: {})
-        from_location(Location[node:, step:], status: "success", streams: Streams[stdout, stderr], outputs:,
+      def self.success(node, step, stdout:, stderr:)
+        from_location(Location[node:, step:], status: "success", streams: Streams[stdout, stderr],
                                               message: "ok")
       end
-
-      # def self.warning(node, step, stdout:, stderr:, outputs: {}, message: nil)
-      #   from_location(Location[node:, step:],
-      #                 status: "warning", message:,
-      #                 streams: Streams[stdout, stderr], outputs:)
-      # end
     end
 
     Container = Data.define(:name, :version) do

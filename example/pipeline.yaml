@@ -1,4 +1,3 @@
-# on: push
 actions:
   build:
     jobs:
@@ -6,17 +5,27 @@ actions:
           runs-on: ruby:3.4
           name: Build and Test Apricity
           mounts:
+            # Copy the current directory into the container
+            # (default in cli)
             - source: .
               target: /work/app
               type: bind
+            # Use DinD to allow apricity to test itself
+            - source: /var/run/docker.sock
+              target: /var/run/docker.sock
+              type: bind
           steps:
-            - name: Install dependencies
+            - name: Bundle install
               run: |
-                cd /work/app
                 gem install bundler
                 bundle install
 
-            - name: Run Apricity Specs
+            # - name: Cache gems
+            #   uses: apricity/cache
+            #   with:
+            #     key: bundler-${{ hashfiles('Gemfile.lock') }}
+            #     path: vendor/bundle
+
+            - name: Run tests
               run: |
-                cd /work/app
-                bundle exec rspec spec/lib/apricity_spec.rb
+                bundle exec rspec

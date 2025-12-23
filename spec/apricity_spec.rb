@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "spec_helper"
+
 # shared examples for apricity pipelines
 RSpec.shared_examples "a successful pipeline" do
   it "runs all successfully" do
@@ -49,6 +51,37 @@ module Apricity
 
         it "captures simple echo output" do
           expect(first_event.stdout).to eq("Hello, Apricity!\n")
+        end
+      end
+
+      describe "failing pipeline" do
+        let(:command) { Script.new(lines: ["exit 1"]) }
+        let(:pipeline) { PipelineBuilder.single_command(container:, command:) }
+
+        it "captures failure of a command" do
+          expect(first_event).to be_a(Apricity::Event)
+          expect(first_event).to be_failed
+          expect(first_event.message).to include("Step execute failed")
+        end
+      end
+
+      describe "steps share container" do
+        let(:pipeline) do
+          PipelineBuilder
+            .new("shared-container")
+            .action("ci") do |act|
+              act.job("build", runs_on: container) do |job|
+                job.step("step1", run: Script.new(lines: ["echo 'Step 1' > /work/step.txt"]))
+                job.step("step2", run: Script.new(lines: ["cat /work/step.txt"]))
+              end
+            end
+            .to_pipeline
+        end
+
+        it_behaves_like "a successful pipeline"
+
+        it "allows steps to share state via the container filesystem" do
+          expect(events.last.stdout).to eq("Step 1\n")
         end
       end
 
@@ -120,6 +153,7 @@ module Apricity
         end
 
         it "fails a job if a declared value output is not produced" do
+          # debugger
           expect(first_event.status).to eq("failure")
           expect(first_event.message).to include("Declared output 'version' was not produced")
         end
@@ -151,7 +185,7 @@ module Apricity
         end
       end
 
-      xdescribe "fan-out/fan-in pipeline" do
+      describe "fan-out/fan-in pipeline" do
         # build -> test1
         #       -> test2
         # test1 + test2 -> deploy
@@ -182,18 +216,17 @@ module Apricity
                 job.output("dist", :artifact)
                 job.step("build", run: Script.new(lines: [
                                                     "mkdir -p dist",
-                                                    "echo build > dist/artifact.txt"
+                                                    "echo build > artifacts/dist/artifact.txt"
                                                   ]))
               end
             end
             .to_pipeline
         end
 
-        # NOTE: we cannot handle artifacts yet
-        # it_behaves_like "a successful pipeline"
+        it_behaves_like "a successful pipeline"
 
         it "orders jobs correctly for fan-out/fan-in scenario" do
-          expect(job_order).to eq(%w[build test1 test2 deploy]) # .or eq(%w[build test2 test1 deploy])
+          expect(job_order).to eq(%w[build test1 test2 deploy])
         end
       end
 
