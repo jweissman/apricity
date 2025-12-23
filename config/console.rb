@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Override the default log level
 def log_level(_)
   :debug

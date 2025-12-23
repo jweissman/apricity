@@ -5,11 +5,6 @@ actions:
           runs-on: ruby:3.4
           name: Build and Test Apricity
           mounts:
-            # Copy the current directory into the container
-            # (default in cli)
-            - source: .
-              target: /work/app
-              type: bind
             # Use DinD to allow apricity to test itself
             - source: /var/run/docker.sock
               target: /var/run/docker.sock
@@ -17,7 +12,7 @@ actions:
           steps:
             - name: Bundle install
               run: |
-                gem install bundler
+                bundle config set --local path 'vendor/bundle'
                 bundle install
 
             # - name: Cache gems

@@ -6,10 +6,10 @@ require "spec_helper"
 RSpec.shared_examples "a successful pipeline" do
   it "runs all successfully" do
     pipeline_runner = Apricity::PipelineRunner.new(pipeline)
-    pipeline_events = pipeline_runner.run!
-    expect(pipeline_events).to all(be_a(Apricity::Event))
-    expect(pipeline_events.size).to eq(pipeline.total_steps)
-    expect(pipeline_events).to all(be_successful)
+    pipeline_outcomes = pipeline_runner.run!
+    expect(pipeline_outcomes).to all(be_a(Apricity::Model::StepOutcome))
+    expect(pipeline_outcomes.size).to eq(pipeline.total_steps)
+    expect(pipeline_outcomes).to all(be_successful)
   end
 end
 
@@ -23,10 +23,10 @@ module Apricity
     describe "runtime pipeline execution" do
       subject(:runner) { PipelineRunner.new(pipeline) }
       let(:container) { Container.new("ruby", "3.4") }
-      let(:events) { runner.run! }
-      let(:job_order) { events.map(&:job).uniq }
-      let(:first_event) { events.first }
-      let(:deploy_event) { events.find { |e| e.job == "deploy" } }
+      let(:outcomes) { runner.run! }
+      let(:job_order) { outcomes.map(&:job).uniq }
+      let(:first_outcome) { outcomes.first }
+      let(:deploy_outcome) { outcomes.find { |e| e.job == "deploy" } }
 
       describe "simple pipeline" do
         let(:command) { Script.new(lines: ["ruby -e 'puts \"Hello, World!\"'"]) }
@@ -35,11 +35,10 @@ module Apricity
         it_behaves_like "a successful pipeline"
 
         it "executes scripts in the given container" do
-          expect(first_event).to be_a(Apricity::Event)
-          expect(first_event.container.name).to eq("ruby")
-          expect(first_event.container.version).to eq("3.4")
-          expect(first_event.script).to eq("ruby -e 'puts \"Hello, World!\"'")
-          expect(first_event.stdout).to eq("Hello, World!\n")
+          expect(first_outcome.container.name).to eq("ruby")
+          expect(first_outcome.container.version).to eq("3.4")
+          expect(first_outcome.script).to eq("ruby -e 'puts \"Hello, World!\"'")
+          expect(first_outcome.stdout).to eq("Hello, World!\n")
         end
       end
 
@@ -50,7 +49,7 @@ module Apricity
         it_behaves_like "a successful pipeline"
 
         it "captures simple echo output" do
-          expect(first_event.stdout).to eq("Hello, Apricity!\n")
+          expect(first_outcome.stdout).to eq("Hello, Apricity!\n")
         end
       end
 
@@ -59,9 +58,8 @@ module Apricity
         let(:pipeline) { PipelineBuilder.single_command(container:, command:) }
 
         it "captures failure of a command" do
-          expect(first_event).to be_a(Apricity::Event)
-          expect(first_event).to be_failed
-          expect(first_event.message).to include("Step execute failed")
+          expect(first_outcome).to be_failed
+          expect(first_outcome.message).to include("Step execute failed")
         end
       end
 
@@ -81,7 +79,7 @@ module Apricity
         it_behaves_like "a successful pipeline"
 
         it "allows steps to share state via the container filesystem" do
-          expect(events.last.stdout).to eq("Step 1\n")
+          expect(outcomes.last.stdout).to eq("Step 1\n")
         end
       end
 
@@ -135,7 +133,7 @@ module Apricity
         it_behaves_like "a successful pipeline"
 
         it "passes a value output from one job to another" do
-          expect(deploy_event.stdout).to include("Deploying version 1.2.3")
+          expect(deploy_outcome.stdout).to include("Deploying version 1.2.3")
         end
       end
 
@@ -154,8 +152,8 @@ module Apricity
 
         it "fails a job if a declared value output is not produced" do
           # debugger
-          expect(first_event.status).to eq("failure")
-          expect(first_event.message).to include("Declared output 'version' was not produced")
+          expect(first_outcome.status).to eq("failure")
+          expect(first_outcome.message).to include("Declared output 'version' was not produced")
         end
       end
 
@@ -179,9 +177,9 @@ module Apricity
 
         it "skips a job when a value condition is not met" do
           expect(job_order).to eq(%w[build deploy])
-          expect(first_event).to be_successful
-          expect(deploy_event).to be_skipped
-          expect(deploy_event.message).to include("Conditions not met")
+          expect(first_outcome).to be_successful
+          expect(deploy_outcome).to be_skipped
+          expect(deploy_outcome.message).to include("conditions_unmet")
         end
       end
 
@@ -261,9 +259,9 @@ module Apricity
 
         it "does not run dependent jobs if conditions are not met" do
           expect(job_order).to eq(%w[test1 test2 deploy])
-          expect(events.find { |e| e.job == "test1" }).to be_failed
-          expect(events.find { |e| e.job == "test2" }).to be_successful
-          expect(deploy_event).to be_skipped
+          expect(outcomes.find { |e| e.job == "test1" }).to be_failed
+          expect(outcomes.find { |e| e.job == "test2" }).to be_successful
+          expect(deploy_outcome).to be_skipped
         end
       end
 
@@ -311,7 +309,7 @@ module Apricity
         end
 
         it "allows downstream jobs to read files from upstream jobs' artifact directories" do
-          expect(deploy_event.stdout).to eq("build\n")
+          expect(deploy_outcome.stdout).to eq("build\n")
         end
       end
     end

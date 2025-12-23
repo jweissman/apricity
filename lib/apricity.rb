@@ -1,4 +1,4 @@
-# frozen_string_literal: true
+# frozen_string_literal: false
 
 require "console"
 require "securerandom"
@@ -8,125 +8,137 @@ require "rubygems/package"
 require "stringio"
 
 require_relative "apricity/version"
+require_relative "apricity/configuration"
 require_relative "apricity/model"
 require_relative "apricity/pipeline_graph"
+require_relative "apricity/pipeline_reducer"
+require_relative "apricity/conditions"
 
+# Apricity: A lightweight CI/CD pipeline runner using Docker containers
+#
+# Provides pipeline definition, dependency analysis, and job execution
+# inside isolated Docker containers.
+#
 module Apricity
   class Error < StandardError; end
   class JobExecutionError < Error; end
 
-  # class Configuration
-  #   attr_accessor :bind_mounts
-
-  #   def initialize
-  #     @bind_mounts = []
-  #   end
-  # end
-
-  # def self.configure
-  #   @configuration ||= Configuration.new
-  #   yield(@configuration) if block_given?
-  #   @configuration
-  # end
-
-  Artifact = Data.define(:name)
-  Value    = Data.define(:name)
-
-  JobNode = Data.define(
-    :id,
-    :runs_on,
-    :steps,        # [Step] or just step scripts
-    :inputs,       # [Input]
-    :outputs,      # [Output]
-    :conditions,   # [Conditions::*]
-    :needs,
-    :job_name,
-    :action_name,
-    :mounts
-  )
-
-  ExecutionContext = Data.define(
-    :nodes,       # job_id => :success | :failure | :skipped
-    :artifacts,   # key => value
-    :values,      # key => value,
-    :dependencies # job_id => [dependent_job_ids]
-  ) do
-    def self.empty = ExecutionContext.new({}, {}, {}, {})
-    def artifact(key)        = artifacts[key]
-    def value(key)           = values[key]
-    def node_status(node_id) = nodes[node_id]
+  def self.configure
+    yield(Configuration.instance) if block_given?
+    true
   end
 
-  JobExecutionResult = Data.define(:events, :outputs) do
-    def passed? = events.all?(&:successful?)
-    def failed? = events.any?(&:failed?)
-  end
-
-  # Models for conditions and their evaluation
-  module Conditions
-    Success = Data.define(:node_id) do
-      def to_s = "Success(#{node_id})"
-      def evaluate(context) = context.node_status(node_id) == :success
-    end
-    Equals = Data.define(:key, :value) do
-      def to_s = "Equals(#{key} == #{value})"
-      def evaluate(context) = context.value(key) == value
-    end
-    Exists = Data.define(:artifact_key) do
-      def to_s = "Exists(#{artifact_key})"
-      def evaluate(context) = !context.artifact(artifact_key).nil?
-    end
-    All = Data.define(:conds) do
-      def to_s = "All(#{conds.map(&:to_s).join(", ")})"
-      def evaluate(context) = conds.all? { |c| c.evaluate(context) }
-    end
-    Any = Data.define(:conds) do
-      def to_s = "Any(#{conds.map(&:to_s).join(", ")})"
-      def evaluate(context) = conds.any? { |c| c.evaluate(context) }
-    end
-
-    # Evaluate a condition against the given execution context
-    def self.evaluate(cond, context)
-      ret = cond.evaluate(context)
-      Console.info(self, "evaluate_condition", condition: cond.to_s, context:, result: ret)
-      ret
-    end
-  end
-
-  # Reduces a high-level pipeline definition into executable job nodes
-  class PipelineReducer
-    # Convert pipeline definition to lower-level Node representation
-    def self.lower(pipeline)
-      nodes = []
-      pipeline.actions.each do |action|
-        action.jobs.each do |job|
-          nodes << build_job_node(job, action)
-        end
-      end
-      nodes
-    end
-
-    def self.build_job_node(job, action) = JobNode.new(
-      id: SecureRandom.uuid,
-      runs_on: job.runs_on,
-      steps: job.steps,
-      inputs: job.inputs,
-      outputs: job.outputs,
-      conditions: job.conditions,
-      needs: job.needs,
-      job_name: job.name,
-      action_name: action.name,
-      mounts: job.mounts
+  module JobExecution
+    Node = Data.define(
+      :id,
+      :runs_on,
+      :steps,        # [Step] or just step scripts
+      :inputs,       # [Input]
+      :outputs,      # [Output]
+      :conditions,   # [Conditions::*]
+      :needs,
+      :job_name,
+      :action_name,
+      :mounts
     )
+
+    Context = Data.define(
+      :nodes,       # job_id => :success | :failure | :skipped
+      :artifacts,   # key => value
+      :values,      # key => value,
+      :dependencies # job_id => [dependent_job_ids]
+    ) do
+      def self.empty = Context.new({}, {}, {}, {})
+      def artifact(key)        = artifacts[key]
+      def value(key)           = values[key]
+      def node_status(node_id) = nodes[node_id]
+    end
+
+    Result = Data.define(:outcomes, :outputs) do
+      def passed? = outcomes.all?(&:successful?)
+      def failed? = outcomes.any?(&:failed?)
+    end
+
+    module Events
+      def self.prefix(event)
+        "#{event.node.action_name}##{event.node.job_name}"
+      end
+
+      JobStarted = Data.define(:node) do
+        def pretty = "started job #{node.job_name}"
+      end
+      JobSkipped = Data.define(:node, :reason) do
+        def pretty = "skipped #{node.job_name} due to #{reason}"
+      end
+      JobFinished = Data.define(:node, :status) do
+        def pretty = "finish job with status #{status}"
+      end
+
+      StepStarted = Data.define(:node, :step) do
+        def pretty = "started step #{step.name}"
+      end
+      StepFinished = Data.define(:node, :step, :status) do
+        def pretty = "finished step #{step.name}"
+      end
+
+      StdoutChunk = Data.define(:node, :step, :chunk) do
+        def pretty = "(stdout chunk from step #{step.name})"
+      end
+      StderrChunk = Data.define(:node, :step, :chunk) do
+        def pretty = "(stderr chunk from step #{step.name})"
+      end
+    end
   end
 
-  # Executes node steps inside a container
-  class JobExecutor
-    WORKING_DIR = "/work"
-    DEFAULT_READ_TIMEOUT = 300 # seconds
-    attr_reader :node, :env, :artifact_inputs
+  class OutputSink
+    def initialize; end
 
-    def initialize(node:, env: {}, artifact_inputs: {})
+    def call(event)
+      handle(event.class.name.split("::").last.downcase.to_sym, event)
+    end
+
+    protected
+
+    def handle(event)
+      raise NotImplementedError, "OutputSink subclasses must implement handle"
+    end
+  end
+
+  class NullOutputSink < OutputSink
+    def handle(_event, _data); end
+  end
+
+  class ConsoleOutputSink < OutputSink
+    def handle(type, event)
+      case type
+      when :stdoutchunk, :stderrchunk
+        output_stream(type.to_s.start_with?("stdout") ? :stdout : :stderr, event.chunk)
+      else
+        $stdout.puts(
+          "#{Apricity::JobExecution::Events.prefix(event).ljust(24)} | #{event.pretty}"
+        )
+      end
+    end
+
+    def output_stream(stream, data)
+      case stream
+      when :stdout then $stdout.print data
+      when :stderr then $stderr.print data
+      else
+        raise "Unknown stream #{stream} in LiveOutputSink"
+      end
+    end
+  end
+
+  class JobExecutor
+    WORKING_DIR = "/work".freeze
+    DEFAULT_READ_TIMEOUT = 300 # seconds
+    attr_reader :node, :env, :artifact_inputs, :sink
+
+    def initialize(
+      node:, env: {}, artifact_inputs: {},
+      sink: Apricity::Configuration.instance.output_sink || NullOutputSink.new
+    )
       @node = node
       @env  = env
       @artifact_inputs = artifact_inputs
@@ -134,22 +146,24 @@ module Apricity
       @last_step_executed = nil
       @prelude = <<~SH
         set -euo pipefail
-        mkdir -p /apricity/outputs
       SH
+      @sink = sink
     end
 
     def perform
+      emit(JobExecution::Events::JobStarted[node:])
       bootstrap
       plan
-      events = execute
+      outcomes = execute
       outputs = collect
-      JobExecutionResult[events:, outputs:]
+
+      emit(JobExecution::Events::JobFinished[node:, status: :success])
+      JobExecution::Result[outcomes:, outputs:]
     rescue JobExecutionError => e
       Console.error(self, "run_step:error", message: e.message, job_name: node.job_name, step_name: step&.name)
-      JobExecutionResult[events: [failure_event(exception: e)], outputs: {}]
+      emit(JobExecution::Events::JobFinished[node:, status: :failure])
+      JobExecution::Result[outcomes: [failure_outcome(exception: e)], outputs: {}]
     ensure
-      FileUtils.remove_entry(@output_dir) if @output_dir && File.exist?(@output_dir)
-
       container&.delete(force: true)
     end
 
@@ -162,8 +176,8 @@ module Apricity
 
     def plan
       bind_mounts = [
-        *node.mounts
-        # *Apricity.configure.bind_mounts
+        *node.mounts,
+        *Apricity::Configuration.instance.bind_mounts
       ].map do |mount|
         case mount.type
         when :bind
@@ -177,33 +191,7 @@ module Apricity
         end
       end
 
-      host_workspace =
-        if (mount = node.mounts.find { |m| m.source == "." })
-          File.expand_path(mount.source)     # ← host project dir
-        else
-          Dir.mktmpdir("apricity-workspace") # fallback
-        end
-      @host_scratch_root = File.join(host_workspace, ".apricity")
-      FileUtils.mkdir_p(@host_scratch_root)
-
-      @output_dir = Dir.mktmpdir("apricity-outputs-", host_workspace) # , @host_scratch_root)
-      @output_dir = File.realpath(@output_dir)
-      File.chmod(0o777, @output_dir) # make sure container can write
-
-      @container_workspace =
-        if (mount = node.mounts.find { |m| m.source == "." })
-          mount.target # e.g. /work/app
-        else
-          WORKING_DIR
-        end
-
-      @container_scratch_root = File.join(@container_workspace, ".apricity")
-      @prelude += <<~SH
-        mkdir -p #{@container_scratch_root}
-        mkdir -p #{WORKING_DIR}/artifacts
-      SH
-
-      env["APRICITY_OUTPUT"] = "/apricity/outputs/values.txt"
+      env["APRICITY_OUTPUT"] = "/tmp/apricity-values"
       env["APRICITY_ARTIFACTS"] = "#{WORKING_DIR}/artifacts"
 
       Console.debug(self, "plan:starting", job_name: node.job_name, inputs: node.inputs, outputs: node.outputs)
@@ -219,100 +207,82 @@ module Apricity
 
       @artifact_outputs = {}
       node.outputs.select { |o| o.type == :artifact }.each do |output|
-        # host_dir = Dir.mktmpdir("apricity-artifact-#{output.key}") # but the job just produces to that dir name directly
-        host_dir = Dir.mktmpdir("artifact-#{output.key}-", @host_scratch_root)
+        host_dir = Dir.mktmpdir("artifact-#{output.key}-")
         host_dir = File.realpath(host_dir)
         @artifact_outputs[output.key] = host_dir
         artifact_binds << "#{host_dir}:#{WORKING_DIR}/artifacts/#{output.key}"
 
-        @prelude << "\nmkdir -p #{WORKING_DIR}/artifacts/#{output.key}"
+        @prelude += "\nmkdir -p #{WORKING_DIR}/artifacts/#{output.key}"
       end
 
       @binds = [
-        "#{@output_dir}:/apricity/outputs",
-        # "#{@host_scratch_root}:#{@container_scratch_root}",
         *artifact_binds,
         *bind_mounts
       ]
-      @binds.each do |b|
-        src = b.split(":", 2).first
-        next if src.start_with?("/") && File.exist?(src) # rough check
-      end
 
       Console.debug(self, "plan:container_config", binds: @binds, env:, image:, job_name: node.job_name)
     end
 
     # Execute the steps inside a Docker container
     def execute
-      events = []
+      outcomes = []
       container.start
+      Console.debug(self, "execute:container_started", container_id: container.id, job_name: node.job_name)
 
-      setup_script = <<~SH
-        : > "$APRICITY_OUTPUT"
-      SH
-      container.exec(
-        ["/bin/sh", "-c", setup_script],
+      node.steps.each do |step|
+        emit(JobExecution::Events::StepStarted[node:, step:])
+        step_outcome = execute_step(step)
+        emit(JobExecution::Events::StepFinished[node:, step:, status: step_outcome.status])
+        Console.info("[#{step_outcome.status.upcase}] #{step_outcome.job} :: #{step_outcome.step}")
+        outcomes << step_outcome
+      end
+
+      Console.debug(self, "execute:container_complete", container_id: container.id, job_name: node.job_name,
+                                                        action_name: node.action_name)
+
+      outcomes
+    end
+
+    def execute_step(step)
+      @last_step_executed = step
+      stdout = +""
+      stderr = +""
+      script = [@prelude, step.run.lines.join("\n")].join("\n")
+      exec_cmd = ["/bin/bash", "-lc", script]
+      exec_opts = { "Cmd" => exec_cmd }
+      Console.debug(self, "execute:running_step", container_id: container.id, job_name: node.job_name,
+                                                  action_name: node.action_name, step_name: step.name,
+                                                  exec_cmd:)
+      exec_result = container.exec(
+        exec_opts["Cmd"],
         "Env" => env.map { |k, v| "#{k}=#{v}" },
         "WorkingDir" => @effective_working_dir,
         "Tty" => false
       ) do |stream, chunk|
         case stream
         when :stdout
-          $stdout.print "[SETUP STDOUT] #{chunk}"
+          # @sink.stdout(chunk)
+          emit(JobExecution::Events::StdoutChunk[node:, step:, chunk:])
+          stdout << chunk
         when :stderr
-          $stderr.print "[SETUP STDERR] #{chunk}"
+          # @sink.stderr(chunk)
+          emit(JobExecution::Events::StderrChunk[node:, step:, chunk:])
+          stderr << chunk
         end
       end
+      exit_code = exec_result[2]
+      raise JobExecutionError, "Step #{step.name} failed with exit code #{exit_code}" unless exit_code.zero?
 
-      # run steps with docker exec
-      node.steps.each do |step|
-        @last_step_executed = step
-        stdout = +""
-        stderr = +""
-        # cmd = step.run.lines.map(&:chomp)
-        script = [@prelude, step.run.lines.join("\n"), "sync"].join("\n")
-        exec_cmd = [
-          "/bin/bash",
-          "-lc",
-          script
-        ]
-        exec_opts = { "Cmd" => exec_cmd }
-        Console.debug(self, "execute:running_step", container_id: container.id, job_name: node.job_name,
-                                                    action_name: node.action_name, step_name: step.name,
-                                                    exec_cmd:)
-        exec_result = container.exec(
-          exec_opts["Cmd"],
-          "Env" => env.map { |k, v| "#{k}=#{v}" },
-          "WorkingDir" => @effective_working_dir,
-          "Tty" => false
-        ) do |stream, chunk|
-          case stream
-          when :stdout
-            $stdout.print chunk
-            stdout << chunk
-          when :stderr
-            $stderr.print chunk
-            stderr << chunk
-          end
-        end
-        exit_code = exec_result[2]
-        raise JobExecutionError, "Step #{step.name} failed with exit code #{exit_code}" unless exit_code.zero?
-
-        event = success_event(stdout:, stderr:)
-        # Console.info(event: event.inspect)
-        Console.info("[#{event.status.upcase}] #{event.job} :: #{event.step}")
-        events << event
-        Console.debug(self, "execute:step_complete", container_id: container.id, job_name: node.job_name,
-                                                     action_name: node.action_name, step_name: step.name,
-                                                     stdout_size: stdout.size, stderr_size: stderr.size)
-      end
-
-      Console.debug(self, "execute:container_complete", container_id: container.id, job_name: node.job_name,
-                                                        action_name: node.action_name)
-
-      events
+      Console.debug(self, "execute:step_complete", container_id: container.id, job_name: node.job_name,
+                                                   action_name: node.action_name, step_name: step.name,
+                                                   stdout_size: stdout.size, stderr_size: stderr.size)
+      success_outcome(stdout:, stderr:)
     end
 
+    # Collect outputs after execution
+    # - Values are read from a designated file inside the container
+    # - Artifacts are container-local during execution and exported explicitly at collect time
+    # Returns a hash of output key => value or host directory
     def collect
       output_elements = {}
 
@@ -323,20 +293,6 @@ module Apricity
           output_elements[key] = value if key && value
         end
       end
-      # values_file = File.join(@output_dir, "values.txt")
-      # warn "DEBUG: host values file exists? #{File.exist?(values_file)}"
-      # warn "DEBUG: host values contents:"
-      # begin
-      #   warn File.read(values_file)
-      # rescue StandardError
-      #   warn("unreadable")
-      # end
-      # if File.exist?(values_file)
-      #   File.readlines(values_file).each do |line|
-      #     key, value = line.strip.split("=", 2)
-      #     output_elements[key] = value if key && value
-      #   end
-      # end
 
       @artifact_outputs.each do |key, host_dir|
         container_dir = "#{WORKING_DIR}/artifacts/#{key}"
@@ -378,17 +334,6 @@ module Apricity
                      missing:,
                      node_id: node.id, job_name: node.job_name,
                      action_name: node.action_name, step_name: step.name)
-        # warn "DEBUG: values.txt contents:"
-        # warn File.read(values_file) if File.exist?(values_file)
-
-        warn "DEBUG: artifact dirs:"
-        @artifact_outputs.each do |k, v|
-          warn "#{k}: #{begin
-            Dir.children(v).inspect
-          rescue StandardError
-            "missing"
-          end}"
-        end
         raise JobExecutionError, message
       end
       output_elements.merge(@artifact_outputs)
@@ -396,8 +341,7 @@ module Apricity
 
     private
 
-    require "rubygems/package"
-    require "stringio"
+    def emit(event) = @sink&.call(event)
 
     def pull_artifact_from_container(container_dir, host_dir)
       FileUtils.mkdir_p(host_dir)
@@ -451,11 +395,11 @@ module Apricity
       )
     end
 
-    def failure_event(exception:) = Model::Event.failure(
+    def failure_outcome(exception:) = Model::StepOutcome.failure(
       node, step, stdout: "", stderr: "", exception:
     )
 
-    def success_event(stdout:, stderr:) = Model::Event.success(
+    def success_outcome(stdout:, stderr:) = Model::StepOutcome.success(
       node, step, stdout:, stderr:
     )
 
@@ -472,26 +416,42 @@ module Apricity
 
     def pipeline_name = pipeline.name
 
-    def run!
+    def run!(&block)
+      sink = Apricity::Configuration.instance.output_sink || NullOutputSink.new
+      sink = block if block_given?
       nodes = PipelineReducer.lower(pipeline)
       graph = PipelineGraph.new(nodes)
       ordered_nodes = graph.topological_sort
-      context = ExecutionContext[{}, {}, {}, graph.dependencies]
-      run(ordered_nodes, context:)
+      context = JobExecution::Context[{}, {}, {}, graph.dependencies]
+
+      t0 = Time.now
+      outcomes = run(ordered_nodes, context:, sink:)
+      t1 = Time.now
+      Console.info(self, "run:complete", pipeline_name: pipeline.name,
+                                         duration_seconds: (t1 - t0).round(2), total_outcomes: outcomes.size)
+
+      outcomes
     end
 
-    def run_node!(node, context: ExecutionContext.empty)
+    def skip_reason(node, context)
       upstream = context.dependencies[node.id] || []
-      if upstream.any? { |id| context.nodes[id] != :success }
-        context.nodes[node.id] = :skipped
-        events = [Model::Event.skipped(node, node.steps.first, reason: "Upstream job failure")]
-        return JobExecutionResult[events:, outputs: {}]
-      end
+      return :upstream_failure if upstream.any? { |id| context.nodes[id] != :success }
 
-      unless verify_conditions(node, context)
+      return :conditions_unmet unless verify_conditions(node, context)
+
+      return :missing_artifact_input if node.inputs
+                                            .select { |i| i.type == :artifact }
+                                            .to_h { |i| [i.key, context.artifacts[i.key]] }
+                                            .any? { |_, v| v.nil? }
+
+      nil
+    end
+
+    def run_node!(node, sink:, context: ExecutionContext.empty)
+      if (reason = skip_reason(node, context))
         context.nodes[node.id] = :skipped
-        events = [Model::Event.skipped(node, node.steps.first, reason: "Conditions not met")]
-        return JobExecutionResult[events:, outputs: {}]
+        outcomes = [Model::StepOutcome.skipped(node, node.steps.first, reason:)]
+        return JobExecution::Result[outcomes:, outputs: {}]
       end
 
       env = {}
@@ -510,23 +470,11 @@ module Apricity
           raise "Unknown input type #{input.type} for input #{input.key}"
         end
       end
-      result = run_node(node, env:, artifact_inputs:)
-      if result.passed?
-        node.outputs.each do |output|
-          case output.type
-          when :value
-            context.values[output.key] = extract_value(result.outputs, output.key)
-          when :artifact
-            context.artifacts[output.key] = extract_value(result.outputs, output.key)
-          else
-            raise "Unknown output type #{output.type} for output #{output.key}"
-          end
-        end
-      end
+      result = run_node(node, env:, artifact_inputs:, sink:)
+      extract_values!(node, result, context) if result.passed?
 
       # Record node status
       status = result.passed? ? :success : :failure
-      status = :skipped if result.events.empty?
       context.nodes[node.id] = status
 
       result
@@ -534,8 +482,22 @@ module Apricity
 
     private
 
-    def run(nodes, context: ExecutionContext.empty) = nodes
-      .flat_map { run_node!(it, context:).events }
+    def extract_values!(node, result, context)
+      node.outputs.each do |output|
+        case output.type
+        when :value
+          context.values[output.key] = extract_value(result.outputs, output.key)
+        when :artifact
+          context.artifacts[output.key] = extract_value(result.outputs, output.key)
+        else
+          raise "Unknown output type #{output.type} for output #{output.key}"
+        end
+      end
+    end
+
+    def run(
+      nodes, sink:, context: ExecutionContext.empty
+    ) = nodes.flat_map { run_node!(it, context:, sink:).outcomes }
 
     def extract_value(outputs, key) = (outputs[key] if outputs.key?(key))
 
@@ -543,8 +505,8 @@ module Apricity
       node.conditions.none? || node.conditions.all? { it.evaluate(context) }
     end
 
-    def run_node(node, env: {}, artifact_inputs: {}) = JobExecutor.new(
-      node:, env:, artifact_inputs:
+    def run_node(node, sink:, env: {}, artifact_inputs: {}) = JobExecutor.new(
+      node:, env:, artifact_inputs:, sink:
     ).perform
   end
 end

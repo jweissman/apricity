@@ -4,21 +4,36 @@
 require "bundler/setup"
 require "yaml"
 require "apricity"
+require "apricity/pipeline_parser"
+
+colorize = ->(text, color_code) { "\e[#{color_code}m#{text}\e[0m" }
 
 # Autobind current directory
-# Apricity.configure do |config|
-#   config.bind_mounts << Apricity::Model::Mount[".", "/work/app", :bind]
-# end
+Apricity.configure do |config|
+  config.bind_mounts << Apricity::Model::Mount[".", "/work/app", :bind]
+  config.output_sink = Apricity::ConsoleOutputSink.new
+end
 
 file = ARGV.shift
-Apricity::Model::Pipeline.from_yaml(File.read(file)).tap do |pipeline|
-  runner = Apricity::PipelineRunner.new(pipeline)
-  events = runner.run!
-  events.each do |event|
-    puts event.inspect
-    puts "[#{event.status.upcase}] #{event.job.name} :: #{event.step}"
-    puts "STDOUT:\n#{event.stdout}" unless event.stdout && event.stdout.empty?
-    puts "STDERR:\n#{event.stderr}" unless event.stderr && event.stderr.empty?
-    puts "-" * 40
+pipeline = Apricity::Model::Pipeline.from_yaml(File.read(file))
+runner = Apricity::PipelineRunner.new(pipeline)
+outcomes = runner.run! do |event|
+  is_chunk = event.is_a?(Apricity::JobExecution::Events::StdoutChunk) || event.is_a?(Apricity::JobExecution::Events::StderrChunk)
+  if is_chunk
+    # print event.chunk
+    next
   end
+
+  puts colorize[event.pretty.capitalize, 34] # blue
+end
+
+puts "\nResults\n-------"
+outcomes.each do |outcome|
+  status = case outcome.status
+           when "success" then colorize.call(outcome.status, 32) # green
+           when "failure" then colorize.call(outcome.status, 31) # red
+           when "skipped" then colorize.call(outcome.status, 33) # yellow
+           else outcome.status
+           end
+  puts " - #{outcome.job.name} :: #{outcome.step}".ljust(40) + " - #{status}"
 end

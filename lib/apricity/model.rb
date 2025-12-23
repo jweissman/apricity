@@ -5,19 +5,17 @@ module Apricity
     Streams = Data.define(:stdout, :stderr)
     Location = Data.define(:node, :step)
 
-    Event = Data.define(
+    StepOutcome = Data.define(
       :action, :job, :step,
       :status, :message,
       :container, :script,
       :stdout, :stderr
-      # :outputs
-      # :artifacts
     ) do
       def successful? = status == "success"
       def failed? = status == "failure"
       def skipped? = status == "skipped"
 
-      def inspect = "#<Event #{action}/#{job}:#{step} - #{status} - #{message} // stdout=#{stdout.bytesize} [#{stdout}] bytes, stderr=#{stderr.bytesize} bytes>"
+      def inspect = "#<StepOutcome #{action}/#{job}:#{step} - #{status} - #{message} // stdout=#{stdout.bytesize} bytes, stderr=#{stderr.bytesize} bytes>"
 
       def self.from_location(location, status:, streams:, message: nil)
         new(
@@ -75,65 +73,10 @@ module Apricity
     Pipeline = Data.define(:name, :on, :actions) do
       def total_steps = actions.sum { |action| action.jobs.sum { |job| job.steps.size } }
 
-      # Example YAML:
-      # actions:
-      #   build:
-      #     jobs:
-      #       - build_and_test:
-      #           runs-on: ruby:3.4
-      #           name: Build and Test Checked-out Apricity
-      #           mounts:
-      #             - source: .
-      #               target: /app
-      #               type: bind
-      #           steps:
-      #             - name: Install dependencies
-      #               run: |
-      #                 gem install bundler
-      #                 bundle install
-
-      #             - name: Run Apricity Specs
-      #               run: |
-      #                 bundle exec rspec spec/lib/apricity_spec.rb
       def self.from_yaml(yaml_data)
         data = YAML.safe_load(yaml_data, symbolize_names: true)
-        puts "Pipeline data: #{data.inspect}"
-        actions = data[:actions].map do |action_name, action_data|
-          puts "Action data: #{action_data.inspect}"
-          jobs = action_data[:jobs].map do |job_entry|
-            job_name, job_data = job_entry.first
-
-            puts "Job data: #{job_data.inspect}"
-            steps = job_data[:steps].map do |step_data|
-              Step[name: step_data[:name], run: Script[lines: step_data[:run].lines]]
-            end
-            inputs = (job_data[:inputs] || []).map do |input_data|
-              Input[input_data[:key], input_data[:type].to_sym]
-            end
-            outputs = (job_data[:outputs] || []).map do |output_data|
-              Output[output_data[:key], output_data[:type].to_sym]
-            end
-            conditions = (job_data[:conditions] || []).map do |cond|
-              Condition[cond[:expression]]
-            end
-            needs = job_data[:needs] || []
-            mounts = (job_data[:mounts] || []).map do |mount_data|
-              Mount[mount_data[:source], mount_data[:target], mount_data[:type].to_sym]
-            end
-            Job[
-              name: job_name,
-              steps:,
-              runs_on: Container[*job_data[:"runs-on"].split(":", 2)],
-              inputs:,
-              outputs:,
-              conditions:,
-              needs:,
-              mounts:
-            ]
-          end
-          Action[name: action_data[:name], jobs:]
-        end
-        new(data[:name], data[:on], actions)
+        actions = PipelineParser.parse_actions(data)
+        new(data[:name] || "default", data[:on], actions)
       end
     end
 
