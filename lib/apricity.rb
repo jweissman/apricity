@@ -13,7 +13,10 @@ require_relative "apricity/model"
 require_relative "apricity/pipeline_graph"
 require_relative "apricity/pipeline_reducer"
 require_relative "apricity/conditions"
+require_relative "apricity/output_sink"
+
 require_relative "apricity/job_execution"
+require_relative "apricity/pipeline_runner"
 
 # Apricity: A lightweight CI/CD pipeline runner using Docker containers
 #
@@ -28,264 +31,198 @@ module Apricity
     yield(Configuration.instance) if block_given?
   end
 
-  # Base class for output sinks
-  class OutputSink
-    def call(event) = handle(event.type, event)
+  # Start/finish timestamps structure
+  Timestamps = Data.define(:started_at, :finished_at)
 
-    protected
-
-    def handle(type, data)
-      raise NotImplementedError, "OutputSink subclasses must implement handle"
-    end
-  end
-
-  # A no-op output sink that discards all events
-  class NullOutputSink < OutputSink
-    def handle(_type, _data); end
-  end
-
-  # Executes a single job inside a Docker container
-  class JobExecutor
-    DEFAULT_READ_TIMEOUT = 300 # seconds
-    attr_reader :node, :env, :artifact_inputs, :sink
-
-    def initialize(
-      node:, env: {}, artifact_inputs: {},
-      sink: Apricity::Configuration.instance.output_sink || NullOutputSink.new
-    )
-      @node = node
-      @env  = env
-      @artifact_inputs = artifact_inputs
-      @effective_working_dir = JobExecution::WORKING_DIR
-      @last_step_executed = nil
-      @prelude = <<~SH
-        set -euo pipefail
-      SH
-      @sink = sink
-    end
-
-    def perform
-      emit(JobExecution::Events::JobStarted[node:])
-      run_job
-    rescue JobExecutionError => e
-      handle_failure(e)
-    ensure
-      container&.delete(force: true)
-    end
-
-    protected
-
-    def run_job
-      bootstrap
-      plan
-      outcomes = execute
-      outputs = collect
-
-      emit(JobExecution::Events::JobFinished[node:, status: :success])
-      JobExecution::Result[outcomes:, outputs:]
-    end
-
-    def handle_failure(exception)
-      Console.error(self, "run_step:error", message: exception.message, job_name: node.job_name, step_name: step&.name)
-      emit(JobExecution::Events::JobFinished[node:, status: :failure])
-      JobExecution::Result[outcomes: [failure_outcome(exception:)], outputs: {}]
-    end
-
-    def bootstrap
-      configure_docker
-      construct_image
-    end
-
-    def planner = @planner ||= JobExecution::Planner.new(node:, env:, artifact_inputs:, config: Apricity::Configuration.instance)
-
-    def plan
-      planner.call
-      @binds            = planner.binds
-      @artifact_outputs = planner.artifact_outputs
-      @effective_working_dir = planner.effective_working_dir
-      @prelude += planner.prelude
-    end
-
-    # Execute the steps inside a Docker container
-    def execute
-      container.start
-      node.steps.map do |step|
-        emit(JobExecution::Events::StepStarted[node:, step:])
-        @last_step_executed = step
-        step_outcome = execute_step(step)
-        emit(JobExecution::Events::StepFinished[node:, step:, status: step_outcome.status])
-        step_outcome
-      end
-    end
-
-    def execute_step(step)
-      stdout, stderr = JobExecution::StepExecutor.new(
-        step:, env:, sink:, node:
-      ).perform(
-        prelude: @prelude,
-        container:,
-        emit: ->(event) { emit(event) },
-        container_options: common_container_options
+  # rubocop:disable Metrics/ModuleLength
+  module Run
+    NodeState = Data.define(:id, :name, :status, :phase, :started_at, :finished_at, :step_states) do
+      def self.for(node, status:, phase:, timestamps:, step_states:) = new(
+        id: node.id, name: node.job_name,
+        status:, phase:,
+        started_at: timestamps.started_at,
+        finished_at: timestamps.finished_at,
+        step_states:
       )
-      success_outcome(stdout:, stderr:)
+
+      def duration_seconds = (finished_at - started_at).round(2)
     end
 
-    # Returns a hash of output key => value or host directory
-    def collect = JobExecution::Collector.new(node:, container:, artifact_outputs: @artifact_outputs).collect
-
-    private
-
-    def emit(event) = @sink&.call(event)
-    def step = @last_step_executed
-    def configure_docker = Docker.options[:read_timeout] = DEFAULT_READ_TIMEOUT
-    def construct_image = Docker::Image.create("fromImage" => image)
-
-    def common_container_options
-      {
-        "Env" => env.map { |k, v| "#{k}=#{v}" },
-        "WorkingDir" => @effective_working_dir,
-        "Tty" => false
-      }
+    StepState = Data.define(:name, :job, :status, :started_at, :finished_at) do
+      def duration_seconds = started_at ? ((finished_at || Time.now) - started_at).round(2) : nil
     end
 
-    def container
-      @container ||= Docker::Container.create(
-        "Image" => image,
-        "AttachStdout" => true, "AttachStderr" => true,
-        "HostConfig" => { "Binds" => @binds },
-        "Cmd" => ["/bin/sh", "-lc", "while true; do sleep 3600; done"],
-        **common_container_options
-      )
-    end
-
-    def failure_outcome(exception:)
-      Model::StepOutcome.failure(node, step, stdout: "", stderr: "", exception:)
-    end
-
-    def success_outcome(stdout:, stderr:) = Model::StepOutcome.success(node, step, stdout:, stderr:)
-    def image = "#{node.runs_on.name}:#{node.runs_on.version}"
-  end
-
-  # Executes a pipeline
-  class PipelineRunner
-    attr_reader :pipeline
-
-    def initialize(pipeline)
-      @pipeline = pipeline
-    end
-
-    def pipeline_name = pipeline.name
-
-    def run!(&block)
-      sink = Apricity::Configuration.instance.output_sink || NullOutputSink.new
-      sink = block if block_given?
-      nodes = PipelineReducer.lower(pipeline)
-      graph = PipelineGraph.new(nodes)
-      context = JobExecution::Context[{}, {}, {}, graph.dependencies]
-      run(graph.topological_sort, context:, sink:)
-    end
-
-    private
-
-    def run(
-      nodes, sink:, context: ExecutionContext.empty
-    )
-      t0 = Time.now
-      ret = nodes.flat_map { run_node!(it, context:, sink:).outcomes }
-      t1 = Time.now
-      Console.debug(self, "run:complete", pipeline_name: pipeline.name,
-                                          duration_seconds: (t1 - t0).round(2), total_outcomes: ret.size)
-      ret
-    end
-
-    def upstream_failures?(node, context)
-      upstream = context.dependencies[node.id] || []
-      upstream.any? { |id| context.nodes[id] != :success }
-    end
-
-    def skip_reason(node, context)
-      return :upstream_failure if upstream_failures?(node, context)
-      return :conditions_unmet unless verify_conditions(node, context)
-      return :missing_artifact_input if node.inputs
-                                            .select { |i| i.type == :artifact }
-                                            .to_h { |i| [i.key, context.artifacts[i.key]] }
-                                            .any? { |_, v| v.nil? }
-
-      nil
-    end
-
-    def skip?(node, context)
-      skip_reason(node, context)
-    end
-
-    def skip_node(node, context, sink)
-      reason = skip_reason(node, context)
-      context.nodes[node.id] = :skipped
-      sink&.call(JobExecution::Events::JobSkipped[node:, reason:])
-      JobExecution::Result[
-        outcomes: [Model::StepOutcome.skipped(node, node.steps.first, reason:)],
-        outputs: {}
-      ]
-    end
-
-    def run_node!(node, sink:, context: ExecutionContext.empty)
-      return skip_node(node, context, sink) if skip?(node, context)
-
-      result = run_node(node, env: environment_values(node, context),
-                              artifact_inputs: artifact_inputs(node, context),
-                              sink:)
-      extract_values(node, result, context) if result.passed?
-      status = result.passed? ? :success : :failure
-      context.nodes[node.id] = status
-      result
-    end
-
-    def artifact_inputs(node, context)
-      node.inputs
-          .select { |i| i.type == :artifact }
-          .to_h { |i| [i.key, context.artifacts[i.key]] }
-    end
-
-    def environment_values(node, context)
-      node.inputs.map do |input|
-        case input.type
-        when :artifact
-          # skip
-        when :value
-          [input.key.upcase, context.value(input.key)]
-        else
-          raise "Unknown input type #{input.type} for input #{input.key}"
+    State = Data.define(:pipeline, :nodes) do
+      def self.empty(pipeline)
+        states = {}
+        nodes = PipelineReducer.lower(pipeline)
+        nodes.each do |node|
+          states[node.id] = empty_node_state_for(node)
         end
-      end.compact.to_h
-    end
 
-    def extract_values(node, result, context)
-      node.outputs.each do |output|
-        extract_value!(output, result, context)
+        new(pipeline:, nodes: states)
+      end
+
+      def self.empty_node_state_for(node)
+        NodeState.for(
+          node,
+          status: :pending,
+          phase: :pending,
+          timestamps: Timestamps[started_at: nil, finished_at: nil],
+          step_states: []
+        )
+      end
+
+      def reduce(event)
+        new_states = nodes.dup
+        handle_event(event, new_states)
+        self.class.new(pipeline:, nodes: new_states)
+      end
+
+      def handle_event(event, node_states)
+        case event.type
+        when :job_started then job_started(event, node_states)
+        when :job_skipped then job_skipped(event, node_states)
+        when :job_finished then job_finished(event, node_states)
+        when :step_started then step_started(event, node_states)
+        when :step_finished then step_finished(event, node_states)
+        end
+      end
+
+      def job_started(event, node_states)
+        node_states[event.node.id] = NodeState.for(
+          event.node,
+          status: nil,
+          phase: :running,
+          timestamps: Timestamps[
+            started_at: event.started_at,
+            finished_at: nil
+          ],
+          step_states: initial_step_states(event.node)
+        )
+      end
+
+      def job_skipped(event, node_states)
+        node_states[event.node.id] = NodeState.for(
+          event.node,
+          status: :skipped,
+          phase: :skipped,
+          timestamps: Timestamps[
+            started_at: event.skipped_at,
+            finished_at: event.skipped_at
+          ],
+          step_states: []
+        )
+      end
+
+      def job_finished(event, node_states)
+        node_states[event.node.id] = NodeState.for(
+          event.node,
+          status: event.status,
+          phase: :completed,
+          timestamps: Timestamps[
+            started_at: node_states[event.node.id]&.started_at,
+            finished_at: event.finished_at
+          ],
+          step_states: node_states[event.node.id]&.step_states || []
+        )
+      end
+
+      def step_started(event, node_states)
+        node_state = node_states[event.node.id]
+        node_states[event.node.id] = NodeState.for(
+          event.node,
+          status: node_state.status, phase: node_state.phase,
+          timestamps: timestamps_for(node_state),
+          step_states: start_step_state(node_states[event.node.id]&.step_states, event)
+        )
+      end
+
+      def step_finished(event, node_states)
+        node_state = node_states[event.node.id]
+        node_states[event.node.id] = NodeState.for(
+          event.node,
+          status: node_state.status, phase: node_state.phase,
+          timestamps: timestamps_for(node_state),
+          step_states: update_step_states(node_states[event.node.id]&.step_states, event)
+        )
+      end
+
+      def timestamps_for(node_state)
+        Timestamps[
+          started_at: node_state.started_at,
+          finished_at: node_state.finished_at
+        ]
+      end
+
+      def initial_step_states(node)
+        node.steps.map do |step|
+          StepState[
+            name: step.name, job: node.job_name, status: :pending,
+            started_at: nil, finished_at: nil
+          ]
+        end
+      end
+
+      def start_step_state(step_states, event)
+        step_states.map do |step_state|
+          next step_state unless step_state.job == event.node.job_name && step_state.name == event.step.name
+
+          StepState[
+            name: step_state.name,
+            job: step_state.job,
+            status: :running,
+            started_at: event.started_at,
+            finished_at: nil
+          ]
+        end
+      end
+
+      def update_step_states(step_states, event)
+        step_states.map do |step_state|
+          update_matching_step_state(step_state, event)
+        end
+      end
+
+      def update_matching_step_state(step_state, event)
+        return step_state unless step_state.job == event.node.job_name && step_state.name == event.step.name
+
+        StepState[
+          name: step_state.name,
+          job: step_state.job,
+          status: event.status,
+          started_at: step_state.started_at,
+          finished_at: event.finished_at
+        ]
       end
     end
 
-    def extract_value!(output, result, context)
-      case output.type
-      when :value
-        context.values[output.key] = extract_value(result.outputs, output.key)
-      when :artifact
-        context.artifacts[output.key] = extract_value(result.outputs, output.key)
-      else
-        raise "Unknown output type #{output.type} for output #{output.key}"
+    Result = Data.define(:run, :started_at, :finished_at, :step_states, :final_run_state) do
+      def duration_seconds = (finished_at - started_at).round(2)
+      def failed_nodes = final_run_state.nodes.values.select { it.status == :failure }
+      def retryable? = failed_nodes.any?
+      def passed? = failed_nodes.empty?
+    end
+
+    Instance = Data.define(:id, :pipeline, :git_sha) do
+      def self.create(pipeline, git_sha: nil) = new(id: SecureRandom.uuid, pipeline:, git_sha:)
+
+      def perform(&)
+        t0 = Time.now
+        events = []
+        step_states = runner.run! do |event|
+          events << event
+          yield(event) if block_given?
+        end
+        final_run_state = events.reduce(State.empty(pipeline)) { |state, event| state.reduce(event) }
+        t1 = Time.now
+        Result[run: self, step_states:, final_run_state:, started_at: t0, finished_at: t1]
       end
-    end
 
-    def extract_value(outputs, key) = (outputs[key] if outputs.key?(key))
+      private
 
-    def verify_conditions(node, context)
-      node.conditions.none? || node.conditions.all? { it.evaluate?(context) }
-    end
-
-    def run_node(node, sink:, env: {}, artifact_inputs: {})
-      JobExecutor.new(
-        node:, env:, artifact_inputs:, sink:
-      ).perform
+      def runner = Apricity::PipelineRunner.new(pipeline)
     end
   end
+  # rubocop:enable Metrics/ModuleLength
 end

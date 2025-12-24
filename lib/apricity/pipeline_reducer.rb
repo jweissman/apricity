@@ -15,7 +15,7 @@ module Apricity
     end
 
     def self.build_job_node(job, action) = JobExecution::Node.new(
-      id: SecureRandom.uuid,
+      id: "#{action.name}::#{job.name}",
       inputs: job.inputs, outputs: job.outputs,
       conditions: job.conditions, needs: job.needs,
       runs_on: job.runs_on,

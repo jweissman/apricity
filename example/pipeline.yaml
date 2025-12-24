@@ -1,6 +1,30 @@
 actions:
   build:
     jobs:
+      - quality:
+          runs-on: ruby:3.4
+          name: Check Apricity Code Quality
+          mounts:
+            # Use DinD to allow apricity to test itself
+            - source: /var/run/docker.sock
+              target: /var/run/docker.sock
+              type: bind
+ 
+
+          steps:
+            - name: Bundle install
+              run: |
+                bundle config set --local path 'vendor/bundle'
+                bundle install
+
+            # - name: Cache gems
+            #   uses: apricity/cache
+            #   with:
+            #     key: bundler-${{ hashfiles('Gemfile.lock') }}
+
+            - name: Run code quality tools
+              run: |
+                bundle exec reek lib
       - lint:
           runs-on: ruby:3.4
           name: Lint Apricity Codebase
@@ -29,7 +53,7 @@ actions:
       - test:
           runs-on: ruby:3.4
           name: Build and Test Apricity
-          needs: [lint]
+          needs: [lint, quality]
           # outputs:
           #   - test-report: rspec.json
           mounts:
@@ -51,4 +75,4 @@ actions:
 
             - name: Run tests
               run: |
-                bundle exec rspec
+                bundle exec rspec --fail-fast --format documentation 

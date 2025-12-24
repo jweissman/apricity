@@ -3,7 +3,7 @@
 module Apricity
   # Global configuration for Apricity
   class Configuration
-    attr_accessor :bind_mounts, :output_sink
+    attr_reader :bind_mounts, :output_sink
 
     def initialize
       @bind_mounts = []

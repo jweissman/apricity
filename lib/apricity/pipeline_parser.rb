@@ -70,9 +70,9 @@ module Apricity
     end
 
     def self.parse_mounts(mount_data_array = [])
-      mount_data_array.map do |mount_data|
+      mount_data_array&.map do |mount_data|
         Mount[mount_data[:source], mount_data[:target], mount_data[:type].to_sym]
-      end
+      end || []
     end
   end
 end

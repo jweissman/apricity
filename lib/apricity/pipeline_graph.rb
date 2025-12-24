@@ -14,7 +14,7 @@ module Apricity
 
       def sorted_nodes
         setup
-        sort_nodes!
+        sort_nodes
         raise "cycle detected" unless order.size == ids.size
 
         nodes.select { |n| order.include?(n.id) }
@@ -29,7 +29,7 @@ module Apricity
         end
       end
 
-      def sort_nodes!
+      def sort_nodes
         until queue.empty?
           id = queue.shift
           order << id
@@ -61,10 +61,13 @@ module Apricity
     end
 
     def topological_sort
+      analyze
+      Toposort.new(nodes:, dependencies:).sorted_nodes
+    end
+
+    def analyze
       analyze_producers unless @analyzed_producers
       analyze_dependencies unless @analyzed_dependencies
-
-      Toposort.new(nodes:, dependencies:).sorted_nodes
     end
 
     private

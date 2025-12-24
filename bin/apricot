@@ -6,34 +6,15 @@ require "yaml"
 require "debug"
 require "apricity"
 require "apricity/pipeline_parser"
-
-colorize = ->(text, color_code) { "\e[#{color_code}m#{text}\e[0m" }
+require "apricity/cli/apricot"
 
 # Autobind current directory
 Apricity.configure do |config|
   config.bind_mounts << Apricity::Model::Mount[".", "/work/app", :bind]
 end
 
+git_sha = `git rev-parse HEAD`.chomp
 file = ARGV.shift
 pipeline = Apricity::Model::Pipeline.from_yaml(File.read(file))
-runner = Apricity::PipelineRunner.new(pipeline)
-outcomes = runner.run! do |event|
-  is_chunk = %i[stdout_chunk stderr_chunk].include?(event.type)
-  if is_chunk
-    print colorize[event.chunk, 90] # gray
-    next
-  end
-
-  puts colorize[event.pretty.capitalize, 34] # blue
-end
-
-puts "\nResults\n-------"
-outcomes.each do |outcome|
-  status = case outcome.status
-           when "success" then colorize.call(outcome.status, 32) # green
-           when "failure" then colorize.call(outcome.status, 31) # red
-           when "skipped" then colorize.call(outcome.status, 33) # yellow
-           else outcome.status
-           end
-  puts " - #{outcome.job.name} :: #{outcome.step}".ljust(40) + " - #{status}"
-end
+apricot = Apricity::CLI::Apricot.new
+apricot.monitor_execution(pipeline:, git_sha:)

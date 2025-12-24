@@ -280,7 +280,7 @@ module Apricity
         end
 
         it "runs jobs in the correct order based on dependencies" do
-          expect(job_order).to eq(%w[test1 test2 deploy])
+          expect(job_order).to eq(%w[test1 test2 deploy]).or eq(%w[test2 test1 deploy])
         end
 
         it "fails the first test job" do

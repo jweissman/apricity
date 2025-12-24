@@ -13,7 +13,7 @@ module Apricity
     end
     Exists = Data.define(:artifact_key) do
       def to_s = "Exists(#{artifact_key})"
-      def evaluate?(context) = !context.artifact(artifact_key).nil?
+      def evaluate?(context) = context.artifact(artifact_key)
     end
     All = Data.define(:conds) do
       def to_s = "All(#{conds.map(&:to_s).join(", ")})"

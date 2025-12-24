@@ -15,7 +15,20 @@ module Apricity
       :job_name,
       :action_name,
       :mounts
-    )
+    ) do
+      def self.from_model(node_id, action:, job:)
+        new(
+          id: node_id,
+          runs_on: job.runs_on,
+          steps: job.steps,
+          inputs: job.inputs, outputs: job.outputs,
+          conditions: job.conditions, needs: job.needs,
+          job_name: job.name,
+          action_name: action.name,
+          mounts: job.mounts
+        )
+      end
+    end
 
     Context = Data.define(
       :nodes,       # job_id => :success | :failure | :skipped
@@ -40,28 +53,29 @@ module Apricity
         "#{event.node.action_name}##{event.node.job_name}"
       end
 
-      JobStarted = Data.define(:node) do
+      JobStarted = Data.define(:node, :started_at) do
         def type = :job_started
         def pretty = "started job #{node.job_name}"
       end
-      JobSkipped = Data.define(:node, :reason) do
+      JobSkipped = Data.define(:node, :reason, :skipped_at) do
         def type = :job_skipped
         def pretty = "skipped #{node.job_name} due to #{reason}"
       end
-      JobFinished = Data.define(:node, :status) do
+      JobFinished = Data.define(:node, :status, :finished_at) do
         def type = :job_finished
         def pretty = "finish job with status #{status}"
       end
 
-      StepStarted = Data.define(:node, :step) do
+      StepStarted = Data.define(:node, :step, :started_at) do
         def type = :step_started
         def pretty = "started step #{step.name}"
       end
-      StepFinished = Data.define(:node, :step, :status) do
+      StepFinished = Data.define(:node, :step, :status, :finished_at) do
         def type = :step_finished
         def pretty = "finished step #{step.name}"
       end
 
+      # No timestamp needed for chunk events as they are numerous
       StdoutChunk = Data.define(:node, :step, :chunk) do
         def type = :stdout_chunk
         def pretty = "(stdout chunk from step #{step.name})"
@@ -322,6 +336,129 @@ module Apricity
         end
         [out, err, result[2]]
       end
+    end
+
+    # Executes a single job inside a Docker container
+    class Orchestrator
+      DEFAULT_READ_TIMEOUT = 300 # seconds
+      attr_reader :node, :env, :artifact_inputs, :sink
+
+      def initialize(
+        node:, env: {}, artifact_inputs: {},
+        sink: Apricity::Configuration.instance.output_sink || NullOutputSink.new
+      )
+        @node = node
+        @env  = env
+        @artifact_inputs = artifact_inputs
+        @effective_working_dir = JobExecution::WORKING_DIR
+        @last_step_executed = nil
+        @prelude = <<~SH
+          set -euo pipefail
+        SH
+        @sink = sink
+      end
+
+      def perform
+        emit(JobExecution::Events::JobStarted[node:, started_at: Time.now])
+        run_job
+      rescue JobExecutionError => e
+        handle_failure(e)
+      ensure
+        container&.delete(force: true)
+      end
+
+      protected
+
+      def run_job
+        bootstrap
+        plan
+        outcomes = execute
+        outputs = collect
+
+        emit(JobExecution::Events::JobFinished[node:, status: :success, finished_at: Time.now])
+        JobExecution::Result[outcomes:, outputs:]
+      end
+
+      def handle_failure(exception)
+        Console.error(self, "run_step:error", message: exception.message, job_name: node.job_name,
+                                              step_name: step&.name)
+        emit(JobExecution::Events::JobFinished[node:, status: :failure, finished_at: Time.now])
+        JobExecution::Result[outcomes: [failure_outcome(exception:)], outputs: {}]
+      end
+
+      def bootstrap
+        configure_docker
+        construct_image
+      end
+
+      def planner = @planner ||= JobExecution::Planner.new(node:, env:, artifact_inputs:, config: Apricity::Configuration.instance)
+
+      def plan
+        planner.call
+        @binds            = planner.binds
+        @artifact_outputs = planner.artifact_outputs
+        @effective_working_dir = planner.effective_working_dir
+        @prelude += planner.prelude
+      end
+
+      # Execute the steps inside a Docker container
+      def execute
+        container.start
+        node.steps.map do |step|
+          emit(JobExecution::Events::StepStarted[node:, step:, started_at: Time.now])
+          @last_step_executed = step
+          step_outcome = execute_step(step)
+          emit(JobExecution::Events::StepFinished[node:, step:, status: step_outcome.status, finished_at: Time.now])
+          step_outcome
+        end
+      end
+
+      def execute_step(step)
+        stdout, stderr = JobExecution::StepExecutor.new(
+          step:, env:, sink:, node:
+        ).perform(
+          prelude: @prelude,
+          container:,
+          emit: ->(event) { emit(event) },
+          container_options: common_container_options
+        )
+        success_outcome(stdout:, stderr:)
+      end
+
+      # Returns a hash of output key => value or host directory
+      def collect = JobExecution::Collector.new(node:, container:, artifact_outputs: @artifact_outputs).collect
+
+      private
+
+      def emit(event) = @sink&.call(event)
+      def step = @last_step_executed
+      def configure_docker = Docker.options[:read_timeout] = DEFAULT_READ_TIMEOUT
+      def construct_image = Docker::Image.create("fromImage" => image)
+
+      def common_container_options
+        {
+          "Env" => env.map { |k, v| "#{k}=#{v}" },
+          "WorkingDir" => @effective_working_dir,
+          "Tty" => false
+        }
+      end
+
+      def container
+        @container ||= Docker::Container.create(
+          "Image" => image,
+          "AttachStdout" => true, "AttachStderr" => true,
+          "HostConfig" => { "Binds" => @binds },
+          "Cmd" => ["/bin/sh", "-lc", "while true; do sleep 3600; done"],
+          **common_container_options
+        )
+      end
+
+      def failure_outcome(exception:)
+        Model::StepOutcome.failure(node, step, stdout: "", stderr: "", exception:)
+      end
+
+      def success_outcome(stdout:, stderr:) = Model::StepOutcome.success(node, step, stdout:, stderr:)
+      def image = "#{node.runs_on.name}:#{node.runs_on.version}"
     end
   end
 end
