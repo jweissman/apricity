@@ -3,6 +3,7 @@
 
 require "bundler/setup"
 require "yaml"
+require "debug"
 require "apricity"
 require "apricity/pipeline_parser"
 
@@ -11,16 +12,15 @@ colorize = ->(text, color_code) { "\e[#{color_code}m#{text}\e[0m" }
 # Autobind current directory
 Apricity.configure do |config|
   config.bind_mounts << Apricity::Model::Mount[".", "/work/app", :bind]
-  config.output_sink = Apricity::ConsoleOutputSink.new
 end
 
 file = ARGV.shift
 pipeline = Apricity::Model::Pipeline.from_yaml(File.read(file))
 runner = Apricity::PipelineRunner.new(pipeline)
 outcomes = runner.run! do |event|
-  is_chunk = event.is_a?(Apricity::JobExecution::Events::StdoutChunk) || event.is_a?(Apricity::JobExecution::Events::StderrChunk)
+  is_chunk = %i[stdout_chunk stderr_chunk].include?(event.type)
   if is_chunk
-    # print event.chunk
+    print colorize[event.chunk, 90] # gray
     next
   end
 

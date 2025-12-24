@@ -13,3 +13,8 @@ gem "irb"
 gem "rake", "~> 13.0"
 gem "rspec", "~> 3.0"
 gem "rubocop", "~> 1.21"
+
+gem "brakeman", "~> 7.1"
+gem "reek", "~> 6.5"
+
+gem "rubocop-rspec", "~> 3.8"

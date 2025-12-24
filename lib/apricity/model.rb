@@ -15,7 +15,9 @@ module Apricity
       def failed? = status == "failure"
       def skipped? = status == "skipped"
 
-      def inspect = "#<StepOutcome #{action}/#{job}:#{step} - #{status} - #{message} // stdout=#{stdout.bytesize} bytes, stderr=#{stderr.bytesize} bytes>"
+      def inspect
+        "#<StepOutcome #{action}/#{job}:#{step} - #{status} - #{message}>"
+      end
 
       def self.from_location(location, status:, streams:, message: nil)
         new(
@@ -66,7 +68,7 @@ module Apricity
     Job = Data.define(:name, :steps, :runs_on, :inputs, :outputs, :conditions, :needs, :mounts) do
       # Initializer to provide default empty arrays/hashes
       def initialize(name:, steps:, runs_on:, inputs: [], outputs: [], conditions: [], needs: [], mounts: [])
-        super(name:, steps:, runs_on:, inputs:, outputs:, conditions:, needs:, mounts:)
+        super
       end
     end
     Action = Data.define(:name, :jobs)
@@ -120,15 +122,17 @@ module Apricity
           self
         end
 
-        def to_job = Model::Job[
-          name:,
-          steps:,
-          runs_on:,
-          inputs:,
-          outputs:,
-          conditions:,
-          needs:
-        ]
+        def to_job
+          Model::Job[
+                  name:,
+                  steps:,
+                  runs_on:,
+                  inputs:,
+                  outputs:,
+                  conditions:,
+                  needs:
+                ]
+        end
       end
 
       # Action builder DSL

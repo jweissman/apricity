@@ -1,8 +1,21 @@
 AllCops:
-  TargetRubyVersion: 3.2
+  TargetRubyVersion: 3.4
+  NewCops: enable
+  SuggestExtensions: false
+
+plugins:
+  - rubocop-rspec
 
 Style/StringLiterals:
   EnforcedStyle: double_quotes
 
 Style/StringLiteralsInInterpolation:
   EnforcedStyle: double_quotes
+
+# Exclude spec
+Metrics/BlockLength:
+  Exclude:
+    - 'spec/**/*.rb'
+Metrics/ModuleLength:
+  Exclude:
+    - 'spec/**/*.rb'

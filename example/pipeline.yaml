@@ -1,9 +1,37 @@
 actions:
   build:
     jobs:
-      - build_and_test:
+      - lint:
+          runs-on: ruby:3.4
+          name: Lint Apricity Codebase
+          # outputs:
+          #   - rubocop-report: rubocop.json
+          mounts:
+            # Use DinD to allow apricity to test itself
+            - source: /var/run/docker.sock
+              target: /var/run/docker.sock
+              type: bind
+ 
+          steps:
+            - name: Bundle install
+              run: |
+                bundle config set --local path 'vendor/bundle'
+                bundle install
+            - name: Run linters
+              run: |
+                bundle exec rubocop
+
+            # - name: Cache gems
+            #   uses: apricity/cache
+            #   with:
+            #     key: bundler-${{ hashfiles('Gemfile.lock') }}
+
+      - test:
           runs-on: ruby:3.4
           name: Build and Test Apricity
+          needs: [lint]
+          # outputs:
+          #   - test-report: rspec.json
           mounts:
             # Use DinD to allow apricity to test itself
             - source: /var/run/docker.sock

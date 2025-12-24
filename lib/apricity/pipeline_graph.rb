@@ -3,6 +3,52 @@
 module Apricity
   # Analyzes job nodes to determine dependencies and execution order
   class PipelineGraph
+    # Internal class to perform topological sorting
+    class Toposort
+      attr_reader :nodes, :dependencies
+
+      def initialize(nodes:, dependencies:)
+        @nodes = nodes
+        @dependencies = dependencies
+      end
+
+      def sorted_nodes
+        setup
+        sort_nodes!
+        raise "cycle detected" unless order.size == ids.size
+
+        nodes.select { |n| order.include?(n.id) }
+             .sort_by { |n| order.index(n.id) }
+      end
+
+      private
+
+      def setup
+        dependencies.each do |to, froms|
+          froms.each { indegree[to] += 1 }
+        end
+      end
+
+      def sort_nodes!
+        until queue.empty?
+          id = queue.shift
+          order << id
+
+          dependencies.each do |to, froms|
+            next unless froms.include?(id)
+
+            indegree[to] -= 1
+            queue << to if indegree[to].zero?
+          end
+        end
+      end
+
+      def ids = nodes.map(&:id)
+      def indegree = @indegree ||= ids.to_h { |id| [id, 0] }
+      def queue = @queue ||= ids.select { |id| indegree[id].zero? }
+      def order = @order ||= []
+    end
+
     attr_reader :nodes, :dependencies
 
     def initialize(nodes)
@@ -14,6 +60,15 @@ module Apricity
       @analyzed_producers = false
     end
 
+    def topological_sort
+      analyze_producers unless @analyzed_producers
+      analyze_dependencies unless @analyzed_dependencies
+
+      Toposort.new(nodes:, dependencies:).sorted_nodes
+    end
+
+    private
+
     def analyze_producers
       nodes.each do |n|
         n.outputs.each do |out|
@@ -24,59 +79,34 @@ module Apricity
       end
 
       @analyzed_producers = true
-      true
     end
 
     def analyze_dependencies
       nodes.each do |n|
-        n.inputs.each do |inp|
-          if (p = @producer[inp.key])
-            @dependencies[n.id] << p
-          end
-        end
-        n.needs.each do |need_job_name|
-          need_node = nodes.find { |node| node.job_name == need_job_name }
-          raise "unknown needed job #{need_job_name} for job #{n.job_name}" unless need_node
+        analyze_node_inputs(n)
+        analyze_node_needs(n)
 
-          @dependencies[n.id] << need_node.id
-        end
         @dependencies[n.id].uniq!
       end
 
       @analyzed_dependencies = true
-      true
     end
 
-    def topological_sort
-      analyze_producers unless @analyzed_producers
-      analyze_dependencies unless @analyzed_dependencies
-
-      ids = nodes.map(&:id)
-      indegree = ids.to_h { |id| [id, 0] }
-
-      @dependencies.each do |to, froms|
-        froms.each { indegree[to] += 1 }
-      end
-
-      queue = ids.select { |id| indegree[id].zero? }
-      order = []
-
-      until queue.empty?
-        id = queue.shift
-        order << id
-
-        @dependencies.each do |to, froms|
-          next unless froms.include?(id)
-
-          indegree[to] -= 1
-          queue << to if indegree[to].zero?
+    def analyze_node_inputs(node)
+      node.inputs.each do |inp|
+        if (p = @producer[inp.key])
+          @dependencies[node.id] << p
         end
       end
+    end
 
-      raise "cycle detected" unless order.size == ids.size
+    def analyze_node_needs(node)
+      node.needs.each do |need_job_name|
+        need_node = nodes.find { |node| node.job_name.to_sym == need_job_name.to_sym }
+        raise "unknown needed job #{need_job_name} for job #{node.job_name}" unless need_node
 
-      # order
-      nodes.select { |n| order.include?(n.id) }.sort_by { |n| order.index(n.id) }
+        @dependencies[node.id] << need_node.id
+      end
     end
   end
 end
