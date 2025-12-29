@@ -1,0 +1,47 @@
+actions:
+  check:
+    jobs:
+      - quality:
+          runs-on: ruby:3.4
+          name: Check Apricity Code Quality
+          steps:
+            - name: Bundle install
+              run: |
+                bundle config set --local path 'vendor/bundle'
+                bundle install
+            - name: Run code quality tools
+              run: |
+                bundle exec reek lib
+      - lint:
+          runs-on: ruby:3.4
+          name: Lint Apricity Codebase
+          steps:
+            - name: Bundle install
+              run: |
+                bundle config set --local path 'vendor/bundle'
+                bundle install
+            - name: Run linters
+              run: |
+                bundle exec rubocop
+
+      - test:
+          runs-on: ruby:3.4
+          name: Build and Test Apricity
+          needs: [lint, quality]
+          outputs:
+            - key: test-outputs
+              type: artifact
+          plugins:
+            - uses: apricity/example-plugin
+              with:
+                example-key: example-value
+          steps:
+            - name: Bundle install
+              run: |
+                bundle config set --local path 'vendor/bundle'
+                bundle install
+            - name: Run tests
+              run: |
+                bundle exec rspec \
+                  --fail-fast \
+                  --format progress

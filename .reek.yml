@@ -28,3 +28,5 @@ detectors:
     enabled: false
   RepeatedConditional:
     enabled: false
+  ManualDispatch:
+    enabled: false

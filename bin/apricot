@@ -5,7 +5,7 @@ require "bundler/setup"
 require "yaml"
 require "debug"
 require "apricity"
-require "apricity/pipeline_parser"
+require "apricity/pipeline/parser"
 require "apricity/cli/apricot"
 
 # Autobind current directory
@@ -13,8 +13,8 @@ Apricity.configure do |config|
   config.bind_mounts << Apricity::Model::Mount[".", "/work/app", :bind]
 end
 
+file = ARGV.first || "apricity.yaml"
 git_sha = `git rev-parse HEAD`.chomp
-file = ARGV.shift
-pipeline = Apricity::Model::Pipeline.from_yaml(File.read(file))
+pipeline = Apricity::Model::Pipeline.from_file(file)
 apricot = Apricity::CLI::Apricot.new
 apricot.monitor_execution(pipeline:, git_sha:)

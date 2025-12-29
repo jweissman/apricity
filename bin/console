@@ -3,9 +3,13 @@
 
 require "bundler/setup"
 require "apricity"
+require "apricity/pipeline_parser"
 
 # You can add fixtures and/or initialization code here to make experimenting
 # with your gem easier. You can also use a different console, if you like.
+require "yaml"
+@file = "example/pipeline.yaml"
+@pipeline = Apricity::Model::Pipeline.from_yaml(File.read(@file))
 
 require "irb"
 IRB.start(__FILE__)

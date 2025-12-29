@@ -18,7 +18,7 @@ module Apricity
 
       def handle_event(event, state)
         state = state.reduce(event)
-        render_tui(state)
+        # render_tui(state)
 
         is_chunk = %i[stdout_chunk stderr_chunk].include?(event.type)
         if is_chunk

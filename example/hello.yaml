@@ -1,0 +1,28 @@
+name: Hello World Pipeline
+actions:
+  test:
+    jobs:
+      - test:
+          runs-on: ruby:3.4
+          name: Hello World Test Job
+          plugins:
+            - apricity/junit-reporter
+          outputs:
+            - key: test-output
+              type: artifact
+              junit_report: rspec.xml
+          steps:
+            - name: Bundle install
+              run: |
+                bundle config set --local path 'vendor/bundle'
+                bundle install
+
+            - name: Run simple test
+              run: |
+                pwd
+                bundle exec rspec \
+                  --fail-fast \
+                  --format progress \
+                  --format RspecJunitFormatter \
+                  --out ../artifacts/test-output/rspec.xml \
+                  spec/greeter_spec.rb

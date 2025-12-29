@@ -1,11 +1,12 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "apricity/model/builders"
 
 # shared examples for apricity pipelines
 RSpec.shared_examples "a successful pipeline" do
-  let(:pipeline_runner) { Apricity::PipelineRunner.new(pipeline) }
-  let(:pipeline_outcomes) { pipeline_runner.run! }
+  let(:pipeline_runner) { Apricity::Pipeline::Runner.new(pipeline:) }
+  let(:pipeline_outcomes) { pipeline_runner.run }
 
   it "has outcomes for all steps" do
     expect(pipeline_outcomes).to all(be_a(Apricity::Model::StepOutcome))
@@ -26,13 +27,13 @@ module Apricity
 
   RSpec.describe Apricity do
     describe "runtime pipeline execution" do
-      subject(:runner) { PipelineRunner.new(pipeline) }
+      subject(:runner) { Pipeline::Runner.new(pipeline:) }
       let(:container) { Container.new("ruby", "3.4") }
-      let(:outcomes) { runner.run! }
+      let(:outcomes) { runner.run }
       let(:job_order) { outcomes.map(&:job).uniq }
 
       describe "simple pipeline" do
-        let(:command) { Script.new(lines: ["ruby -e 'puts \"Hello, World!\"'"]) }
+        let(:command) { Script.new(source: "ruby -e 'puts \"Hello, World!\"'") }
         let(:pipeline) { PipelineBuilder.single_command(container:, command:) }
 
         it_behaves_like "a successful pipeline"
@@ -57,7 +58,7 @@ module Apricity
       end
 
       describe "echo pipeline" do
-        let(:command) { Script.new(lines: ["echo 'Hello, Apricity!'"]) }
+        let(:command) { Script.new(source: "echo 'Hello, Apricity!'") }
         let(:pipeline) { PipelineBuilder.single_command(container:, command:) }
 
         it_behaves_like "a successful pipeline"
@@ -68,7 +69,7 @@ module Apricity
       end
 
       describe "failing pipeline" do
-        let(:command) { Script.new(lines: ["exit 1"]) }
+        let(:command) { Script.new(source: "exit 1") }
         let(:pipeline) { PipelineBuilder.single_command(container:, command:) }
 
         it "captures failure of a command" do
@@ -86,8 +87,8 @@ module Apricity
             .new("shared-container")
             .action("ci") do |act|
               act.job("build", runs_on: container) do |job|
-                job.step("step1", run: Script.new(lines: ["echo 'Step 1' > /work/step.txt"]))
-                job.step("step2", run: Script.new(lines: ["cat /work/step.txt"]))
+                job.step("step1", run: Script.new(source: "echo 'Step 1' > /work/step.txt"))
+                job.step("step2", run: Script.new(source: "cat /work/step.txt"))
               end
             end
             .to_pipeline
@@ -107,11 +108,11 @@ module Apricity
             .action("ci") do |act|
               act.job("test", runs_on: container) do |job|
                 job.input("data", :value)
-                job.step("test", run: Script.new(lines: ["echo test"]))
+                job.step("test", run: Script.new(source: "echo test"))
               end
               act.job("build", runs_on: container) do |job|
                 job.output("data", :value)
-                job.step("build", run: Script.new(lines: ["echo data=ok >> $APRICITY_OUTPUT"]))
+                job.step("build", run: Script.new(source: "echo data=ok >> $APRICITY_OUTPUT"))
               end
             end
             .to_pipeline
@@ -131,11 +132,11 @@ module Apricity
             .action("ci") do |act|
               act.job("deploy", runs_on: container) do |job|
                 job.input("version", :value)
-                job.step("deploy", run: Script.new(lines: ["echo Deploying version $VERSION"]))
+                job.step("deploy", run: Script.new(source: "echo Deploying version $VERSION"))
               end
               act.job("build", runs_on: container) do |job|
                 job.output("version", :value)
-                job.step("build", run: Script.new(lines: ["echo version=1.2.3 >> $APRICITY_OUTPUT"]))
+                job.step("build", run: Script.new(source: "echo version=1.2.3 >> $APRICITY_OUTPUT"))
               end
             end
             .to_pipeline
@@ -155,7 +156,7 @@ module Apricity
             .action("ci") do |act|
               act.job("build", runs_on: container) do |job|
                 job.output("version", :value)
-                job.step("build", run: Script.new(lines: ["echo nope"]))
+                job.step("build", run: Script.new(source: "echo nope"))
               end
             end
             .to_pipeline
@@ -178,11 +179,11 @@ module Apricity
               act.job("deploy", runs_on: container) do |job|
                 job.input("version", :value)
                 job.condition(Conditions::Equals.new("version", "1.2.3"))
-                job.step("deploy", run: Script.new(lines: ["echo deploy"]))
+                job.step("deploy", run: Script.new(source: "echo deploy"))
               end
               act.job("build", runs_on: container) do |job|
                 job.output("version", :value)
-                job.step("build", run: Script.new(lines: ["echo version=0.1.0 >> $APRICITY_OUTPUT"]))
+                job.step("build", run: Script.new(source: "echo version=0.1.0 >> $APRICITY_OUTPUT"))
               end
             end
             .to_pipeline
@@ -216,28 +217,27 @@ module Apricity
               act.job("deploy", runs_on: container) do |job|
                 job.input("test1_result", :value)
                 job.input("test2_result", :value)
-                job.step("deploy", run: Script.new(lines: ["echo deploy"]))
+                job.step("deploy", run: Script.new(source: "echo deploy"))
               end
 
               act.job("test1", runs_on: container) do |job|
                 job.input("dist", :artifact)
                 job.output("test1_result", :value)
-                job.step("test1", run: Script.new(lines: ["echo test1_result=ok >> $APRICITY_OUTPUT"]))
+                job.step("test1", run: Script.new(source: "echo test1_result=ok >> $APRICITY_OUTPUT"))
               end
 
               act.job("test2", runs_on: container) do |job|
                 job.input("dist", :artifact)
                 job.input("test1_result", :value)
                 job.output("test2_result", :value)
-                job.step("test2", run: Script.new(lines: ["echo test2_result=ok >> $APRICITY_OUTPUT"]))
+                job.step("test2", run: Script.new(source: "echo test2_result=ok >> $APRICITY_OUTPUT"))
               end
 
               act.job("build", runs_on: container) do |job|
                 job.output("dist", :artifact)
-                job.step("build", run: Script.new(lines: [
-                                                    "mkdir -p dist",
-                                                    "echo build > artifacts/dist/artifact.txt"
-                                                  ]))
+                job.step("build", run: Script.new(source:
+                                                    "mkdir -p dist \n" \
+                                                    "echo build > artifacts/dist/artifact.txt"))
               end
             end
             .to_pipeline
@@ -263,17 +263,17 @@ module Apricity
                 job.input("test2_result", :value)
                 job.condition(Conditions::Equals.new("test1_result", "ok"))
                 job.condition(Conditions::Equals.new("test2_result", "ok"))
-                job.step("deploy", run: Script.new(lines: ["echo deploy"]))
+                job.step("deploy", run: Script.new(source: "echo deploy"))
               end
 
               act.job("test1", runs_on: container) do |job|
                 job.output("test1_result", :value)
-                job.step("test1", run: Script.new(lines: ["exit 1"]))
+                job.step("test1", run: Script.new(source: "exit 1"))
               end
 
               act.job("test2", runs_on: container) do |job|
                 job.output("test2_result", :value)
-                job.step("test2", run: Script.new(lines: ["echo test2_result=ok >> $APRICITY_OUTPUT"]))
+                job.step("test2", run: Script.new(source: "echo test2_result=ok >> $APRICITY_OUTPUT"))
               end
             end
             .to_pipeline
@@ -303,11 +303,11 @@ module Apricity
             .action("ci") do |act|
               act.job("deploy", runs_on: container) do |job|
                 job.demands("test")
-                job.step("deploy", run: Script.new(lines: ["echo deploy"]))
+                job.step("deploy", run: Script.new(source: "echo deploy"))
               end
 
               act.job("test", runs_on: container) do |job|
-                job.step("test", run: Script.new(lines: ["echo test"]))
+                job.step("test", run: Script.new(source: "echo test"))
               end
             end
             .to_pipeline
@@ -325,15 +325,19 @@ module Apricity
             .action("ci") do |act|
               act.job("deploy", runs_on: container) do |job|
                 job.input("dist", :artifact)
-                job.step("deploy", run: Script.new(lines: ["cat artifacts/dist/artifact.txt"]))
+                job.step("deploy", run: Script.new(
+                  source: "cat artifacts/dist/artifact.txt"
+                ))
               end
 
               act.job("build", runs_on: container) do |job|
                 job.output("dist", :artifact)
-                job.step("build", run: Script.new(lines: [
-                                                    "mkdir -p artifacts/dist",
-                                                    "echo build > artifacts/dist/artifact.txt"
-                                                  ]))
+                job.step("build", run: Script.new(
+                  source: <<~SCRIPT
+                    mkdir -p artifacts/dist
+                    echo build > artifacts/dist/artifact.txt
+                  SCRIPT
+                ))
               end
             end
             .to_pipeline

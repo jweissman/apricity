@@ -70,6 +70,10 @@ GEM
     lint_roller (1.1.0)
     logger (1.7.0)
     multi_json (1.18.0)
+    nokogiri (1.19.0-aarch64-linux-gnu)
+      racc (~> 1.4)
+    nokogiri (1.19.0-arm64-darwin)
+      racc (~> 1.4)
     parallel (1.27.0)
     parser (3.3.10.0)
       ast (~> 2.4.1)
@@ -111,6 +115,8 @@ GEM
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.13.0)
     rspec-support (3.13.6)
+    rspec_junit_formatter (0.6.0)
+      rspec-core (>= 2, < 4, != 2.12.0)
     rubocop (1.81.7)
       json (~> 2.3)
       language_server-protocol (~> 3.17.0.2)
@@ -137,8 +143,8 @@ GEM
     zeitwerk (2.7.4)
 
 PLATFORMS
+  aarch64-linux
   arm64-darwin-25
-  ruby
 
 DEPENDENCIES
   apricity!
@@ -148,9 +154,11 @@ DEPENDENCIES
   debug (~> 1.11)
   docker-api (~> 2.4)
   irb
+  nokogiri (~> 1.19)
   rake (~> 13.0)
   reek (~> 6.5)
   rspec (~> 3.0)
+  rspec_junit_formatter (~> 0.6.0)
   rubocop (~> 1.21)
   rubocop-rspec (~> 3.8)
 

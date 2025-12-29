@@ -1,16 +1,9 @@
 actions:
-  build:
+  test:
     jobs:
       - quality:
           runs-on: ruby:3.4
           name: Check Apricity Code Quality
-          mounts:
-            # Use DinD to allow apricity to test itself
-            - source: /var/run/docker.sock
-              target: /var/run/docker.sock
-              type: bind
- 
-
           steps:
             - name: Bundle install
               run: |
@@ -28,14 +21,6 @@ actions:
       - lint:
           runs-on: ruby:3.4
           name: Lint Apricity Codebase
-          # outputs:
-          #   - rubocop-report: rubocop.json
-          mounts:
-            # Use DinD to allow apricity to test itself
-            - source: /var/run/docker.sock
-              target: /var/run/docker.sock
-              type: bind
- 
           steps:
             - name: Bundle install
               run: |
@@ -54,8 +39,9 @@ actions:
           runs-on: ruby:3.4
           name: Build and Test Apricity
           needs: [lint, quality]
-          # outputs:
-          #   - test-report: rspec.json
+          outputs:
+            - key: test-outputs
+              type: artifact
           mounts:
             # Use DinD to allow apricity to test itself
             - source: /var/run/docker.sock
@@ -75,4 +61,9 @@ actions:
 
             - name: Run tests
               run: |
-                bundle exec rspec --fail-fast --format documentation 
+                bundle exec rspec \
+                  --fail-fast \
+                  --format progress \
+                  --format RspecJunitFormatter \
+                  --out artifacts/test-outputs/rspec.xml
+

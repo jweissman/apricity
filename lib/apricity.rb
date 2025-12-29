@@ -10,13 +10,14 @@ require "stringio"
 require_relative "apricity/version"
 require_relative "apricity/configuration"
 require_relative "apricity/model"
-require_relative "apricity/pipeline_graph"
-require_relative "apricity/pipeline_reducer"
+require_relative "apricity/pipeline/graph"
+require_relative "apricity/pipeline/reducer"
 require_relative "apricity/conditions"
 require_relative "apricity/output_sink"
-
+require_relative "apricity/plugins/plugin_registry"
+require_relative "apricity/plugins/plugin_definition"
 require_relative "apricity/job_execution"
-require_relative "apricity/pipeline_runner"
+require_relative "apricity/pipeline/runner"
 
 # Apricity: A lightweight CI/CD pipeline runner using Docker containers
 #
@@ -55,7 +56,7 @@ module Apricity
     State = Data.define(:pipeline, :nodes) do
       def self.empty(pipeline)
         states = {}
-        nodes = PipelineReducer.lower(pipeline)
+        nodes = Pipeline::Reducer.lower(pipeline)
         nodes.each do |node|
           states[node.id] = empty_node_state_for(node)
         end
@@ -210,7 +211,7 @@ module Apricity
       def perform(&)
         t0 = Time.now
         events = []
-        step_states = runner.run! do |event|
+        step_states = runner.run do |event|
           events << event
           yield(event) if block_given?
         end
@@ -221,7 +222,7 @@ module Apricity
 
       private
 
-      def runner = Apricity::PipelineRunner.new(pipeline)
+      def runner = Apricity::Pipeline::Runner.new(pipeline:)
     end
   end
   # rubocop:enable Metrics/ModuleLength

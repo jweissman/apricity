@@ -18,3 +18,7 @@ gem "brakeman", "~> 7.1"
 gem "reek", "~> 6.5"
 
 gem "rubocop-rspec", "~> 3.8"
+
+gem "rspec_junit_formatter", "~> 0.6.0"
+
+gem "nokogiri", "~> 1.19"

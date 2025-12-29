@@ -1,91 +1,14 @@
 # frozen_string_literal: true
 
+require_relative "job_execution/working_dir"
+require_relative "job_execution/default_read_timeout"
+require_relative "job_execution/node"
+require_relative "job_execution/context"
+require_relative "job_execution/result"
+require_relative "job_execution/events"
+
 module Apricity
   module JobExecution
-    WORKING_DIR = "/work"
-
-    Node = Data.define(
-      :id,
-      :runs_on,
-      :steps,        # [Step] or just step scripts
-      :inputs,       # [Input]
-      :outputs,      # [Output]
-      :conditions,   # [Conditions::*]
-      :needs,
-      :job_name,
-      :action_name,
-      :mounts
-    ) do
-      def self.from_model(node_id, action:, job:)
-        new(
-          id: node_id,
-          runs_on: job.runs_on,
-          steps: job.steps,
-          inputs: job.inputs, outputs: job.outputs,
-          conditions: job.conditions, needs: job.needs,
-          job_name: job.name,
-          action_name: action.name,
-          mounts: job.mounts
-        )
-      end
-    end
-
-    Context = Data.define(
-      :nodes,       # job_id => :success | :failure | :skipped
-      :artifacts,   # key => value
-      :values,      # key => value,
-      :dependencies # job_id => [dependent_job_ids]
-    ) do
-      def self.empty = Context.new({}, {}, {}, {})
-      def artifact(key)        = artifacts[key]
-      def value(key)           = values[key]
-      def node_status(node_id) = nodes[node_id]
-    end
-
-    Result = Data.define(:outcomes, :outputs) do
-      def passed? = outcomes.all?(&:successful?)
-      def failed? = outcomes.any?(&:failed?)
-    end
-
-    # Events emitted during job execution
-    module Events
-      def self.prefix(event)
-        "#{event.node.action_name}##{event.node.job_name}"
-      end
-
-      JobStarted = Data.define(:node, :started_at) do
-        def type = :job_started
-        def pretty = "started job #{node.job_name}"
-      end
-      JobSkipped = Data.define(:node, :reason, :skipped_at) do
-        def type = :job_skipped
-        def pretty = "skipped #{node.job_name} due to #{reason}"
-      end
-      JobFinished = Data.define(:node, :status, :finished_at) do
-        def type = :job_finished
-        def pretty = "finish job with status #{status}"
-      end
-
-      StepStarted = Data.define(:node, :step, :started_at) do
-        def type = :step_started
-        def pretty = "started step #{step.name}"
-      end
-      StepFinished = Data.define(:node, :step, :status, :finished_at) do
-        def type = :step_finished
-        def pretty = "finished step #{step.name}"
-      end
-
-      # No timestamp needed for chunk events as they are numerous
-      StdoutChunk = Data.define(:node, :step, :chunk) do
-        def type = :stdout_chunk
-        def pretty = "(stdout chunk from step #{step.name})"
-      end
-      StderrChunk = Data.define(:node, :step, :chunk) do
-        def type = :stderr_chunk
-        def pretty = "(stderr chunk from step #{step.name})"
-      end
-    end
-
     # Internal class for planning job execution
     class Planner
       attr_reader :binds, :artifact_outputs, :working_dir, :prelude, :effective_working_dir
@@ -152,7 +75,6 @@ module Apricity
           host_path = File.expand_path(mount.source)
           raise "Mount source does not exist: #{host_path}" unless File.exist?(host_path)
 
-          # maybe need to expose this?
           @effective_working_dir = mount.target if mount.source == "."
           "#{host_path}:#{mount.target}:rw"
         else
@@ -187,7 +109,7 @@ module Apricity
       end
 
       def perform(prelude:, container:, emit:, container_options: {})
-        script = [prelude, step.run.lines.join("\n")].join("\n")
+        script = [prelude, step.run.source].join("\n")
         exec_cmd = ["/bin/bash", "-lc", script]
         stdout, stderr, exit_code = execute(
           command: exec_cmd,
@@ -248,6 +170,7 @@ module Apricity
       def pull_artifacts
         @artifact_outputs.each do |key, host_dir|
           container_dir = "#{JobExecution::WORKING_DIR}/artifacts/#{key}"
+          Console.info(self, "collect_artifact", artifact_key: key, container_dir:, host_dir:)
           pull_artifact_from_container(container_dir, host_dir)
         end
       end
@@ -307,13 +230,6 @@ module Apricity
         Gem::Package::TarReader.new(StringIO.new(tar_data)) do |tar|
           tar.each do |entry|
             handle_tar_entry(entry, dest_dir)
-            # dest = File.join(dest_dir, entry.full_name)
-            # if entry.directory?
-            #   FileUtils.mkdir_p(dest)
-            # else
-            #   FileUtils.mkdir_p(File.dirname(dest))
-            #   File.binwrite(dest, entry.read)
-            # end
           end
         end
       end
@@ -338,15 +254,14 @@ module Apricity
       end
     end
 
+    JobContext = Data.define(:node, :env, :artifacts_dir)
+
     # Executes a single job inside a Docker container
     class Orchestrator
-      DEFAULT_READ_TIMEOUT = 300 # seconds
       attr_reader :node, :env, :artifact_inputs, :sink
 
-      def initialize(
-        node:, env: {}, artifact_inputs: {},
-        sink: Apricity::Configuration.instance.output_sink || NullOutputSink.new
-      )
+      def initialize(node:, env: {}, artifact_inputs: {},
+                     sink: Apricity::Configuration.instance.output_sink || NullOutputSink.new)
         @node = node
         @env  = env
         @artifact_inputs = artifact_inputs
@@ -360,7 +275,8 @@ module Apricity
 
       def perform
         emit(JobExecution::Events::JobStarted[node:, started_at: Time.now])
-        run_job
+        ret = run_job
+        ret
       rescue JobExecutionError => e
         handle_failure(e)
       ensure
@@ -382,7 +298,7 @@ module Apricity
       def handle_failure(exception)
         Console.error(self, "run_step:error", message: exception.message, job_name: node.job_name,
                                               step_name: step&.name)
-        emit(JobExecution::Events::JobFinished[node:, status: :failure, finished_at: Time.now])
+        emit(JobExecution::Events::JobFinished[node:, status: :failure, finished_at: Time.now, exception:])
         JobExecution::Result[outcomes: [failure_outcome(exception:)], outputs: {}]
       end
 
@@ -414,11 +330,8 @@ module Apricity
       end
 
       def execute_step(step)
-        stdout, stderr = JobExecution::StepExecutor.new(
-          step:, env:, sink:, node:
-        ).perform(
-          prelude: @prelude,
-          container:,
+        stdout, stderr = JobExecution::StepExecutor.new(step:, env:, sink:, node:).perform(
+          prelude: @prelude, container:,
           emit: ->(event) { emit(event) },
           container_options: common_container_options
         )
@@ -430,17 +343,29 @@ module Apricity
 
       private
 
-      def emit(event) = @sink&.call(event)
+      def emit(event)
+        @sink&.call(event)
+        node.plugins.each do |plugin|
+          context = context_for(node)
+          plugin.handle(event, context:, emitter: -> { emit it })
+        end
+      end
+
+      def context_for(node)
+        JobContext[node:, env:, artifacts_dir: @binds&.find { |b|
+          _lhs, rhs, *_rest = b.split(":")
+          rhs.start_with?("#{JobExecution::WORKING_DIR}/artifacts")
+        }&.split(":")&.first]
+      end
+
       def step = @last_step_executed
       def configure_docker = Docker.options[:read_timeout] = DEFAULT_READ_TIMEOUT
       def construct_image = Docker::Image.create("fromImage" => image)
 
       def common_container_options
-        {
-          "Env" => env.map { |k, v| "#{k}=#{v}" },
+        { "Env" => env.map { |k, v| "#{k}=#{v}" },
           "WorkingDir" => @effective_working_dir,
-          "Tty" => false
-        }
+          "Tty" => false }
       end
 
       def container

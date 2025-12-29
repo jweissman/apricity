@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 # Override the default log level
-def log_level(_)
-  :debug
-end
+# def log_level(_)
+#   :debug
+# end
 
 # Override the default output
 def make_output(*_args)
