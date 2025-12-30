@@ -1,0 +1,26 @@
+<h2><%= @pipeline.name %></h2>
+
+<div
+  hx-get="/runs?pipeline=<%= @pipeline.slug %>"
+  hx-trigger="load"
+  hx-target="#job-list"
+  hx-swap="innerHTML"
+></div>
+
+<div id="job-list" class="mt-4">
+  <p>Loading jobs...</p>
+</div>
+
+<!-- kickstart run link -->
+<form action="/pipelines/<%= @pipeline.slug %>/run" method="post" class="mt-6">
+  <input type="hidden" name="pipeline_slug" value="<%= @pipeline.slug %>">
+  <button
+    type="submit"
+    class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+  >
+    Start New Run
+  </button>
+</form>
+
+
+<a href="/" class="text-blue-500 hover:underline mt-4 inline-block">Back to Pipelines</a>

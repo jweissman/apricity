@@ -2,9 +2,14 @@ AllCops:
   TargetRubyVersion: 3.4
   NewCops: enable
   SuggestExtensions: false
+  Exclude:
+    - 'bin/**'
+    - 'example/**/*'
+    - 'vendor/**/*'
 
 plugins:
   - rubocop-rspec
+  - rubocop-performance
 
 Style/StringLiterals:
   EnforcedStyle: double_quotes

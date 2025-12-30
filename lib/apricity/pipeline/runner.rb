@@ -119,11 +119,13 @@ module Apricity
       end
 
       def run!(nodes, graph, context: JobExecution::ExecutionContext.empty, &sink)
-        if concurrent?
-          run_concurrently(nodes, context:, sink:)
-        else
-          run_linear(graph.topological_sort, context:, sink:)
-        end
+        ret = if concurrent?
+                run_concurrently(nodes, context:, sink:)
+              else
+                run_linear(graph.topological_sort, context:, sink:)
+              end
+        sink[JobExecution::Events::PipelineFinished[pipeline_name:, finished_at: Time.now]]
+        ret
       end
 
       private
@@ -238,7 +240,7 @@ module Apricity
       end
 
       def environment_values(node, context)
-        node.inputs.map do |input|
+        node.inputs.filter_map do |input|
           case input.type
           when :artifact
             # skip
@@ -247,7 +249,7 @@ module Apricity
           else
             raise "Unknown input type #{input.type} for input #{input.key}"
           end
-        end.compact.to_h
+        end.to_h
       end
 
       def extract_values(node, result, context) = node.outputs.each { extract_value!(it, result, context) }

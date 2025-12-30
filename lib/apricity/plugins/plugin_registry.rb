@@ -8,6 +8,11 @@ module Apricity
         @plugins = {}
       end
 
+      def register_builtin_plugins
+        require_relative "junit_reporter"
+        register(JUnitReporter.new)
+      end
+
       def register(plugin_def)
         key = "#{plugin_def.org}/#{plugin_def.name}:#{plugin_def.version}"
         @plugins[key] = plugin_def

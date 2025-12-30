@@ -1,0 +1,47 @@
+<h2 class="text-2xl font-bold mb-4">Runs</h2>
+
+<% if @runs.any? %>
+  <table>
+    <tr>
+      <th class="text-left px-4 py-2">Status</th>
+      <th class="text-left px-4 py-2">Pipeline</th>
+      <th class="text-left px-4 py-2">Started At</th>
+      <th class="text-left px-4 py-2">Actions</th>
+    </tr>
+
+    <% @runs.each do |run| %>
+      <tr class="border-t">
+        <td class="px-4 py-2 font-mono">
+            <%= pretty_status(run.status) %>
+        </td>
+        <td class="px-4 py-2"><%= run.pipeline.name %></td>
+        <td class="px-4 py-2 font-mono"><%= run.started_at %></td>
+
+        <td class="px-4 py-2">
+          <a href="/runs/<%= run.id %>" class="text-blue-500 hover:underline">
+            View Run
+          </a>
+        </td>
+      </tr>
+    <% end %>
+  </table>
+<% end %>
+
+<!--
+<% @runs.each do |run| %>
+  <div class="border p-4 mb-4 rounded-lg shadow-sm">
+    <h3 class="text-lg font-semibold mb-2">Run ID: <%= run.id %></h3>
+
+    <p>Status: <span class="font-mono"><%= run.status %></span></p>
+    <p>Started At: <span class="font-mono"><%= run.started_at %></span></p>
+
+    <a href="/runs/<%= run.id %>" class="text-blue-500 hover:underline">
+      View Run
+    </a>
+  </div>
+<% end %>
+-->
+
+<% if @runs.empty? %>
+  <p>No runs available.</p>
+<% end %>

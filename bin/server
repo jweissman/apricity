@@ -1,0 +1,13 @@
+#!/usr/bin/env ruby
+
+# frozen_string_literal: true
+
+require "bundler/setup"
+require "apricity"
+require "apricity/web/april"
+
+# Load default plugins
+Apricity.register_default_plugins
+
+# Start webserver
+Apricity::Web::April.run!

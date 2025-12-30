@@ -1,0 +1,32 @@
+<section>
+  <p class="mb-4">Pipelines</p>
+
+  <ul class="list-none mb-6 p-0">
+    <% @pipelines.each do |pipeline| %>
+      <li>
+        <!-- play button (form post to /pipelines/:slug/run) -->
+        <form action="/pipelines/<%= pipeline.slug %>/run" method="post" class="inline">
+          <button type="submit">▶️</button>
+        </form>
+        <strong><%= pipeline.name %></strong>
+        <a
+          href="/pipelines/<%= pipeline.slug %>"
+          class="text-blue-500 hover:underline"
+        >
+          View Details
+        </a>
+      </li>
+    <% end %>
+  </ul>
+
+  <div
+    hx-get="/runs"
+    hx-trigger="load"
+    hx-target="#job-list"
+    hx-swap="innerHTML"
+  ></div>
+
+  <div id="job-list" class="mt-4">
+    <p>Loading jobs...</p>
+  </div>
+</section>

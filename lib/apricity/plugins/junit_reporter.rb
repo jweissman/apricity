@@ -7,25 +7,32 @@ module Apricity
   module Plugins
     # A JUnitReporter plugin that consumes xml test reports and appends summary events to the job logs
     class JUnitReporter < PluginDefinition
-      JUnitReportParsedEvent = Data.define(:node, :parsed_at) do
+      JUnitReportParsedEvent = Data.define(:node, :report, :parsed_at) do
         def type = :junit_report_parsed
-        def pretty = "parsed junit output for job #{node.job_name}"
+
+        def pretty
+          "parsed junit output for job #{node.job_name}: " \
+            "tests=#{report.tests}, failures=#{report.failures}, " \
+            "errors=#{report.errors}, skipped=#{report.skipped}"
+        end
       end
+
+      JUnitResult = Data.define(:test_name, :classname, :time, :status, :message)
+      JUnitReport = Data.define(:tests, :failures, :errors, :skipped, :test_results)
 
       def initialize
         super(name: "junit-reporter", org: "apricity", version: "0.1.0")
       end
 
       def job_finished(context:, emitter:, options:)
-        $stdout.puts "JUnitReporter: after_job hook for job #{context.node.id} got config: #{options.inspect}"
         junit_file = options[:junit_report] || "junit.xml"
-        junit_path = File.join(context.artifacts_dir, junit_file)
-        unless File.exist?(junit_path)
-          $stdout.puts "JUnitReporter: No junit report found at #{junit_path}"
-          debugger
-          return
-        end
-        parse_junit_report(junit_path, context:, emitter:)
+        artifact_key = options[:artifact_key] || "test-outputs"
+        host_output_directory = context.artifact_outputs[artifact_key]
+        junit_path = File.join(host_output_directory, junit_file)
+        return unless File.exist?(junit_path)
+
+        report = parse_junit_report(junit_path, context:, emitter:)
+        annotate_job(report:, context:, emitter:)
       rescue StandardError => e
         warn "JUnitReporter: Error in after_job for job #{context.node.id}: #{e.message}"
         raise e
@@ -34,34 +41,51 @@ module Apricity
       private
 
       def parse_junit_report(path, context:, emitter:)
-        $stdout.puts "JUnitReporter: parsing junit report at #{path} for job #{context.node.id}"
-
-        # use nokogiri to parse the junit xml
         file = File.open(path)
         doc = Nokogiri::XML(file)
-        test_suites = doc.xpath("//testsuite")
-        total_tests = 0
-        total_failures = 0
-        total_errors = 0
-        total_skipped = 0
-        test_suites.each do |suite|
-          total_tests += suite["tests"].to_i
-          total_failures += suite["failures"].to_i
-          total_errors += suite["errors"].to_i
-          total_skipped += suite["skipped"].to_i
-        end
-        total_passed = total_tests - total_failures - total_errors - total_skipped
-
-        $stdout.puts "JUnitReporter: Test Summary for job #{context.node.id}:"
-        $stdout.puts "  Total Tests: #{total_tests}"
-        $stdout.puts "  Failures: #{total_failures}"
-        $stdout.puts "  Errors: #{total_errors}"
-        $stdout.puts "  Skipped: #{total_skipped}"
-        $stdout.puts "  Passed: #{total_passed}"
-
+        report = parse_junit_report!(doc)
         file.close
 
-        emitter[JUnitReportParsedEvent.new(node: context.node, parsed_at: Time.now)]
+        emitter[JUnitReportParsedEvent.new(node: context.node, report:, parsed_at: Time.now)]
+
+        report
+      end
+
+      def parse_junit_report!(doc)
+        test_suites = doc.xpath("//testsuite")
+        totals = { tests: 0, failures: 0, errors: 0, skipped: 0 }
+        test_suites.each do |suite|
+          parse_suite(suite, totals)
+        end
+        JUnitReport[**totals, test_results: []]
+      end
+
+      def parse_suite(suite, totals)
+        totals[:tests] += suite["tests"].to_i
+        totals[:failures] += suite["failures"].to_i
+        totals[:errors] += suite["errors"].to_i
+        totals[:skipped] += suite["skipped"].to_i
+      end
+
+      def annotation(report)
+        {
+          tests: report.tests,
+          failures: report.failures,
+          errors: report.errors,
+          skipped: report.skipped,
+          _icon: report.failures.positive? || report.errors.positive? ? "❌" : "✅"
+        }
+      end
+
+      def annotate_job(report:, context:, emitter:)
+        annotation = annotation(report)
+        emitter.call(
+          JobExecution::Events::JobAnnotated[
+            node: context.node,
+            annotations: { test_results: annotation },
+            annotated_at: Time.now
+          ]
+        )
       end
     end
   end

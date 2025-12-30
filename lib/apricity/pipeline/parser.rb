@@ -24,16 +24,16 @@ module Apricity
     class Parser
       include Apricity::Model
 
-      def self.parse_actions(data = {})
+      def self.parse_actions(data = {}, path: nil)
         data[:actions].map do |action_name, action_data|
           jobs = action_data[:jobs].map do |job_entry|
-            parse_job(job_entry)
+            parse_job(job_entry, path:)
           end
           Action[name: action_name || action_data[:name], jobs:]
         end
       end
 
-      def self.parse_job(job_entry)
+      def self.parse_job(job_entry, path: nil)
         job_name, job_data = job_entry.first
         Job[
           name: job_name, steps: parse_steps(job_data[:steps]),
@@ -41,7 +41,7 @@ module Apricity
           **parse_input_output(job_data),
           conditions: parse_conditions(job_data[:conditions]),
           needs: job_data[:needs] || [],
-          mounts: parse_mounts(job_data[:mounts]),
+          mounts: parse_mounts(job_data[:mounts], path:),
           plugins: parse_plugins(job_data[:plugins])
         ]
       end
@@ -94,9 +94,15 @@ module Apricity
         end || []
       end
 
-      def self.parse_mounts(mount_data_array = [])
+      def self.parse_mounts(mount_data_array = [], path:)
         mount_data_array&.map do |mount_data|
-          Mount[mount_data[:source], mount_data[:target], mount_data[:type].to_sym]
+          source = if mount_data[:source] == "." && path
+                     File.dirname(path)
+                   else
+                     mount_data[:source]
+                   end
+
+          Mount[source, mount_data[:target], mount_data[:type].to_sym]
         end || []
       end
 

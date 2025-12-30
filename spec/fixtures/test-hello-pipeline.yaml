@@ -9,6 +9,10 @@ actions:
             - source: .
               target: /work/app
               type: bind
+            # Use DinD to allow apricity to test itself via apricot
+            - source: /var/run/docker.sock
+              target: /var/run/docker.sock
+              type: bind
           plugins:
             - uses: apricity/junit-reporter
               with:

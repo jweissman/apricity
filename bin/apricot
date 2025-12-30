@@ -8,10 +8,12 @@ require "apricity"
 require "apricity/pipeline/parser"
 require "apricity/cli/apricot"
 
-# Autobind current directory
-Apricity.configure do |config|
-  config.bind_mounts << Apricity::Model::Mount[".", "/work/app", :bind]
-end
+# Autobind current directory?
+# Apricity.configure do |config|
+#   config.bind_mounts << Apricity::Model::Mount[".", "/work/app", :bind]
+# end
+
+Apricity.register_default_plugins
 
 file = ARGV.first || "apricity.yaml"
 git_sha = `git rev-parse HEAD`.chomp

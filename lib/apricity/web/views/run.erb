@@ -1,0 +1,180 @@
+<h2
+  class="text-2xl font-bold mb-4"
+><%= @pipeline.name %></h2>
+
+<p>Run: <span class="font-mono"><%= @run.id %></span></p>
+
+<div class="layout">
+  <div id="job-list"></div>
+  <div id="terminal" class="bg-black text-white h-96 rounded-md shadow-md p-4 overflow-y-auto"></div>
+</div>
+
+<script>
+  const run = { id: "<%= @run.id %>", pipeline: "<%= @pipeline.name %>", jobs: {} };
+  function reduce(event) {
+    console.log("Reducing event:", event);
+    switch (event.type) {
+      case "job_started":
+        run.jobs[event.node.id] = { status: "running", steps: {} };
+        break;
+      case "step_started":
+        run.jobs[event.node.id].steps[event.step.name] = "running";
+        break;
+      case "step_finished":
+        run.jobs[event.node.id].steps[event.step.name] = event.data.status;
+        break;
+      case "job_finished":
+        run.jobs[event.node.id].status = event.data.status;
+        break;
+      case "job_annotated":
+        run.jobs[event.node.id].annotations = event.data.annotations;
+        break;
+    }
+    render();
+  }
+
+  function render() {
+    renderJobList(run);
+  }
+
+  function statusIcon(status) {
+    switch (status) {
+      case "running":
+        return "⏳";
+      case "success":
+        return "✅";
+      case "failure":
+        return "❌";
+      default:
+        return "❔";
+    }
+  }
+
+  function renderJobList(run) {
+    const el = document.getElementById("job-list");
+    el.innerHTML = "";
+  
+    for (const [nodeId, job] of Object.entries(run.jobs)) {
+      const jobEl = document.createElement("div");
+      jobEl.className = "job-card";
+  
+      jobEl.innerHTML = `
+        <div class="job-header">
+          ${statusIcon(job.status)} ${nodeId}
+        </div>
+        <ul class="steps ml-4">
+          ${Object.entries(job.steps)
+            .map(([name, status]) =>
+              `<li>${statusIcon(status)} ${name}</li>`
+            )
+            .join("")}
+        </ul>
+      `;
+  
+      el.appendChild(jobEl);
+    }
+  }
+
+  let stdoutBuffer = "";
+  let flushTimer = null;
+
+  const term = new Terminal({
+    cursorBlink: true,
+    convertEol: true,
+    theme: { background: '#000000', foreground: '#FFFFFF' }
+  });
+  const fitAddon = new FitAddon.FitAddon();
+  term.loadAddon(fitAddon);
+  window.addEventListener('resize', () => fitAddon.fit());
+
+  term.open(document.getElementById('terminal'));
+  fitAddon.fit(); 
+  term.write('Connecting to job output...\r\n');
+
+  function flushStdout() {
+    if (stdoutBuffer.length > 0) {
+      term.write(stdoutBuffer);
+      stdoutBuffer = "";
+    }
+    flushTimer = null;
+  }
+
+  const parseEvent = (e) => {
+    try {
+      let ev = JSON.parse(e.data);
+      reduce(ev);
+      return ev;
+    } catch (err) {
+      console.error("Failed to parse event data", e.data);
+      return null;
+    }
+  };
+
+  const es = new EventSource("/runs/<%= @run.id %>/events");
+
+  es.addEventListener("job_started", (e) => {
+    const ev = parseEvent(e);
+    console.log("job_started", ev);
+    term.write(`Job started at ${ev.at}\r\n\r\n`);
+  });
+  es.addEventListener("step_started", (e) => {
+    const ev = parseEvent(e);
+    console.log("step_started", ev);
+  });
+
+  es.addEventListener("stderr_chunk", (e) => {
+    const ev = parseEvent(e);
+    console.log("stderr_chunk", ev);
+    if (ev && ev.data.chunk) {
+      // term.write(`\x1b[31m${ev.data.chunk}\x1b[0m`);
+      stdoutBuffer += `\x1b[31m${ev.data.chunk}\x1b[0m`;
+
+      if (!flushTimer) {
+        flushTimer = setTimeout(flushStdout, 5);
+      }
+    }
+  });
+
+  es.addEventListener("stdout_chunk", (e) => {
+    const ev = parseEvent(e);
+    console.log("stdout_chunk", ev);
+    if (ev && ev.data.chunk) {
+      // term.write(ev.data.chunk);
+      stdoutBuffer += ev.data.chunk;
+
+      if (!flushTimer) {
+        flushTimer = setTimeout(flushStdout, 5);
+      }
+    }
+  });
+
+  es.addEventListener("step_finished", (e) => {
+    const ev = parseEvent(e);
+    console.log("step_finished", ev);
+  });
+
+  es.addEventListener("job_annotated", (e) => {
+    const ev = parseEvent(e);
+    console.log("job_annotated", ev);
+  });
+
+  es.addEventListener("job_finished", (e) => {
+    const ev = parseEvent(e);
+    console.log("job_finished", ev);
+  });
+
+  es.addEventListener("pipeline_finished", (e) => {
+    const ev = parseEvent(e);
+    console.log("pipeline_finished", ev);
+    term.write(`\r\nPipeline finished at ${ev.at}\r\n`);
+  });
+
+  es.addEventListener("close", () => {
+    es.close();
+  });
+
+  es.onmessage = e => { console.log("Event:", e.data); }
+  es.onerror = (e) => console.log("SSE error", e);
+  es.onopen  = () => console.log("SSE open");
+
+</script>

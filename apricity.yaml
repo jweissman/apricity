@@ -1,9 +1,14 @@
+name: Apricity Tests Pipeline
 actions:
   test:
     jobs:
       - quality:
           runs-on: ruby:3.4
           name: Check Apricity Code Quality
+          mounts:
+            - source: .
+              target: /work
+              type: bind
           steps:
             - name: Bundle install
               run: |
@@ -21,6 +26,10 @@ actions:
       - lint:
           runs-on: ruby:3.4
           name: Lint Apricity Codebase
+          mounts:
+            - source: .
+              target: /work
+              type: bind
           steps:
             - name: Bundle install
               run: |
@@ -28,7 +37,7 @@ actions:
                 bundle install
             - name: Run linters
               run: |
-                bundle exec rubocop
+                bundle exec rubocop lib
 
             # - name: Cache gems
             #   uses: apricity/cache
@@ -42,7 +51,15 @@ actions:
           outputs:
             - key: test-outputs
               type: artifact
+          plugins:
+            - uses: apricity/junit-reporter
+              with:
+                junit_report: rspec.xml
+                artifact_key: test-outputs
           mounts:
+            - source: .
+              target: /work
+              type: bind 
             # Use DinD to allow apricity to test itself
             - source: /var/run/docker.sock
               target: /var/run/docker.sock
@@ -66,4 +83,3 @@ actions:
                   --format progress \
                   --format RspecJunitFormatter \
                   --out artifacts/test-outputs/rspec.xml
-

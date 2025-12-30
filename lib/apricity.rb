@@ -1,17 +1,19 @@
 # frozen_string_literal: false
 
-require "console"
-require "securerandom"
 require "base64"
+require "console"
 require "docker-api"
 require "rubygems/package"
+require "securerandom"
 require "stringio"
+require "yaml"
 
 require_relative "apricity/version"
 require_relative "apricity/configuration"
 require_relative "apricity/model"
 require_relative "apricity/pipeline/graph"
 require_relative "apricity/pipeline/reducer"
+require_relative "apricity/pipeline/parser"
 require_relative "apricity/conditions"
 require_relative "apricity/output_sink"
 require_relative "apricity/plugins/plugin_registry"
@@ -32,19 +34,28 @@ module Apricity
     yield(Configuration.instance) if block_given?
   end
 
+  def self.register_default_plugins = Plugins::PluginRegistry.instance.register_builtin_plugins
+
   # Start/finish timestamps structure
   Timestamps = Data.define(:started_at, :finished_at)
 
   # rubocop:disable Metrics/ModuleLength
   module Run
-    NodeState = Data.define(:id, :name, :status, :phase, :started_at, :finished_at, :step_states) do
-      def self.for(node, status:, phase:, timestamps:, step_states:) = new(
+    # class Annotations < Hash; end
+
+    NodeState = Data.define(
+      :id, :name, :status, :phase, :started_at, :finished_at, :step_states, :annotations
+    ) do
+      # rubocop:disable Metrics/ParameterLists
+      def self.for(node, status:, phase:, timestamps:, step_states:, annotations: {}) = new(
         id: node.id, name: node.job_name,
         status:, phase:,
         started_at: timestamps.started_at,
         finished_at: timestamps.finished_at,
-        step_states:
+        step_states:,
+        annotations:
       )
+      # rubocop:enable Metrics/ParameterLists
 
       def duration_seconds = (finished_at - started_at).round(2)
     end
@@ -85,8 +96,13 @@ module Apricity
         when :job_started then job_started(event, node_states)
         when :job_skipped then job_skipped(event, node_states)
         when :job_finished then job_finished(event, node_states)
+        when :job_annotated then job_annotated(event, node_states)
         when :step_started then step_started(event, node_states)
         when :step_finished then step_finished(event, node_states)
+          # when :stdout_chunk, :stderr_chunk
+          # No state change needed for chunk events
+          # else
+          # Console.warn("Unknown event type: #{event.type}")
         end
       end
 
@@ -126,6 +142,17 @@ module Apricity
             finished_at: event.finished_at
           ],
           step_states: node_states[event.node.id]&.step_states || []
+        )
+      end
+
+      def job_annotated(event, node_states)
+        node_state = node_states[event.node.id]
+        node_states[event.node.id] = NodeState.for(
+          event.node,
+          status: node_state.status, phase: node_state.phase,
+          timestamps: timestamps_for(node_state),
+          step_states: node_state.step_states,
+          annotations: node_state.annotations.merge(event.annotations)
         )
       end
 
@@ -205,8 +232,69 @@ module Apricity
       def passed? = failed_nodes.empty?
     end
 
+    Subscriber = Data.define(:queue) do
+      def push(event) = queue << event
+    end
+
+    # Manage subscribers for run events
+    class Subscriptions
+      @subscribers = Hash.new { |h, k| h[k] = [] }
+
+      def self.add_subscriber(run_id, subscriber)
+        @subscribers[run_id] << subscriber
+      end
+
+      def self.remove_subscriber(run_id, subscriber)
+        @subscribers[run_id].delete(subscriber)
+      end
+
+      def self.dispatch(run_id, event)
+        @subscribers[run_id].each do |subscriber|
+          subscriber.push(event)
+        end
+      end
+    end
+
+    # Simple in-memory event store for runs
+    class EventStore
+      @events = Hash.new { |h, k| h[k] = [] }
+      def self.get_events(run_id) = @events[run_id]
+
+      def self.append_event(run_id, event)
+        # $stdout.puts "[EventStore#append] #{event.type}: #{event.pretty}"
+        @events[run_id] << event
+        Subscriptions.dispatch(run_id, event)
+      end
+    end
+
     Instance = Data.define(:id, :pipeline, :git_sha) do
       def self.create(pipeline, git_sha: nil) = new(id: SecureRandom.uuid, pipeline:, git_sha:)
+
+      def started_at
+        Apricity::Run::EventStore.get_events(id)
+                                 .find { |e| e.type == :job_started }&.started_at
+      end
+
+      def state
+        Apricity::Run::EventStore.get_events(id).reduce(
+          State.empty(pipeline)
+        ) { |state, event| state.reduce(event) }
+      end
+
+      def finished? = status != :running
+
+      def status
+        current = state
+        if current.nodes.values.all? { |ns| ns.status == :skipped }
+          :skipped
+        elsif current.nodes.values.any? { |ns| ns.status == :failure }
+          :failure
+        elsif current.nodes.values.all? { |ns| ns.status == :success }
+          :success
+        else
+          :running
+        end
+      end
 
       def perform(&)
         t0 = Time.now
@@ -214,6 +302,7 @@ module Apricity
         step_states = runner.run do |event|
           events << event
           yield(event) if block_given?
+          EventStore.append_event(id, event)
         end
         final_run_state = events.reduce(State.empty(pipeline)) { |state, event| state.reduce(event) }
         t1 = Time.now

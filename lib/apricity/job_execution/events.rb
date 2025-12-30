@@ -2,6 +2,66 @@
 
 module Apricity
   module JobExecution
+    # Serialize job execution events to JSON
+    class EventSerializer
+      def self.as_json(event)
+        JSON.generate({
+          type: event.type,
+          message: event.pretty,
+          data: payload_json(event),
+          at: timestamp(event),
+          node: event.respond_to?(:node) ? node_json(event.node) : nil,
+          step: event.respond_to?(:step) ? step_json(event.step) : nil
+        }.compact)
+      end
+
+      def self.timestamp(event)
+        if event.respond_to?(:started_at)
+          event.started_at
+        else
+          (event.respond_to?(:finished_at) ? event.finished_at : Time.now)
+        end
+      end
+
+      def self.node_json(node)
+        return nil unless node
+
+        {
+          id: node.id, job_name: node.job_name, action_name: node.action_name
+        }
+      end
+
+      def self.step_json(step)
+        return nil unless step
+
+        {
+          name: step.name
+        }
+      end
+
+      def self.payload_json(event)
+        case event.type
+        when :job_skipped then { reason: event.reason }
+        when :job_finished then job_finished_payload(event)
+        when :job_annotated then { annotations: event.annotations }
+        when :step_finished then { status: event.status }
+        when :stdout_chunk, :stderr_chunk then { chunk: event.chunk }
+        else {}
+        end
+      end
+
+      def self.job_finished_payload(event)
+        payload = { status: event.status }
+        if event.exception
+          payload[:exception] = {
+            message: event.exception.message,
+            backtrace: event.exception.backtrace
+          }
+        end
+        payload
+      end
+    end
+
     # Events emitted during job execution
     module Events
       def self.prefix(event)
@@ -31,6 +91,10 @@ module Apricity
           end
         end
       end
+      JobAnnotated = Data.define(:node, :annotations, :annotated_at) do
+        def type = :job_annotated
+        def pretty = "annotated job #{node.job_name} with #{annotations.size} annotations"
+      end
 
       StepStarted = Data.define(:node, :step, :started_at) do
         def type = :step_started
@@ -49,6 +113,11 @@ module Apricity
       StderrChunk = Data.define(:node, :step, :chunk) do
         def type = :stderr_chunk
         def pretty = "(stderr chunk from step #{step.name})"
+      end
+
+      PipelineFinished = Data.define(:pipeline_name, :finished_at) do
+        def type = :pipeline_finished
+        def pretty = "pipeline #{pipeline_name} finished"
       end
     end
   end

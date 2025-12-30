@@ -22,3 +22,10 @@ gem "rubocop-rspec", "~> 3.8"
 gem "rspec_junit_formatter", "~> 0.6.0"
 
 gem "nokogiri", "~> 1.19"
+
+gem "puma", "~> 7.1"
+gem "rackup", "~> 2.3"
+
+gem "sinatra", "~> 4.2"
+
+gem "rubocop-performance", "~> 1.26"

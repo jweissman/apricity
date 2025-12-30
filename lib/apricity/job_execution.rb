@@ -254,7 +254,7 @@ module Apricity
       end
     end
 
-    JobContext = Data.define(:node, :env, :artifacts_dir)
+    JobContext = Data.define(:node, :env, :artifact_outputs)
 
     # Executes a single job inside a Docker container
     class Orchestrator
@@ -290,7 +290,6 @@ module Apricity
         plan
         outcomes = execute
         outputs = collect
-
         emit(JobExecution::Events::JobFinished[node:, status: :success, finished_at: Time.now])
         JobExecution::Result[outcomes:, outputs:]
       end
@@ -302,10 +301,7 @@ module Apricity
         JobExecution::Result[outcomes: [failure_outcome(exception:)], outputs: {}]
       end
 
-      def bootstrap
-        configure_docker
-        construct_image
-      end
+      def bootstrap = configure_docker && construct_image
 
       def planner = @planner ||= JobExecution::Planner.new(node:, env:, artifact_inputs:, config: Apricity::Configuration.instance)
 
@@ -345,17 +341,15 @@ module Apricity
 
       def emit(event)
         @sink&.call(event)
-        node.plugins.each do |plugin|
-          context = context_for(node)
-          plugin.handle(event, context:, emitter: -> { emit it })
-        end
+        node.plugins&.each { |plugin| plugin.handle(event, context: context_for(node), emitter: -> { emit it }) }
       end
 
       def context_for(node)
-        JobContext[node:, env:, artifacts_dir: @binds&.find { |b|
-          _lhs, rhs, *_rest = b.split(":")
-          rhs.start_with?("#{JobExecution::WORKING_DIR}/artifacts")
-        }&.split(":")&.first]
+        JobContext[
+          node:,
+          env:,
+          artifact_outputs: @artifact_outputs
+        ]
       end
 
       def step = @last_step_executed

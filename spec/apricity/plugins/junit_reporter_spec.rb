@@ -43,7 +43,8 @@ module Apricity
 
         let(:runner) { Apricity::Pipeline::Runner.new(pipeline:) }
 
-        it "executes JUnitReporter after_job hook without errors" do
+        it "runs after_job hook without errors", skip: "will not work by default under apricot (since DinDinD)",
+                                                 tag: "integration" do
           expect(@events.any? { |e| e.type == :junit_report_parsed }).to be true
         end
       end

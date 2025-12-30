@@ -18,7 +18,7 @@ module Apricity
 
       def handle_event(event, state)
         state = state.reduce(event)
-        # render_tui(state)
+        render_tui(state)
 
         is_chunk = %i[stdout_chunk stderr_chunk].include?(event.type)
         if is_chunk
@@ -38,6 +38,7 @@ module Apricity
         state.nodes.each_value do |node_state|
           render_node(node_state)
           render_node_steps(node_state) # if node_state.phase == :running
+          render_node_annotations(node_state)
         end
       end
 
@@ -90,6 +91,19 @@ module Apricity
         status = step_state.status
         puts "    #{pretty_status(status&.to_sym || :pending)} #{step_state.name} ".ljust(30) +
              " | #{step_state.duration_seconds}s"
+      end
+
+      def render_node_annotations(node_state)
+        return if node_state.annotations.empty?
+
+        node_state.annotations.each do |key, value|
+          pretty_key = key.to_s.tr("_", " ").capitalize
+          puts "      #{value.fetch(:_icon, "*")} #{pretty_key}"
+          pretty_value = value.except(:_icon)
+          pretty_value.each do |k, v|
+            puts "        - #{k}: #{v}"
+          end
+        end
       end
     end
   end
