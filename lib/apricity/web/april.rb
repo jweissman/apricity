@@ -58,6 +58,38 @@ module Apricity
           break
         end
       end
+
+      # Diagram generation helpers
+      module Diagrams
+        class << self
+          def mermaid_node(node)
+            safe_id = node.id.gsub("::", "_")
+            label = node.job_name.to_s
+            "#{safe_id}[#{label}]"
+          end
+
+          def mermaid_arrows(from_ids:, to_id:)
+            lines = []
+            safe_to = to_id.gsub("::", "_")
+            from_ids.each do |from_id|
+              safe_from = from_id.gsub("::", "_")
+              lines << "  #{safe_from} --> #{safe_to}"
+            end
+            lines
+          end
+
+          def mermaid_dag!(nodes, graph)
+            lines = ["graph LR"]
+            nodes.each do |node|
+              lines << mermaid_node(node)
+            end
+            graph.dependencies.each do |to_id, from_ids|
+              lines += mermaid_arrows(from_ids:, to_id:)
+            end
+            lines.join("\n")
+          end
+        end
+      end
     end
 
     # Sinatra-based web interface for Apricity
@@ -81,6 +113,13 @@ module Apricity
           when :skipped then "⏭️"
           else "❓"
           end
+        end
+
+        def mermaid_dag(pipeline)
+          nodes = Pipeline::Reducer.lower(pipeline)
+          graph = Pipeline::Graph.new(nodes)
+          graph.analyze
+          Diagrams.mermaid_dag!(nodes, graph)
         end
       end
 
