@@ -67,13 +67,21 @@ module Apricity
         totals[:skipped] += suite["skipped"].to_i
       end
 
+      def icon(report)
+        if report.failures.positive? || report.errors.positive?
+          "📕"
+        else
+          "📗"
+        end
+      end
+
       def annotation(report)
         {
           tests: report.tests,
           failures: report.failures,
           errors: report.errors,
           skipped: report.skipped,
-          _icon: report.failures.positive? || report.errors.positive? ? "❌" : "✅"
+          _icon: icon(report)
         }
       end
 

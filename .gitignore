@@ -8,6 +8,8 @@
 /tmp/
 /log/
 /vendor/
+/example/*/vendor/
+/artifacts/
 
 # rspec failure tracking
 .rspec_status

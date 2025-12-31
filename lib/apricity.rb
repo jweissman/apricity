@@ -41,8 +41,6 @@ module Apricity
 
   # rubocop:disable Metrics/ModuleLength
   module Run
-    # class Annotations < Hash; end
-
     NodeState = Data.define(
       :id, :name, :status, :phase, :started_at, :finished_at, :step_states, :annotations
     ) do

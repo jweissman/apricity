@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "junit_reporter"
+require_relative "simplecov_reporter"
 module Apricity
   module Plugins
     # Registry for managing available plugins
@@ -9,8 +11,8 @@ module Apricity
       end
 
       def register_builtin_plugins
-        require_relative "junit_reporter"
         register(JUnitReporter.new)
+        register(SimplecovReporter.new)
       end
 
       def register(plugin_def)

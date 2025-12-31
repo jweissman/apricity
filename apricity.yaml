@@ -51,11 +51,17 @@ actions:
           outputs:
             - key: test-outputs
               type: artifact
+            - key: coverage
+              type: artifact
           plugins:
             - uses: apricity/junit-reporter
               with:
                 junit_report: rspec.xml
                 artifact_key: test-outputs
+            - uses: apricity/simplecov-reporter
+              with:
+                last_run_report: .last_run.json
+                artifact_key: coverage
           mounts:
             - source: .
               target: /work

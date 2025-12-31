@@ -48,11 +48,11 @@ module Apricity
       def streaming_loop(out, queue)
         loop do
           event = queue.pop
-          puts "Sending event #{event.type} to client"
+          # puts "Sending event #{event.type} to client"
           out << format_sse(event)
           next unless event.type == :pipeline_finished
 
-          puts "Pipeline finished, closing stream"
+          # puts "Pipeline finished, closing stream"
           out << "event: close\ndata: {}\n\n"
           out.close
           break

@@ -20,6 +20,7 @@ gem "reek", "~> 6.5"
 gem "rubocop-rspec", "~> 3.8"
 
 gem "rspec_junit_formatter", "~> 0.6.0"
+gem "simplecov", require: false, group: :test
 
 gem "nokogiri", "~> 1.19"
 

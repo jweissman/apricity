@@ -25,7 +25,7 @@
   </head>
 
   <body class="bg-black text-gray-300 min-h-screen flex flex-col">
-    <header class="border-b p-1 mb-6 border-gray-700 text-right">
+    <header class="border-b p-1 border-gray-700 text-right">
       <a href="/">
         <h1
           class="
@@ -39,12 +39,12 @@
       </a>
     </header>
 
-    <main class="p-4 bg-gray-800 mx-auto max-w-4xl shadow-md rounded-lg">
+    <main class="bg-black mx-auto min-w-full min-h-full p-6 rounded-lg shadow-md flex-grow mt-0">
       <%= yield %>
     </main>
 
     <footer class="bg-gray-900 text-center p-2 mt-8 fixed bottom-0 w-full">
-      <p>&copy; 2026 Apricity CI. All rights reserved.</p>
+      <p>&copy; 2026 Oddball Inc and Apricity CI. All rights reserved.</p>
     </footer>
   </body>
 </html>

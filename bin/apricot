@@ -16,7 +16,9 @@ require "apricity/cli/apricot"
 Apricity.register_default_plugins
 
 file = ARGV.first || "apricity.yaml"
+options = {}
+options[:verbose] = true if ARGV.include?("--verbose")
 git_sha = `git rev-parse HEAD`.chomp
 pipeline = Apricity::Model::Pipeline.from_file(file)
 apricot = Apricity::CLI::Apricot.new
-apricot.monitor_execution(pipeline:, git_sha:)
+apricot.monitor_execution(pipeline:, git_sha:, options:)

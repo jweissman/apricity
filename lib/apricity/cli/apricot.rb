@@ -4,21 +4,21 @@ module Apricity
   module CLI
     # Apricot TUI renderer
     class Apricot
-      def monitor_execution(pipeline:, git_sha: nil)
+      def monitor_execution(pipeline:, git_sha: nil, options: { verbose: false })
         run = Apricity::Run::Instance.create(pipeline, git_sha:)
         run_id = run.id
         puts "Starting Run #{run_id[..7]} for pipeline #{pipeline.name} at git sha #{git_sha}"
         state = Apricity::Run::State.empty(pipeline)
         result = run.perform do |event|
-          state = handle_event(event, state)
+          state = handle_event(event, state, options:)
         end
         apricot_icon = result.passed? ? "🍑" : "🪰"
         puts "\n#{apricot_icon} Run #{run_id[..7]} Complete (in #{result.duration_seconds} seconds)"
       end
 
-      def handle_event(event, state)
+      def handle_event(event, state, options: { verbose: false })
         state = state.reduce(event)
-        render_tui(state)
+        render_tui(state) unless options[:verbose]
 
         is_chunk = %i[stdout_chunk stderr_chunk].include?(event.type)
         if is_chunk
