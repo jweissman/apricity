@@ -17,9 +17,7 @@
 <!-- Pipeline DAG -->
 <div class="mb-6 p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
   <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Pipeline</h3>
-  <pre class="mermaid text-center">
-<%= mermaid_dag(@pipeline) %>
-  </pre>
+  <div id="dag-container" class="flex justify-center"></div>
 </div>
 
 <div class="layout">
@@ -31,7 +29,8 @@
   window.ApricityRun = {
     id: "<%= @run.id %>",
     pipeline: "<%= @pipeline.name %>",
-    eventsUrl: "/runs/<%= @run.id %>/events"
+    eventsUrl: "/runs/<%= @run.id %>/events",
+    dag: <%= dag_data(@pipeline) %>
   };
 </script>
 

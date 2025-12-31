@@ -88,6 +88,15 @@ module Apricity
             end
             lines.join("\n")
           end
+
+          def dag_json(nodes, graph)
+            {
+              nodes: nodes.map { |n| { id: n.id, label: n.job_name.to_s } },
+              edges: graph.dependencies.flat_map do |to_id, from_ids|
+                from_ids.map { |from_id| { from: from_id, to: to_id } }
+              end
+            }
+          end
         end
       end
     end
@@ -120,6 +129,13 @@ module Apricity
           graph = Pipeline::Graph.new(nodes)
           graph.analyze
           Diagrams.mermaid_dag!(nodes, graph)
+        end
+
+        def dag_data(pipeline)
+          nodes = Pipeline::Reducer.lower(pipeline)
+          graph = Pipeline::Graph.new(nodes)
+          graph.analyze
+          JSON.generate(Diagrams.dag_json(nodes, graph))
         end
       end
 

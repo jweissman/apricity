@@ -102,7 +102,7 @@
 
     <script>
       mermaid.initialize({ 
-        startOnLoad: true,
+        startOnLoad: false,
         theme: 'base',
         themeVariables: {
           primaryColor: '#3b82f6',
@@ -113,8 +113,10 @@
           tertiaryColor: '#ffffff'
         },
         flowchart: {
-          curve: 'basis',
-          padding: 20
+          curve: 'linear',
+          padding: 15,
+          nodeSpacing: 50,
+          rankSpacing: 60
         }
       });
     </script>
