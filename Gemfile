@@ -30,3 +30,7 @@ gem "rackup", "~> 2.3"
 gem "sinatra", "~> 4.2"
 
 gem "rubocop-performance", "~> 1.26"
+
+gem "parallel_tests", "~> 5.5"
+
+gem "cyclonedx-ruby", "~> 1.1"

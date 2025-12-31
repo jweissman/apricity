@@ -37,13 +37,25 @@ module Apricity
         job_name, job_data = job_entry.first
         Job[
           name: job_name, steps: parse_steps(job_data[:steps]),
-          runs_on: Container[*job_data[:"runs-on"].split(":", 2)],
+          runs_on: parse_container(job_data[:"runs-on"]),
           **parse_input_output(job_data),
-          conditions: parse_conditions(job_data[:conditions]),
-          needs: job_data[:needs] || [],
+          conditions: parse_conditions(job_data[:conditions]), needs: job_data[:needs] || [],
           mounts: parse_mounts(job_data[:mounts], path:),
-          plugins: parse_plugins(job_data[:plugins])
+          plugins: parse_plugins(job_data[:plugins]),
+          strategy: parse_strategy(job_data[:strategy])
         ]
+      end
+
+      def self.parse_strategy(strategy_data)
+        return Strategy.empty unless strategy_data
+
+        Model::Strategy.new(matrix: strategy_data[:matrix] || {})
+      end
+
+      def self.parse_container(runs_on_data)
+        return nil unless runs_on_data
+
+        Container[*runs_on_data.split(":", 2)]
       end
 
       def self.parse_input_output(job_data)

@@ -11,11 +11,12 @@ module Apricity
   module JobExecution
     # Internal class for planning job execution
     class Planner
-      attr_reader :binds, :artifact_outputs, :working_dir, :prelude, :effective_working_dir
+      attr_reader :binds, :artifact_outputs, :working_dir, :prelude, :effective_working_dir, :env
 
       def initialize(node:, env:, artifact_inputs:, config: Apricity::Configuration.instance)
         @node = node
-        @env = env
+        # $stdout.puts("Planning job execution for node #{node.id} with node envars #{node.env}")
+        @env = env.merge(node.env || {})
         @artifact_inputs = artifact_inputs
         @working_dir = @effective_working_dir = WORKING_DIR
         @prelude = <<~SH
@@ -311,6 +312,7 @@ module Apricity
         @artifact_outputs = planner.artifact_outputs
         @effective_working_dir = planner.effective_working_dir
         @prelude += planner.prelude
+        @env = planner.env
       end
 
       # Execute the steps inside a Docker container

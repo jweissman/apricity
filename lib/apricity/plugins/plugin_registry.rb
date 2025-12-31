@@ -2,6 +2,7 @@
 
 require_relative "junit_reporter"
 require_relative "simplecov_reporter"
+require_relative "sbom_reporter"
 module Apricity
   module Plugins
     # Registry for managing available plugins
@@ -13,6 +14,7 @@ module Apricity
       def register_builtin_plugins
         register(JUnitReporter.new)
         register(SimplecovReporter.new)
+        register(SBOMReporter.new)
       end
 
       def register(plugin_def)

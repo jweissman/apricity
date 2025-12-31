@@ -25,11 +25,16 @@
     <script src="https://cdn.jsdelivr.net/npm/mermaid@11.12.2/dist/mermaid.min.js"></script>
 
     <style>
-      /* Custom scrollbar for dark theme */
+      /* Custom scrollbar */
       ::-webkit-scrollbar { width: 8px; height: 8px; }
-      ::-webkit-scrollbar-track { background: #1a1a2e; }
-      ::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 4px; }
-      ::-webkit-scrollbar-thumb:hover { background: #718096; }
+      ::-webkit-scrollbar-track { background: #f3f4f6; }
+      ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+      /* Terminal keeps dark scrollbar */
+      .terminal-output::-webkit-scrollbar-track { background: #111827; }
+      .terminal-output::-webkit-scrollbar-thumb { background: #4b5563; }
+      .terminal-output::-webkit-scrollbar-thumb:hover { background: #6b7280; }
 
       /* Smooth transitions */
       .transition-all { transition: all 0.2s ease-in-out; }
@@ -70,22 +75,23 @@
         font-size: 12px;
         line-height: 1.4;
       }
+
     </style>
   </head>
 
-  <body class="min-h-screen flex flex-col">
-    <header class="bg-gray-900/80 backdrop-blur-sm border-b border-gray-800 sticky top-0 z-50">
+  <body class="min-h-screen flex flex-col bg-gray-50">
+    <header class="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
       <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         <a href="/" class="flex items-center space-x-3 group">
-          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:shadow-blue-500/40 transition-all">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:shadow-blue-500/40 transition-all">
             <i class="fas fa-snowflake text-white text-sm"></i>
           </div>
-          <h1 class="text-xl font-bold bg-gradient-to-r from-blue-300 to-blue-500 text-transparent bg-clip-text">
+          <h1 class="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text">
             Apricity CI
           </h1>
         </a>
         <nav class="flex items-center space-x-4 text-sm">
-          <a href="/" class="text-gray-400 hover:text-gray-800 transition-colors">
+          <a href="/" class="text-gray-500 hover:text-gray-900 transition-colors">
             <i class="fas fa-home mr-1"></i> Dashboard
           </a>
         </nav>
@@ -96,7 +102,7 @@
       <%= yield %>
     </main>
 
-    <footer class="bg-gray-900/50 border-t border-gray-800 text-center py-3 text-xs text-gray-500">
+    <footer class="bg-white border-t border-gray-200 text-center py-3 text-xs text-gray-400">
       <p>&copy; 2025 Oddball Inc &middot; Apricity CI</p>
     </footer>
 

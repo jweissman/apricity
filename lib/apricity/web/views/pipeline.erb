@@ -1,28 +1,46 @@
-<h2
-  class="text-2xl font-bold text-gray-800"
-><%= @pipeline.name %></h2>
-
-<div
-  hx-get="/runs?pipeline=<%= @pipeline.slug %>"
-  hx-trigger="load"
-  hx-target="#job-list"
-  hx-swap="innerHTML"
-></div>
-
-<div id="job-list" class="mt-4">
-  <p>Loading jobs...</p>
+<div class="mb-6">
+  <a href="/" class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
+    <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+  </a>
 </div>
 
-<!-- kickstart run link -->
-<form action="/pipelines/<%= @pipeline.slug %>/run" method="post" class="mt-6">
-  <input type="hidden" name="pipeline_slug" value="<%= @pipeline.slug %>">
-  <button
-    type="submit"
-    class="bg-blue-500 text-gray-800 px-4 py-2 rounded hover:bg-blue-600"
-  >
-    Start New Run
-  </button>
-</form>
+<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h2 class="text-2xl font-bold text-gray-900"><%= @pipeline.name %></h2>
+      <p class="text-sm text-gray-500 mt-1">
+        <%= @pipeline.actions.size %> action<%= @pipeline.actions.size != 1 ? 's' : '' %> &middot;
+        <%= @pipeline.total_steps %> steps
+      </p>
+    </div>
+    <form action="/pipelines/<%= @pipeline.slug %>/run" method="post">
+      <input type="hidden" name="pipeline_slug" value="<%= @pipeline.slug %>">
+      <button
+        type="submit"
+        class="inline-flex items-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors shadow-md hover:shadow-lg"
+      >
+        <i class="fas fa-play mr-2 text-sm"></i>
+        Start New Run
+      </button>
+    </form>
+  </div>
+</div>
 
-
-<a href="/" class="text-blue-500 hover:underline mt-4 inline-block">Back to Pipelines</a>
+<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+  <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+    <i class="fas fa-history mr-3 text-indigo-500"></i>
+    Run History
+  </h3>
+  <div
+    hx-get="/pipelines/<%= @pipeline.slug %>/runs"
+    hx-trigger="load"
+    hx-target="#job-list"
+    hx-swap="innerHTML"
+  ></div>
+  <div id="job-list">
+    <div class="text-center py-8 text-gray-400">
+      <i class="fas fa-spinner fa-spin mr-2"></i>
+      Loading runs...
+    </div>
+  </div>
+</div>

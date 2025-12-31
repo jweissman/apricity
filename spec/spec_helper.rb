@@ -8,7 +8,8 @@ SimpleCov.start do
 end
 
 require "apricity"
-require "debug"
+require "apricity/model/builders"
+require_relative "support/successful_pipeline"
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure

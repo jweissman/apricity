@@ -62,36 +62,11 @@ module Apricity
       # Diagram generation helpers
       module Diagrams
         class << self
-          def mermaid_node(node)
-            safe_id = node.id.gsub("::", "_")
-            label = node.job_name.to_s
-            "#{safe_id}[#{label}]"
-          end
-
-          def mermaid_arrows(from_ids:, to_id:)
-            lines = []
-            safe_to = to_id.gsub("::", "_")
-            from_ids.each do |from_id|
-              safe_from = from_id.gsub("::", "_")
-              lines << "  #{safe_from} --> #{safe_to}"
-            end
-            lines
-          end
-
-          def mermaid_dag!(nodes, graph)
-            lines = ["graph LR"]
-            nodes.each do |node|
-              lines << mermaid_node(node)
-            end
-            graph.dependencies.each do |to_id, from_ids|
-              lines += mermaid_arrows(from_ids:, to_id:)
-            end
-            lines.join("\n")
-          end
+          def safe_id(id) = id.gsub("::", "_").tr("[", "_").tr("]", "_").tr("=", "_")
 
           def dag_json(nodes, graph)
             {
-              nodes: nodes.map { |n| { id: n.id, label: n.job_name.to_s } },
+              nodes: nodes.map { |n| { id: n.id, safeId: safe_id(n.id), label: n.job_name.to_s } },
               edges: graph.dependencies.flat_map do |to_id, from_ids|
                 from_ids.map { |from_id| { from: from_id, to: to_id } }
               end
@@ -109,6 +84,7 @@ module Apricity
         set :quiet, true
         set :pipelines, [
           Apricity::Model::Pipeline.from_file("apricity.yaml"),
+          Apricity::Model::Pipeline.from_file(".apricity-parallel.yaml"),
           Apricity::Model::Pipeline.from_file("example/hello/apricity.yaml")
         ]
       end
@@ -150,6 +126,12 @@ module Apricity
         halt 404, "Pipeline #{params[:slug]} not found" unless @pipeline
 
         erb :pipeline
+      end
+
+      get "/pipelines/:slug/runs" do
+        @pipeline = load_pipeline(params[:slug])
+        @runs = Apricity::RunStore.instance.list_runs.select { |r| r.pipeline.slug == params[:slug] }
+        erb :runs, layout: false
       end
 
       get "/runs" do

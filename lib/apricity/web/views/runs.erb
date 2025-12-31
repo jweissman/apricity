@@ -1,38 +1,38 @@
 <% if @runs.any? %>
-  <div class="space-y-3">
+  <div class="space-y-2">
     <% @runs.reverse.first(10).each do |run| %>
-      <a href="/runs/<%= run.id %>" class="block">
-        <div class="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg border border-gray-700 hover:border-gray-600 transition-all card-hover">
+      <a href="/runs/<%= run.id %>" class="block group">
+        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 transition-all">
           <div class="flex items-center space-x-4">
-            <div class="text-xl">
+            <div class="text-2xl">
               <%= pretty_status(run.status) %>
             </div>
             <div>
-              <div class="font-medium text-gray-800"><%= run.pipeline.name %></div>
-              <div class="text-xs text-gray-500 font-mono mt-0.5">
+              <div class="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors"><%= run.pipeline.name %></div>
+              <div class="text-xs text-gray-400 font-mono mt-0.5">
                 <%= run.id[0..7] %>...
               </div>
             </div>
           </div>
           <div class="text-right">
-            <div class="text-xs text-gray-400">
+            <div class="text-xs text-gray-500">
               <% if run.started_at %>
-                <%= run.started_at.strftime("%b %d, %H:%M:%S") %>
+                <i class="far fa-clock mr-1"></i><%= run.started_at.strftime("%b %d, %H:%M:%S") %>
               <% else %>
                 Pending
               <% end %>
             </div>
-            <div class="text-xs text-gray-500 mt-1">
+            <div class="text-xs mt-1">
               <% if run.status == :running %>
-                <span class="text-yellow-400 animate-pulse-subtle">
-                  <i class="fas fa-circle text-xs mr-1"></i>Running
+                <span class="text-amber-600 font-medium animate-pulse-subtle">
+                  <i class="fas fa-circle-notch fa-spin text-xs mr-1"></i>Running
                 </span>
               <% elsif run.status == :success %>
-                <span class="text-green-400">Passed</span>
+                <span class="text-green-600 font-medium">Passed</span>
               <% elsif run.status == :failure %>
-                <span class="text-red-400">Failed</span>
+                <span class="text-red-600 font-medium">Failed</span>
               <% else %>
-                <span class="text-gray-400"><%= run.status %></span>
+                <span class="text-gray-500"><%= run.status %></span>
               <% end %>
             </div>
           </div>
@@ -41,8 +41,10 @@
     <% end %>
   </div>
 <% else %>
-  <div class="text-center py-12 text-gray-500">
-    <i class="fas fa-inbox text-4xl mb-3 opacity-50"></i>
-    <p>No runs yet. Start a pipeline to see results here.</p>
+  <div class="text-center py-12">
+    <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+      <i class="fas fa-inbox text-2xl text-gray-400"></i>
+    </div>
+    <p class="text-gray-500">No runs yet. Start a pipeline to see results here.</p>
   </div>
 <% end %>

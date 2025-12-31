@@ -9,23 +9,61 @@ module Apricity
         Console.info(self, "Reducing pipeline to job nodes...", total_steps: pipeline.total_steps)
         nodes = []
         pipeline.actions.each do |action|
-          action.jobs.each do |job|
-            nodes << build_job_node(job, action)
-          end
+          nodes.concat(build_action_nodes(action))
         end
         Console.info(self, "Pipeline reduced", total_steps: pipeline.total_steps, total_nodes: nodes.size)
         nodes
       end
 
-      def self.build_job_node(job, action) = JobExecution::Node.new(
-        id: "#{action.name}::#{job.name}",
-        runs_on: job.runs_on,
-        job_name: job.name, action_name: action.name,
-        inputs: job.inputs, outputs: job.outputs,
-        conditions: job.conditions, needs: job.needs,
-        steps: job.steps,
-        mounts: job.mounts, plugins: job.plugins
-      )
+      # rubocop:disable Metrics/MethodLength
+      def self.build_action_nodes(action)
+        nodes = []
+        action.jobs.each do |job|
+          if job.strategy&.matrix&.any?
+            combos = expand_matrix(job)
+            total = combos.size
+            combos.each do |matrix_vars|
+              nodes << build_job_node(job, action, matrix_vars, total:)
+            end
+          else
+            nodes << build_job_node(job, action, {})
+          end
+        end
+        nodes
+      end
+      # rubocop:enable Metrics/MethodLength
+
+      def self.build_job_node(job, action, matrix_vars, total: 0)
+        base = JobExecution::Node.from_model("#{action.name}::#{job.name}", action:, job:)
+        if matrix_vars.any?
+          base.with(
+            id: "#{base.id}[#{matrix_vars.map { |k, v| "#{k}=#{v}" }.join(",")}]",
+            env: base.env.merge(matrix_env(matrix_vars, total:)),
+            matrix: matrix_vars
+          )
+        else
+          base
+        end
+      end
+
+      def self.matrix_env(vars, total:)
+        {
+          "MATRIX_TOTAL" => total.to_s
+        }.merge(
+          vars.transform_keys { |k| "MATRIX_#{k.upcase}" }
+              .transform_values(&:to_s)
+        )
+      end
+
+      def self.expand_matrix(job)
+        keys = job.strategy.matrix.keys
+        values = job.strategy.matrix.values
+
+        values
+          .first
+          .product(*values.drop(1))
+          .map { |combo| keys.zip(combo).to_h }
+      end
     end
   end
 end

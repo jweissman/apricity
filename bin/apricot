@@ -15,9 +15,30 @@ require "apricity/cli/apricot"
 
 Apricity.register_default_plugins
 
-file = ARGV.first || "apricity.yaml"
+# file = ARGV.first || "apricity.yaml"
+# options = {}
+# options[:verbose] = true if ARGV.include?("--verbose")
+
+# nicer options parsing
+require "optparse"
 options = {}
-options[:verbose] = true if ARGV.include?("--verbose")
+OptionParser.new do |opts|
+  opts.banner = "Usage: apricot [options] <pipeline-file>"
+
+  opts.on("-v", "--verbose", "Enable verbose output") do
+    options[:verbose] = true
+  end
+
+  opts.on("-h", "--help", "Prints this help") do
+    puts opts
+    exit
+  end
+end.parse!
+file = ARGV.last || "apricity.yaml"
+
+
+puts "Loading pipeline from #{file} with options: #{options}" if options[:verbose]
+
 git_sha = `git rev-parse HEAD`.chomp
 pipeline = Apricity::Model::Pipeline.from_file(file)
 apricot = Apricity::CLI::Apricot.new

@@ -1,0 +1,10 @@
+name: Test Matrix Parse Pipeline
+actions:
+  test-matrix:
+    jobs:
+      - test:
+          strategy:
+            matrix:
+              shard: [1, 2, 3]
+          steps:
+            - run: bundle exec rspec

@@ -13,7 +13,9 @@ module Apricity
       :job_name,
       :action_name,
       :mounts,
-      :plugins
+      :plugins,
+      :matrix,
+      :env
     ) do
       def self.from_model(node_id, action:, job:)
         new(
@@ -23,9 +25,12 @@ module Apricity
           inputs: job.inputs, outputs: job.outputs,
           conditions: job.conditions, needs: job.needs,
           mounts: job.mounts,
-          plugins: job.plugins
+          plugins: job.plugins,
+          matrix: {}, env: {}
         )
       end
+
+      def with(**attrs) = self.class.new(**to_h, **attrs)
     end
   end
 end

@@ -1,0 +1,108 @@
+name: Apricity Tests (Parallel)
+actions:
+  test:
+    jobs:
+      - toy:
+          runs-on: ruby:3.4
+          name: Toy Job with Matrix
+          strategy:
+            matrix:
+              shard: [1, 2, 3, 4]
+          mounts:
+            - source: .
+              target: /work
+              type: bind
+            # Use DinD to allow apricity to test itself
+            - source: /var/run/docker.sock
+              target: /var/run/docker.sock
+              type: bind
+          steps:
+            - name: Display Matrix Env Vars
+              run: |
+                export | grep MATRIX
+                echo "env matrix shard is: $MATRIX_SHARD/$MATRIX_TOTAL"
+            - name: Bundle install
+              run: |
+                bundle config set --local path 'vendor/bundle'
+                bundle install
+            - name: Run tests
+              run: |
+                export PARALLEL_TEST_GROUPS=$MATRIX_TOTAL
+                export PARALLEL_TEST_GROUP=$MATRIX_SHARD
+
+                bundle exec parallel_rspec spec --only-group $MATRIX_SHARD --verbose -n 4
+      # - quality:
+      #     runs-on: ruby:3.4
+      #     name: Check Apricity Code Quality
+      #     mounts:
+      #       - source: .
+      #         target: /work
+      #         type: bind
+      #     steps:
+      #       - name: Bundle install
+      #         run: |
+      #           bundle config set --local path 'vendor/bundle'
+      #           bundle install
+
+      #       - name: Run code quality tools
+      #         run: |
+      #           bundle exec reek lib
+      # - lint:
+      #     runs-on: ruby:3.4
+      #     name: Lint Apricity Codebase
+      #     mounts:
+      #       - source: .
+      #         target: /work
+      #         type: bind
+      #     steps:
+      #       - name: Bundle install
+      #         run: |
+      #           bundle config set --local path 'vendor/bundle'
+      #           bundle install
+      #       - name: Run linters
+      #         run: |
+      #           bundle exec rubocop lib
+
+      # - test:
+      #     runs-on: ruby:3.4
+      #     name: Build and Test Apricity
+      #     needs: [lint, quality]
+      #     outputs:
+      #       - key: test-outputs
+      #         type: artifact
+      #       - key: coverage
+      #         type: artifact
+      #     plugins:
+      #       - uses: apricity/junit-reporter
+      #         with:
+      #           junit_report: rspec.xml
+      #           artifact_key: test-outputs
+      #       - uses: apricity/simplecov-reporter
+      #         with:
+      #           last_run_report: .last_run.json
+      #           artifact_key: coverage
+      #     mounts:
+      #       - source: .
+      #         target: /work
+      #         type: bind 
+      #       # Use DinD to allow apricity to test itself
+      #       - source: /var/run/docker.sock
+      #         target: /var/run/docker.sock
+      #         type: bind
+      #     strategy:
+      #       matrix:
+      #         shard: [1, 2, 3, 4]
+      #     steps:
+      #       - name: Bundle install
+      #         run: |
+      #           bundle config set --local path 'vendor/bundle'
+      #           bundle install
+
+
+      #       - name: Run tests
+      #         run: |
+      #           bundle exec rspec \
+      #             --fail-fast \
+      #             --format progress \
+      #             --format RspecJunitFormatter \
+      #             --out artifacts/test-outputs/rspec.xml

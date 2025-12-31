@@ -1,20 +1,20 @@
 <section class="space-y-8">
   <!-- Pipelines Section -->
-  <div class="bg-gray-900/50 rounded-xl border border-gray-800 p-6">
+  <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
     <div class="flex items-center justify-between mb-6">
-      <h2 class="text-lg font-semibold text-gray-800 flex items-center">
-        <i class="fas fa-sitemap mr-3 text-blue-400"></i>
+      <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+        <i class="fas fa-sitemap mr-3 text-blue-500"></i>
         Pipelines
       </h2>
-      <span class="text-xs text-gray-500"><%= @pipelines.size %> configured</span>
+      <span class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full"><%= @pipelines.size %> configured</span>
     </div>
 
     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <% @pipelines.each do |pipeline| %>
-        <div class="bg-gray-800/50 rounded-lg border border-gray-700 p-4 card-hover transition-all">
+        <div class="bg-gray-50 rounded-lg border border-gray-200 p-4 card-hover transition-all hover:border-blue-300 hover:bg-blue-50/30">
           <div class="flex items-start justify-between mb-3">
             <div>
-              <h3 class="font-medium text-gray-500"><%= pipeline.name %></h3>
+              <h3 class="font-semibold text-gray-900"><%= pipeline.name %></h3>
               <p class="text-xs text-gray-500 mt-1">
                 <%= pipeline.actions.size %> action<%= pipeline.actions.size != 1 ? 's' : '' %> &middot;
                 <%= pipeline.total_steps %> steps
@@ -23,7 +23,7 @@
             <form action="/pipelines/<%= pipeline.slug %>/run" method="post" class="inline">
               <button 
                 type="submit" 
-                class="w-8 h-8 rounded-full bg-green-600 hover:bg-green-500 text-gray-800 flex items-center justify-center transition-colors shadow-lg shadow-green-600/20"
+                class="w-9 h-9 rounded-full bg-green-500 hover:bg-green-600 text-white flex items-center justify-center transition-colors shadow-md hover:shadow-lg"
                 title="Run pipeline"
               >
                 <i class="fas fa-play text-xs ml-0.5"></i>
@@ -32,7 +32,7 @@
           </div>
           <a
             href="/pipelines/<%= pipeline.slug %>"
-            class="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+            class="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
           >
             View details <i class="fas fa-arrow-right ml-1 text-xs"></i>
           </a>
@@ -42,10 +42,10 @@
   </div>
 
   <!-- Recent Runs Section -->
-  <div class="bg-gray-900/50 rounded-xl border border-gray-800 p-6">
+  <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
     <div class="flex items-center justify-between mb-6">
-      <h2 class="text-lg font-semibold text-gray-800 flex items-center">
-        <i class="fas fa-history mr-3 text-purple-400"></i>
+      <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+        <i class="fas fa-history mr-3 text-indigo-500"></i>
         Recent Runs
       </h2>
     </div>
