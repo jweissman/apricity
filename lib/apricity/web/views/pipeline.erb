@@ -1,4 +1,6 @@
-<h2><%= @pipeline.name %></h2>
+<h2
+  class="text-2xl font-bold text-gray-800"
+><%= @pipeline.name %></h2>
 
 <div
   hx-get="/runs?pipeline=<%= @pipeline.slug %>"

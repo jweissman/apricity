@@ -130,7 +130,7 @@ module Apricity
 
       private
 
-      def concurrent? = false
+      def concurrent? = true
 
       # rubocop:disable Metrics/MethodLength
       # rubocop:disable Metrics/CyclomaticComplexity
