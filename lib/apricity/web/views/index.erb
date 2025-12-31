@@ -1,32 +1,67 @@
-<section class="p-8 bg-gray-900">
-  <p class="mb-4">Pipelines</p>
+<section class="space-y-8">
+  <!-- Pipelines Section -->
+  <div class="bg-gray-900/50 rounded-xl border border-gray-800 p-6">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+        <i class="fas fa-sitemap mr-3 text-blue-400"></i>
+        Pipelines
+      </h2>
+      <span class="text-xs text-gray-500"><%= @pipelines.size %> configured</span>
+    </div>
 
-  <ul class="list-none mb-6 p-0">
-    <% @pipelines.each do |pipeline| %>
-      <li>
-        <!-- play button (form post to /pipelines/:slug/run) -->
-        <form action="/pipelines/<%= pipeline.slug %>/run" method="post" class="inline">
-          <button type="submit">▶️</button>
-        </form>
-        <strong><%= pipeline.name %></strong>
-        <a
-          href="/pipelines/<%= pipeline.slug %>"
-          class="text-blue-500 hover:underline"
-        >
-          View Details
-        </a>
-      </li>
-    <% end %>
-  </ul>
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <% @pipelines.each do |pipeline| %>
+        <div class="bg-gray-800/50 rounded-lg border border-gray-700 p-4 card-hover transition-all">
+          <div class="flex items-start justify-between mb-3">
+            <div>
+              <h3 class="font-medium text-gray-500"><%= pipeline.name %></h3>
+              <p class="text-xs text-gray-500 mt-1">
+                <%= pipeline.actions.size %> action<%= pipeline.actions.size != 1 ? 's' : '' %> &middot;
+                <%= pipeline.total_steps %> steps
+              </p>
+            </div>
+            <form action="/pipelines/<%= pipeline.slug %>/run" method="post" class="inline">
+              <button 
+                type="submit" 
+                class="w-8 h-8 rounded-full bg-green-600 hover:bg-green-500 text-gray-800 flex items-center justify-center transition-colors shadow-lg shadow-green-600/20"
+                title="Run pipeline"
+              >
+                <i class="fas fa-play text-xs ml-0.5"></i>
+              </button>
+            </form>
+          </div>
+          <a
+            href="/pipelines/<%= pipeline.slug %>"
+            class="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+          >
+            View details <i class="fas fa-arrow-right ml-1 text-xs"></i>
+          </a>
+        </div>
+      <% end %>
+    </div>
+  </div>
 
-  <div
-    hx-get="/runs"
-    hx-trigger="load"
-    hx-target="#job-list"
-    hx-swap="innerHTML"
-  ></div>
+  <!-- Recent Runs Section -->
+  <div class="bg-gray-900/50 rounded-xl border border-gray-800 p-6">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+        <i class="fas fa-history mr-3 text-purple-400"></i>
+        Recent Runs
+      </h2>
+    </div>
 
-  <div id="job-list" class="mt-4">
-    <p>Loading jobs...</p>
+    <div
+      hx-get="/runs"
+      hx-trigger="load"
+      hx-target="#job-list"
+      hx-swap="innerHTML"
+    ></div>
+
+    <div id="job-list">
+      <div class="text-center py-8 text-gray-500">
+        <i class="fas fa-spinner fa-spin mr-2"></i>
+        Loading runs...
+      </div>
+    </div>
   </div>
 </section>
