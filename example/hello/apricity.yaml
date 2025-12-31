@@ -13,9 +13,15 @@ actions:
             - uses: apricity/junit-reporter
               with:
                 junit_report: rspec.xml
-                artifact_key: test-output
+                artifact_key: test-results
+            - uses: apricity/simplecov-reporter
+              with:
+                last_run_report: .last_run.json
+                artifact_key: coverage
           outputs:
-            - key: test-output
+            - key: test-results
+              type: artifact
+            - key: coverage
               type: artifact
           steps:
             - name: Bundle install
@@ -29,5 +35,5 @@ actions:
                   --fail-fast \
                   --format progress \
                   --format RspecJunitFormatter \
-                  --out artifacts/test-output/rspec.xml \
+                  --out artifacts/test-results/rspec.xml \
                   spec/greeter_spec.rb

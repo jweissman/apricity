@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+require "simplecov"
+SimpleCov.start do
+  coverage_dir './artifacts/coverage'
+end
+
 # A very simple hello world greeter to verify RSpec is working
 class Greeter
   def greet
