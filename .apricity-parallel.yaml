@@ -2,9 +2,25 @@ name: Apricity Tests (Parallel)
 actions:
   test:
     jobs:
-      - toy:
+      - lint:
           runs-on: ruby:3.4
-          name: Toy Job with Matrix
+          name: Lint Apricity Codebase
+          mounts:
+            - source: .
+              target: /work
+              type: bind
+          steps:
+            - name: Bundle install
+              run: |
+                bundle config set --local path 'vendor/bundle'
+                bundle install
+            - name: Run linters
+              run: |
+                bundle exec rubocop lib
+      - test:
+          runs-on: ruby:3.4
+          name: Test Job Matrix
+          needs: [lint]
           strategy:
             matrix:
               shard: [1, 2, 3, 4]
@@ -16,6 +32,14 @@ actions:
             - source: /var/run/docker.sock
               target: /var/run/docker.sock
               type: bind
+          plugins:
+            - uses: apricity/junit-reporter
+              with:
+                junit_reports: rspec-*.xml
+                artifact_key: test-outputs
+          outputs:
+            - key: test-outputs
+              type: artifact
           steps:
             - name: Display Matrix Env Vars
               run: |
@@ -30,10 +54,35 @@ actions:
                 export PARALLEL_TEST_GROUPS=$MATRIX_TOTAL
                 export PARALLEL_TEST_GROUP=$MATRIX_SHARD
 
-                bundle exec parallel_rspec spec --only-group $MATRIX_SHARD --verbose -n 4
-      # - quality:
+                bundle exec parallel_rspec spec --only-group $MATRIX_SHARD --verbose -n $MATRIX_TOTAL \
+                  --test-options "--format progress --format RspecJunitFormatter --out artifacts/test-outputs/rspec-$MATRIX_SHARD.xml"
+              
+      - quality:
+          runs-on: ruby:3.4
+          name: Check Apricity Code Quality
+          needs: [test]
+          mounts:
+            - source: .
+              target: /work
+              type: bind
+          steps:
+            - name: Bundle install
+              run: |
+                bundle config set --local path 'vendor/bundle'
+                bundle install
+
+            - name: Run code quality tools
+              run: |
+                bundle exec reek lib
+      # - sbom:
       #     runs-on: ruby:3.4
-      #     name: Check Apricity Code Quality
+      #     name: Generate SBOM for Apricity
+      #     needs: [quality]
+      #     plugins:
+      #       - uses: apricity/sbom-reporter
+      #         with:
+      #           output_file: sbom.json
+      #           artifact_key: sbom
       #     mounts:
       #       - source: .
       #         target: /work
@@ -44,9 +93,13 @@ actions:
       #           bundle config set --local path 'vendor/bundle'
       #           bundle install
 
-      #       - name: Run code quality tools
+      #       - name: Generate SBOM
       #         run: |
-      #           bundle exec reek lib
+      #           bundle exec cyclonedx-ruby -o artifacts/sbom/sbom.xml -p .
+      #     outputs:
+      #       - key: sbom
+      #         type: artifact
+
       # - lint:
       #     runs-on: ruby:3.4
       #     name: Lint Apricity Codebase

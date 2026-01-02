@@ -4,11 +4,11 @@ module Apricity
   module Run
     # State reducer to process events and update run state
     class StateReducer
-      def handle_event(event, node_states)
-        send(event.type, event, node_states) if respond_to?(event.type, true)
+      def handle_event(event, node_states, run_annotations)
+        send(event.type, event, node_states, run_annotations) if respond_to?(event.type, true)
       end
 
-      def job_started(event, node_states)
+      def job_started(event, node_states, _run_annotations)
         node_states[event.node.id] = NodeState.for(
           event.node,
           status: nil,
@@ -18,7 +18,7 @@ module Apricity
         )
       end
 
-      def job_skipped(event, node_states)
+      def job_skipped(event, node_states, _run_annotations)
         node_states[event.node.id] = NodeState.for(
           event.node,
           status: :skipped,
@@ -28,7 +28,7 @@ module Apricity
         )
       end
 
-      def job_finished(event, node_states)
+      def job_finished(event, node_states, _run_annotations)
         node_states[event.node.id] = NodeState.for(
           event.node,
           status: event.status,
@@ -38,7 +38,7 @@ module Apricity
         )
       end
 
-      def job_annotated(event, node_states)
+      def job_annotated(event, node_states, _run_annotations)
         node_state = node_states[event.node.id]
         node_states[event.node.id] = NodeState.for(
           event.node,
@@ -49,7 +49,7 @@ module Apricity
         )
       end
 
-      def step_started(event, node_states)
+      def step_started(event, node_states, _run_annotations)
         node_state = node_states[event.node.id]
         node_states[event.node.id] = NodeState.for(
           event.node,
@@ -59,7 +59,7 @@ module Apricity
         )
       end
 
-      def step_finished(event, node_states)
+      def step_finished(event, node_states, _run_annotations)
         node_state = node_states[event.node.id]
         node_states[event.node.id] = NodeState.for(
           event.node,
@@ -67,6 +67,10 @@ module Apricity
           timestamps: timestamps_for(node_state),
           step_states: update_step_states(node_states[event.node.id]&.step_states, event)
         )
+      end
+
+      def pipeline_annotated(event, _node_states, run_annotations)
+        run_annotations.merge!(event.annotations)
       end
 
       def timestamps_for(node_state)
@@ -115,7 +119,7 @@ module Apricity
       end
     end
 
-    State = Data.define(:pipeline, :nodes) do
+    State = Data.define(:pipeline, :nodes, :annotations) do
       def self.empty(pipeline)
         states = {}
         nodes = Pipeline::Reducer.lower(pipeline)
@@ -123,7 +127,7 @@ module Apricity
           states[node.id] = empty_node_state_for(node)
         end
 
-        new(pipeline:, nodes: states)
+        new(pipeline:, nodes: states, annotations: {})
       end
 
       def self.empty_node_state_for(node)
@@ -138,8 +142,9 @@ module Apricity
 
       def reduce(event)
         new_states = nodes.dup
-        StateReducer.new.handle_event(event, new_states)
-        State[pipeline:, nodes: new_states]
+        updated_annotations = annotations.dup
+        StateReducer.new.handle_event(event, new_states, updated_annotations)
+        State[pipeline:, nodes: new_states, annotations: updated_annotations]
       end
     end
   end

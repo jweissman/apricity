@@ -76,7 +76,7 @@ module Apricity
       def analyze_producers
         nodes.each do |n|
           n.outputs.each do |out|
-            raise "duplicate output #{out.key}" if @producer.key?(out.key)
+            warn "duplicate output #{out.key}" if @producer.key?(out.key)
 
             @producer[out.key] = n.id
           end
@@ -106,10 +106,13 @@ module Apricity
 
       def analyze_node_needs(node)
         node.needs.each do |need_job_name|
-          need_node = nodes.find { |node| node.job_name.to_sym == need_job_name.to_sym }
-          raise "unknown needed job #{need_job_name} for job #{node.job_name}" unless need_node
+          # Find ALL nodes matching the needed job name (handles matrix jobs)
+          need_nodes = nodes.select { |n| n.job_name.to_sym == need_job_name.to_sym }
+          raise "unknown needed job #{need_job_name} for job #{node.job_name}" if need_nodes.empty?
 
-          @dependencies[node.id] << need_node.id
+          need_nodes.each do |need_node|
+            @dependencies[node.id] << need_node.id
+          end
         end
       end
     end

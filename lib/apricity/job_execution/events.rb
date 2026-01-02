@@ -43,7 +43,7 @@ module Apricity
         case event.type
         when :job_skipped then { reason: event.reason }
         when :job_finished then job_finished_payload(event)
-        when :job_annotated then { annotations: event.annotations }
+        when :job_annotated, :pipeline_annotated then { annotations: event.annotations }
         when :step_finished then { status: event.status }
         when :stdout_chunk, :stderr_chunk then { chunk: event.chunk }
         else {}
@@ -115,9 +115,18 @@ module Apricity
         def pretty = "(stderr chunk from step #{step.name})"
       end
 
-      PipelineFinished = Data.define(:pipeline_name, :finished_at) do
+      PipelineFinished = Data.define(:pipeline_name, :finished_at, :outputs_by_node) do
         def type = :pipeline_finished
         def pretty = "pipeline #{pipeline_name} finished"
+      end
+
+      PipelineAnnotated = Data.define(:pipeline_name, :annotations, :annotated_at) do
+        def type = :pipeline_annotated
+
+        def pretty
+          "annotated pipeline #{pipeline_name} with #{annotations.size} annotations: \
+          #{annotations.inspect}"
+        end
       end
     end
   end

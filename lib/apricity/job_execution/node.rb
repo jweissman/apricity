@@ -25,9 +25,15 @@ module Apricity
           inputs: job.inputs, outputs: job.outputs,
           conditions: job.conditions, needs: job.needs,
           mounts: job.mounts,
-          plugins: job.plugins,
+          plugins: plugins(job, node_id),
           matrix: {}, env: {}
         )
+      end
+
+      def self.plugins(job, node_id)
+        job.plugins&.map do |model_plugin|
+          model_plugin.plugin_class.new(job_id: node_id, options: model_plugin.with)
+        end
       end
 
       def with(**attrs) = self.class.new(**to_h, **attrs)

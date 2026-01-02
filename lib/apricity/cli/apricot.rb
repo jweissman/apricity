@@ -22,7 +22,9 @@ module Apricity
 
         is_chunk = %i[stdout_chunk stderr_chunk].include?(event.type)
         if is_chunk
-          print event.chunk
+          # print event.chunk
+          # grey
+          print "\e[90m#{event.chunk}\e[0m"
         else
           puts event.pretty.capitalize
         end
@@ -40,6 +42,7 @@ module Apricity
           render_node_steps(node_state) # if node_state.phase == :running
           render_node_annotations(node_state)
         end
+        render_pipeline_annotations(state)
       end
 
       ICONS = {
@@ -97,12 +100,31 @@ module Apricity
         return if node_state.annotations.empty?
 
         node_state.annotations.each do |key, value|
-          pretty_key = key.to_s.tr("_", " ").capitalize
-          puts "      #{value.fetch(:_icon, "*")} #{pretty_key}"
-          pretty_value = value.except(:_icon)
-          pretty_value.each do |k, v|
-            puts "        - #{k}: #{v}"
-          end
+          render_annotation(key, value)
+          # pretty_key = key.to_s.tr("_", " ").capitalize
+          # puts "      #{value.fetch(:_icon, "*")} #{pretty_key}"
+          # pretty_value = value.except(:_icon)
+          # pretty_value.each do |k, v|
+          #   puts "        - #{k}: #{v}"
+          # end
+        end
+      end
+
+      def render_pipeline_annotations(state)
+        return if state.annotations.empty?
+
+        puts "\n Pipeline Annotations:"
+        state.annotations.each do |key, value|
+          render_annotation(key, value)
+        end
+      end
+
+      def render_annotation(key, value)
+        pretty_key = key.to_s.tr("_", " ").capitalize
+        puts "  #{value.fetch(:_icon, "*")} #{pretty_key}"
+        pretty_value = value.except(:_icon)
+        pretty_value.each do |k, v|
+          puts "    - #{k}: #{v}"
         end
       end
     end

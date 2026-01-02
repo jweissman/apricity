@@ -8,7 +8,8 @@ require "apricity/plugins/junit_reporter"
 module Apricity
   module Plugins
     RSpec.describe JUnitReporter do
-      before { described_class.new.register }
+      # before { described_class.new.register }
+      before { PluginRegistry.instance.register(described_class) }
 
       let(:fixture_file_path) { "spec/fixtures/test-hello-pipeline.yaml" }
       let(:pipeline) { Apricity::Model::Pipeline.from_file(fixture_file_path) }
@@ -20,7 +21,7 @@ module Apricity
 
       describe "can dereference JUnitReporter plugin" do
         let(:registry) { Apricity::Plugins::PluginRegistry.instance }
-        let(:plugin) { registry.get_plugin(plugin_def) }
+        let(:plugin) { registry.get_plugin(plugin_def).new }
 
         it "fetches the correct plugin name" do
           expect(plugin.name).to eq("junit-reporter")

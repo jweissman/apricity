@@ -28,7 +28,9 @@ module Apricity
 
       def format_sse(event)
         payload = Apricity::JobExecution::EventSerializer.as_json(event)
-        "event: #{event.type}\ndata: #{payload}\n\n"
+        sse = "event: #{event.type}\ndata: #{payload}\n\n"
+        puts "Formatted SSE: #{sse}"
+        sse
       end
 
       def stream_events(run, out)
@@ -48,7 +50,7 @@ module Apricity
       def streaming_loop(out, queue)
         loop do
           event = queue.pop
-          # puts "Sending event #{event.type} to client"
+          puts "Sending event #{event.type} to client"
           out << format_sse(event)
           next unless event.type == :pipeline_finished
 
@@ -62,15 +64,40 @@ module Apricity
       # Diagram generation helpers
       module Diagrams
         class << self
-          def safe_id(id) = id.gsub("::", "_").tr("[", "_").tr("]", "_").tr("=", "_")
+          def safe_id(id) = id.gsub("::", "_").tr("[", "_").tr("]", "_").tr("=", "_").tr(",", "_")
 
           def dag_json(nodes, graph)
+            # Group nodes by job_name to calculate matrix indices
             {
-              nodes: nodes.map { |n| { id: n.id, safeId: safe_id(n.id), label: n.job_name.to_s } },
+              nodes: dag_nodes(nodes),
               edges: graph.dependencies.flat_map do |to_id, from_ids|
                 from_ids.map { |from_id| { from: from_id, to: to_id } }
               end
             }
+          end
+
+          def dag_nodes(nodes)
+            matrix_counts = nodes.group_by(&:job_name).transform_values(&:count)
+            matrix_indices = Hash.new { |h, k| h[k] = 0 }
+
+            nodes.map do |n|
+              matrix_indices[n.job_name] += 1
+              node_json(n, matrix_counts:, matrix_index: matrix_indices[n.job_name])
+            end
+          end
+
+          def node_json(node, matrix_counts:, matrix_index:)
+            total = matrix_counts[node.job_name]
+            is_matrix = total > 1 || node.matrix&.any?
+
+            {
+              id: node.id,
+              safeId: safe_id(node.id),
+              label: node.job_name.to_s,
+              matrix: node.matrix || {},
+              matrixIndex: is_matrix ? matrix_index : nil,
+              matrixTotal: is_matrix ? total : nil
+            }.compact
           end
         end
       end

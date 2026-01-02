@@ -43,7 +43,7 @@ module Apricity
       def self.get_events(run_id) = @events[run_id]
 
       def self.append_event(run_id, event)
-        # $stdout.puts "[EventStore#append] #{event.type}: #{event.pretty}"
+        $stdout.puts "[EventStore#append] #{event.type}: #{event.pretty}"
         @events[run_id] << event
         Subscriptions.dispatch(run_id, event)
       end

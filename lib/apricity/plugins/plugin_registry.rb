@@ -12,13 +12,14 @@ module Apricity
       end
 
       def register_builtin_plugins
-        register(JUnitReporter.new)
-        register(SimplecovReporter.new)
-        register(SBOMReporter.new)
+        register(JUnitReporter)
+        register(SimplecovReporter)
+        register(SBOMReporter)
       end
 
       def register(plugin_def)
-        key = "#{plugin_def.org}/#{plugin_def.name}:#{plugin_def.version}"
+        plugin = plugin_def.new
+        key = "#{plugin.org}/#{plugin.name}:#{plugin.version}"
         @plugins[key] = plugin_def
         Console.info(self, "plugin_registered", plugin: key)
       end
