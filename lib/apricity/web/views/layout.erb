@@ -76,6 +76,45 @@
         line-height: 1.4;
       }
 
+      /* DAG container styling */
+      #dag-container {
+        min-height: 200px;
+        padding: 24px;
+        background: linear-gradient(to bottom, #fafafa 0%, #ffffff 100%);
+        border-radius: 12px;
+      }
+
+      /* Mermaid SVG enhancements */
+      #dag-container svg {
+        max-width: 100%;
+        height: auto;
+        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.05));
+      }
+
+      /* Make mermaid node text more readable */
+      #dag-container .nodeLabel {
+        font-family: system-ui, -apple-system, sans-serif;
+        font-weight: 500;
+        line-height: 1.5;
+      }
+
+      /* Hover effect on DAG nodes */
+      #dag-container .node:hover {
+        filter: brightness(1.05);
+        cursor: pointer;
+      }
+
+      /* Smooth edge rendering */
+      #dag-container .edgePath path {
+        stroke-width: 2px;
+        opacity: 0.7;
+      }
+
+      #dag-container .edgePath:hover path {
+        opacity: 1;
+        stroke-width: 2.5px;
+      }
+
     </style>
   </head>
 
@@ -111,18 +150,22 @@
         startOnLoad: false,
         theme: 'base',
         themeVariables: {
-          primaryColor: '#3b82f6',
+          primaryColor: '#eff6ff',
           primaryTextColor: '#1f2937',
-          primaryBorderColor: '#60a5fa',
-          lineColor: '#9ca3af',
-          secondaryColor: '#f3f4f6',
-          tertiaryColor: '#ffffff'
+          primaryBorderColor: '#93c5fd',
+          lineColor: '#cbd5e1',
+          secondaryColor: '#f8fafc',
+          tertiaryColor: '#ffffff',
+          fontSize: '14px',
+          fontFamily: 'system-ui, -apple-system, sans-serif'
         },
         flowchart: {
-          curve: 'linear',
-          padding: 15,
-          nodeSpacing: 50,
-          rankSpacing: 60
+          curve: 'basis',
+          padding: 20,
+          nodeSpacing: 80,
+          rankSpacing: 100,
+          htmlLabels: true,
+          useMaxWidth: true
         }
       });
     </script>

@@ -12,9 +12,11 @@ module Apricity
         def pretty = "parsed simplecov report: coverage_percent=#{coverage_percent}"
       end
 
-      def initialize = super(name: "simplecov-reporter", org: "apricity", version: "0.1.0")
+      def initialize(job_id: nil, options: {})
+        super(name: "simplecov-reporter", org: "apricity", version: "0.1.0", job_id:, options:)
+      end
 
-      def job_finished(context:, emitter:, options: {})
+      def job_finished(context:, emitter:, options: {}, event: nil)
         coverage_report = options.fetch(:coverage_report, ".last_run.json")
         artifact_key = options.fetch(:artifact_key, "coverage")
         host_output_directory = context.artifact_outputs[artifact_key]
@@ -25,7 +27,7 @@ module Apricity
         report = parse_simplecov_report(coverage_path, emitter:)
         annotate_job(report:, context:, emitter:)
       rescue StandardError => e
-        warn "SimplecovReporter: Error in after_job for job #{context.node.id}: #{e.message}"
+        warn "SimplecovReporter[#{event&.type}]: Error in after_job for job #{context.node.id}: #{e.message}"
         raise e
       end
 

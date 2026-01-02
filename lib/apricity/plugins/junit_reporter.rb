@@ -69,7 +69,7 @@ module Apricity
       attr_reader :job_id, :job_name
 
       def initialize(job_id: nil, options: {})
-        super(name: "junit-reporter", org: "apricity", version: "0.1.0", job_id: job_id, options: options)
+        super(name: "junit-reporter", org: "apricity", version: "0.1.0", job_id:, options:)
       end
 
       def pipeline_finished(context:, emitter:, event:, options: @options)

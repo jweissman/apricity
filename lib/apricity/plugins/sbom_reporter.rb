@@ -18,9 +18,11 @@ module Apricity
 
       SBOMReport = Data.define(:components, :licenses)
 
-      def initialize = super(name: "sbom-reporter", org: "apricity", version: "0.1.0")
+      def initialize(job_id: nil, options: {})
+        super(name: "sbom-reporter", org: "apricity", version: "0.1.0", job_id:, options:)
+      end
 
-      def job_finished(context:, emitter:, options:)
+      def job_finished(context:, emitter:, options:, event: nil)
         sbom_file = options[:sbom_report] || "sbom.xml"
         artifact_key = options[:artifact_key] || "sbom"
 
@@ -31,7 +33,7 @@ module Apricity
         report = parse_sbom_report(sbom_path, context:, emitter:)
         annotate_job(report:, context:, emitter:)
       rescue StandardError => e
-        warn "SBOMReporter: Error in after_job for job #{context.node.id}: #{e.message}"
+        warn "SBOMReporter[#{event.type}]: Error in after_job for job #{context.node.id}: #{e.message}"
         raise e
       end
 

@@ -74,88 +74,27 @@ actions:
             - name: Run code quality tools
               run: |
                 bundle exec reek lib
-      # - sbom:
-      #     runs-on: ruby:3.4
-      #     name: Generate SBOM for Apricity
-      #     needs: [quality]
-      #     plugins:
-      #       - uses: apricity/sbom-reporter
-      #         with:
-      #           output_file: sbom.json
-      #           artifact_key: sbom
-      #     mounts:
-      #       - source: .
-      #         target: /work
-      #         type: bind
-      #     steps:
-      #       - name: Bundle install
-      #         run: |
-      #           bundle config set --local path 'vendor/bundle'
-      #           bundle install
-
-      #       - name: Generate SBOM
-      #         run: |
-      #           bundle exec cyclonedx-ruby -o artifacts/sbom/sbom.xml -p .
-      #     outputs:
-      #       - key: sbom
-      #         type: artifact
-
-      # - lint:
-      #     runs-on: ruby:3.4
-      #     name: Lint Apricity Codebase
-      #     mounts:
-      #       - source: .
-      #         target: /work
-      #         type: bind
-      #     steps:
-      #       - name: Bundle install
-      #         run: |
-      #           bundle config set --local path 'vendor/bundle'
-      #           bundle install
-      #       - name: Run linters
-      #         run: |
-      #           bundle exec rubocop lib
-
-      # - test:
-      #     runs-on: ruby:3.4
-      #     name: Build and Test Apricity
-      #     needs: [lint, quality]
-      #     outputs:
-      #       - key: test-outputs
-      #         type: artifact
-      #       - key: coverage
-      #         type: artifact
-      #     plugins:
-      #       - uses: apricity/junit-reporter
-      #         with:
-      #           junit_report: rspec.xml
-      #           artifact_key: test-outputs
-      #       - uses: apricity/simplecov-reporter
-      #         with:
-      #           last_run_report: .last_run.json
-      #           artifact_key: coverage
-      #     mounts:
-      #       - source: .
-      #         target: /work
-      #         type: bind 
-      #       # Use DinD to allow apricity to test itself
-      #       - source: /var/run/docker.sock
-      #         target: /var/run/docker.sock
-      #         type: bind
-      #     strategy:
-      #       matrix:
-      #         shard: [1, 2, 3, 4]
-      #     steps:
-      #       - name: Bundle install
-      #         run: |
-      #           bundle config set --local path 'vendor/bundle'
-      #           bundle install
-
-
-      #       - name: Run tests
-      #         run: |
-      #           bundle exec rspec \
-      #             --fail-fast \
-      #             --format progress \
-      #             --format RspecJunitFormatter \
-      #             --out artifacts/test-outputs/rspec.xml
+      - sbom:
+          runs-on: ruby:3.4
+          name: Generate SBOM for Apricity
+          needs: [quality]
+          plugins:
+            - uses: apricity/sbom-reporter
+              with:
+                output_file: sbom.json
+                artifact_key: sbom
+          mounts:
+            - source: .
+              target: /work
+              type: bind
+          steps:
+            - name: Bundle install
+              run: |
+                bundle config set --local path 'vendor/bundle'
+                bundle install
+            - name: Generate SBOM
+              run: |
+                bundle exec cyclonedx-ruby -o artifacts/sbom/sbom.xml -p .
+          outputs:
+            - key: sbom
+              type: artifact
