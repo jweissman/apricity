@@ -81,7 +81,8 @@ module Apricity
         t0 = node_state.started_at
         t1 = node_state.finished_at || Time.now
         duration = (t1 - t0).round(2) if t0
-        puts " #{status} #{node_state.name}".ljust(30) + " | #{duration&.round(2) || "--"}s"
+        pretty_id = node_state.id.split("::").last
+        puts " #{status} #{pretty_id}".ljust(30) + " | #{duration&.round(2) || "--"}s"
       end
 
       def render_node_steps(node_state)
@@ -101,12 +102,6 @@ module Apricity
 
         node_state.annotations.each do |key, value|
           render_annotation(key, value)
-          # pretty_key = key.to_s.tr("_", " ").capitalize
-          # puts "      #{value.fetch(:_icon, "*")} #{pretty_key}"
-          # pretty_value = value.except(:_icon)
-          # pretty_value.each do |k, v|
-          #   puts "        - #{k}: #{v}"
-          # end
         end
       end
 

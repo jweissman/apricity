@@ -61,15 +61,11 @@ actions:
             - source: /var/run/docker.sock
               target: /var/run/docker.sock
               type: bind
-          # strategy:
-          #   matrix:
-          #     shard: [1, 2, 3, 4]
           steps:
             - name: Bundle install
               run: |
                 bundle config set --local path 'vendor/bundle'
                 bundle install
-
 
             - name: Run tests
               run: |

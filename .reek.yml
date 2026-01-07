@@ -1,4 +1,8 @@
 ---
+exclude_paths:
+  - vendor
+  - example/hello/vendor
+
 detectors:
   DuplicateMethodCall:
     enabled: false

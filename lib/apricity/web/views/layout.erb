@@ -79,7 +79,7 @@
       /* DAG container styling */
       #dag-container {
         min-height: 200px;
-        padding: 24px;
+        padding: 32px 24px;
         background: linear-gradient(to bottom, #fafafa 0%, #ffffff 100%);
         border-radius: 12px;
       }
@@ -91,11 +91,16 @@
         filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.05));
       }
 
-      /* Make mermaid node text more readable */
+      /* Force stadium nodes to be wider */
+      #dag-container .node rect {
+        rx: 20px !important;
+        ry: 20px !important;
+      }
+
+      /* Make node labels more spacious */
       #dag-container .nodeLabel {
         font-family: system-ui, -apple-system, sans-serif;
         font-weight: 500;
-        line-height: 1.5;
       }
 
       /* Hover effect on DAG nodes */
@@ -156,14 +161,14 @@
           lineColor: '#cbd5e1',
           secondaryColor: '#f8fafc',
           tertiaryColor: '#ffffff',
-          fontSize: '14px',
+          fontSize: '13px',
           fontFamily: 'system-ui, -apple-system, sans-serif'
         },
         flowchart: {
           curve: 'basis',
-          padding: 20,
-          nodeSpacing: 80,
-          rankSpacing: 100,
+          padding: 10,
+          nodeSpacing: 50,
+          rankSpacing: 80,
           htmlLabels: true,
           useMaxWidth: true
         }

@@ -1,10 +1,13 @@
 # frozen_string_literal: true
 
 require "simplecov"
-require "simplecov_json_formatter"
-SimpleCov.formatter = SimpleCov::Formatter::JSONFormatter
+# require "simplecov_json_formatter"
+# SimpleCov.formatter = SimpleCov::Formatter::JSONFormatter
+SimpleCov.command_name "rspec-shard-#{ENV["MATRIX_SHARD"]}" if ENV["MATRIX_SHARD"]
 SimpleCov.start do
+  puts "Starting SimpleCov for Apricity SimplecovReporter Plugin"
   coverage_dir "./artifacts/coverage"
+  # root "/work"
 end
 
 require "apricity"

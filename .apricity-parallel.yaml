@@ -37,8 +37,14 @@ actions:
               with:
                 junit_reports: rspec-*.xml
                 artifact_key: test-outputs
+            - uses: apricity/simplecov-reporter
+              with:
+                coverage_report: .resultset.json
+                artifact_key: coverage
           outputs:
             - key: test-outputs
+              type: artifact
+            - key: coverage
               type: artifact
           steps:
             - name: Display Matrix Env Vars

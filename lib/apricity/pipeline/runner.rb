@@ -112,7 +112,7 @@ module Apricity
         graph = Pipeline::Graph.new(nodes)
         graph.analyze
 
-        context = JobExecution::Context[pipeline_name, {}, {}, {}, graph.dependencies]
+        context = JobExecution::Context[pipeline_name, @pipeline.path, {}, {}, {}, graph.dependencies]
         run!(nodes, graph, context:, &sink)
       end
 
@@ -123,7 +123,7 @@ module Apricity
         ->(event) { event_mutex.synchronize { user_sink.call(event) } }
       end
 
-      def run!(nodes, graph, context: JobExecution::Context.empty(pipeline_name), &sink)
+      def run!(nodes, graph, context: empty_context, &sink)
         ret = if concurrent?
                 run_concurrently(nodes, context:,
                                         sink:)
@@ -145,12 +145,13 @@ module Apricity
       private
 
       def concurrent? = true
+      def empty_context = JobExecution::Context.empty(pipeline_name, pipeline.path)
 
       # rubocop:disable Metrics/MethodLength
       # rubocop:disable Metrics/CyclomaticComplexity
       # rubocop:disable Metrics/PerceivedComplexity
       # rubocop:disable Metrics/AbcSize
-      def run_concurrently(nodes, sink:, context: JobExecution::Context.empty)
+      def run_concurrently(nodes, sink:, context: empty_context)
         dependencies = context.dependencies
         node_by_id = nodes.to_h { |n| [n.id, n] }
         pending = nodes.to_set(&:id)
@@ -201,7 +202,7 @@ module Apricity
       # rubocop:enable Metrics/CyclomaticComplexity
       # rubocop:enable Metrics/PerceivedComplexity
 
-      def run_linear(nodes, sink:, context: JobExecution::Context.empty(pipeline_name))
+      def run_linear(nodes, sink:, context: empty_context)
         ret = nodes.flat_map { run_node!(it, context:, sink:).outcomes }
         Console.debug(self, "pipeline:complete", pipeline_name:, total_outcomes: ret.size)
         ret
@@ -235,7 +236,7 @@ module Apricity
         ]
       end
 
-      def run_node!(node, sink:, context: JobExecution::Context.empty(pipeline_name))
+      def run_node!(node, sink:, context: empty_context)
         return skip_node(node, context, sink) if skip?(node, context)
 
         result = run_node(node, env: environment_values(node, context),
