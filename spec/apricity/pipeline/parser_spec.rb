@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "rspec"
 require "spec_helper"
 require "yaml"
 require "apricity/pipeline/parser"
@@ -93,6 +94,32 @@ module Apricity
           expect(test_job.strategy).to eq(
             Model::Strategy[matrix: { shard: [1, 2, 3] }]
           )
+        end
+      end
+
+      describe "parses pipeline with services" do
+        let(:file) { File.read("spec/fixtures/test-services-pipeline.yaml") }
+        let(:pipeline) { Apricity::Model::Pipeline.from_yaml(file) }
+        let(:test_job) { pipeline.actions.first.jobs.find { |job| job.name == :test } }
+
+        let(:pg) do
+          Model::Service[
+            name: "db",
+            image: "postgres:18",
+            ports: ["5432:5432"],
+            env_vars: { POSTGRES_USER: "testuser",
+                        POSTGRES_PASSWORD: "testpass", POSTGRES_DB: "testdb" }
+          ]
+        end
+
+        it "parses postgres service" do
+          expect(test_job.services.first).to eq(pg)
+        end
+
+        it "parses redis service" do
+          expect(test_job.services).to include(Model::Service[name: "redis",
+                                                              image: "redis:7",
+                                                              ports: ["6379:6379"]])
         end
       end
     end

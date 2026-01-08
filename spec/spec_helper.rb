@@ -10,6 +10,8 @@ SimpleCov.start do
   # root "/work"
 end
 
+require "debug"
+
 require "apricity"
 require "apricity/model/builders"
 require_relative "support/successful_pipeline"

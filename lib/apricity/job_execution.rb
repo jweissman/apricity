@@ -257,31 +257,77 @@ module Apricity
 
     JobContext = Data.define(:node, :env, :artifact_outputs)
 
+    # Handles service orchestration for a job
+    module ServiceOrchestration
+      def start_services(network)
+        return {} unless node.services && !node.services.empty?
+
+        service_map = {}
+        node.services.map { create_service(it, network, service_map) }
+        service_map
+      end
+
+      def create_service(service, network, service_map)
+        service_map[service.image] = Docker::Container.create(
+          "Image" => service.image,
+          "Env" => service.env_vars.map { |k, v| "#{k}=#{v}" },
+          "HostConfig" => { "NetworkMode" => network.id },
+          "NetworkingConfig" => {
+            "EndpointsConfig" => {
+              network.id => { "Aliases" => [service.name] }
+            }
+          }
+        ).tap(&:start)
+      end
+
+      def service_environment_variables(node)
+        env = {}
+        node.services.each do |service|
+          guess_service_environment_variables(env, service)
+        end
+        env
+      end
+
+      def guess_service_environment_variables(env, service)
+        case service.image
+        when /^redis/
+          env["REDIS_URL"] = "redis://#{service.name}:6379"
+        when /^postgres/
+          env["DATABASE_URL"] =
+            "postgres://#{service.env_vars["POSTGRES_USER"]}:" \
+            "#{service.env_vars["POSTGRES_PASSWORD"]}@" \
+            "#{service.name}:5432/#{service.env_vars["POSTGRES_DB"]}"
+        else warn("No environment variable guesses for service image #{service.image}")
+        end
+      end
+    end
+
     # Executes a single job inside a Docker container
     class Orchestrator
+      include ServiceOrchestration
+
       attr_reader :node, :env, :artifact_inputs, :sink
 
       def initialize(node:, env: {}, artifact_inputs: {},
                      sink: Apricity::Configuration.instance.output_sink || NullOutputSink.new)
         @node = node
-        @env  = env
+        @env = env
         @artifact_inputs = artifact_inputs
         @effective_working_dir = JobExecution::WORKING_DIR
         @last_step_executed = nil
-        @prelude = <<~SH
-          set -euo pipefail
-        SH
+        @prelude = "set -euo pipefail\n"
         @sink = sink
       end
 
       def perform
         emit(JobExecution::Events::JobStarted[node:, started_at: Time.now])
-        ret = run_job
-        ret
+        run_job
       rescue JobExecutionError => e
         handle_failure(e)
       ensure
+        services&.each_value { |container| container.delete(force: true) }
         container&.delete(force: true)
+        network&.delete(force: true)
       end
 
       protected
@@ -302,7 +348,8 @@ module Apricity
         JobExecution::Result[outcomes: [failure_outcome(exception:)], outputs: {}]
       end
 
-      def bootstrap = configure_docker && construct_image
+      def bootstrap = configure_docker && construct_image && services
+      def services = @services ||= start_services(network)
 
       def planner = @planner ||= JobExecution::Planner.new(node:, env:, artifact_inputs:, config: Apricity::Configuration.instance)
 
@@ -356,10 +403,11 @@ module Apricity
 
       def step = @last_step_executed
       def configure_docker = Docker.options[:read_timeout] = DEFAULT_READ_TIMEOUT
+      def network = @network ||= Docker::Network.create("apricity-#{node.id}")
       def construct_image = Docker::Image.create("fromImage" => image)
 
       def common_container_options
-        { "Env" => env.map { |k, v| "#{k}=#{v}" },
+        { "Env" => env.merge(service_environment_variables(node)).map { |k, v| "#{k}=#{v}" },
           "WorkingDir" => @effective_working_dir,
           "Tty" => false }
       end
@@ -368,16 +416,13 @@ module Apricity
         @container ||= Docker::Container.create(
           "Image" => image,
           "AttachStdout" => true, "AttachStderr" => true,
-          "HostConfig" => { "Binds" => @binds },
+          "HostConfig" => { "Binds" => @binds, "NetworkMode" => network.id },
           "Cmd" => ["/bin/sh", "-lc", "while true; do sleep 3600; done"],
           **common_container_options
         )
       end
 
-      def failure_outcome(exception:)
-        Model::StepOutcome.failure(node, step, stdout: "", stderr: "", exception:)
-      end
-
+      def failure_outcome(exception:) = Model::StepOutcome.failure(node, step, stdout: "", stderr: "", exception:)
       def success_outcome(stdout:, stderr:) = Model::StepOutcome.success(node, step, stdout:, stderr:)
       def image = "#{node.runs_on.name}:#{node.runs_on.version}"
     end

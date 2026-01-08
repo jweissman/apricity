@@ -3,7 +3,7 @@
 module Apricity
   module JobExecution
     # This is poorly named, it should move to PipelineStateContext or similar
-    Context = Data.define(
+    PipelineStateContext = Data.define(
       :pipeline_name, # string
       :workflow_file, # string
       :nodes,         # job_id => :success | :failure | :skipped

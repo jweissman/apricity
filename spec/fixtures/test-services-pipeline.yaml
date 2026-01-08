@@ -1,0 +1,20 @@
+name: Test Service Parse Pipeline
+actions:
+  test-matrix:
+    jobs:
+      - test:
+          services:
+            db:
+              image: postgres:18
+              env:
+                POSTGRES_USER: testuser
+                POSTGRES_PASSWORD: testpass
+                POSTGRES_DB: testdb
+              ports:
+                - 5432:5432
+            redis:
+              image: redis:7
+              ports:
+                - 6379:6379
+          steps:
+            - run: bundle exec rake db:setup

@@ -62,7 +62,7 @@ module Apricity
 
         merged.each_value do |info|
           info["lines"].each do |line|
-            next if line.nil?
+            next unless line
 
             stats[:total] += 1
             stats[:covered] += 1 if line == 1
@@ -100,10 +100,9 @@ module Apricity
         coverage_report = options.fetch(:coverage_report, ".last_run.json")
         artifact_key = options.fetch(:artifact_key, "coverage")
         host_output_directory = context.artifact_outputs[artifact_key]
-        return unless assert_not_nil(host_output_directory,
+        return unless assert_present(host_output_directory,
                                      "SimplecovReporter[#{event&.type}]: No coverage found for job #{context.node.id}")
 
-        # coverage_path = File.join(host_output_directory, coverage_report)
         parse_and_annotate_job(File.join(host_output_directory, coverage_report), context:, emitter:)
       rescue StandardError => e
         warn "SimplecovReporter[#{event&.type}]: Error in after_job for job #{context.node.id}: #{e.message}"
@@ -112,9 +111,8 @@ module Apricity
 
       private
 
-      def assert_not_nil(value, message)
-        # raise ArgumentError, message if value.nil?
-        warn message if value.nil?
+      def assert_present(value, message)
+        warn message unless value
 
         value
       end
@@ -125,7 +123,7 @@ module Apricity
         outputs_by_node.each do |node_id, outputs|
           artifact_key = options[:artifact_key] || "coverage"
           host_output_directory = outputs[artifact_key]
-          next unless host_output_directory
+          next unless host_output_directory && pattern
 
           nodes_paths[node_id] = Dir.glob(File.join(host_output_directory, pattern))
         end
@@ -147,13 +145,15 @@ module Apricity
         data = JSON.parse(file.read)
         file.close
 
-        if data["result"].nil? || data["result"]["line"].nil?
-          warn "Warning -- SimplecovReporter: Invalid SimpleCov .last_result.json report format in #{path}"
+        # if data["result"] || data["result"]["line"].nil?
+        unless assert_present(data["result"] && data["result"]["line"],
+                              "MergeCoverage: Invalid SimpleCov .last_result.json report format in #{path}")
+          # warn "Warning -- SimplecovReporter: Invalid SimpleCov .last_result.json report format in #{path}"
           return { coverage_percent: 0 }
         end
 
         coverage_percent = data["result"]["line"]
-        emitter[SimpleCovReportParsedEvent.new(coverage_percent:)]
+        emitter[SimplecovReportModels::SimpleCovReportParsedEvent.new(coverage_percent:)]
 
         { coverage_percent: }
       end

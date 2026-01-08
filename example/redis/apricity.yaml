@@ -1,0 +1,40 @@
+name: Redis Verification
+actions:
+  test:
+    jobs:
+      - test:
+          runs-on: ruby:3.4
+          name: Redis Test Job
+          mounts:
+            - source: .
+              target: /work
+              type: bind
+          plugins:
+            - uses: apricity/junit-reporter
+              with:
+                junit_report: rspec.xml
+                artifact_key: test-results
+          services:
+            redis:
+              image: redis:7
+              ports:
+                - 6379:6379
+          outputs:
+            - key: test-results
+              type: artifact
+          steps:
+            - name: Bundle install
+              run: |
+                bundle config set --local path 'vendor/bundle'
+                bundle install
+            - name: Verify Redis service is reachable
+              run: |
+                getent hosts redis
+            - name: Run simple test
+              run: |
+                bundle exec rspec \
+                  --fail-fast \
+                  --format progress \
+                  --format RspecJunitFormatter \
+                  --out artifacts/test-results/rspec.xml \
+                  spec/counter_spec.rb

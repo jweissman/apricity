@@ -15,7 +15,8 @@ module Apricity
       :mounts,
       :plugins,
       :matrix,
-      :env
+      :env,
+      :services
     ) do
       def self.from_model(node_id, action:, job:)
         new(
@@ -24,7 +25,7 @@ module Apricity
           steps: job.steps,
           inputs: job.inputs, outputs: job.outputs,
           conditions: job.conditions, needs: job.needs,
-          mounts: job.mounts,
+          mounts: job.mounts, services: job.services,
           plugins: plugins(job, node_id),
           matrix: {}, env: {}
         )

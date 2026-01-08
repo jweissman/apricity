@@ -2,19 +2,23 @@
 
 module Apricity
   module Model
-    Job = Data.define(:name, :steps, :runs_on, :inputs, :outputs, :conditions, :needs, :mounts, :plugins, :strategy) do
+    Job = Data.define(
+      :name, :steps, :runs_on,
+      :inputs, :outputs, :conditions, :needs, :mounts, :plugins, :strategy, :services
+    ) do
       # Initializer to provide default empty arrays/hashes
       # rubocop:disable Metrics/ParameterLists
       def initialize(
         name:,
-        steps:,
         runs_on:,
-        inputs: [],
-        outputs: [],
+        steps:,
         conditions: [],
-        needs: [],
+        inputs: [],
         mounts: [],
+        needs: [],
+        outputs: [],
         plugins: [],
+        services: [],
         strategy: nil
       )
         super

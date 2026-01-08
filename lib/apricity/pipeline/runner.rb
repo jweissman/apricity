@@ -51,7 +51,13 @@ module Apricity
             progressed = true
 
             running[node_id] = Thread.new do
-              result = run_node.call(node, sink:, context:)
+              result = begin
+                run_node.call(node, sink:, context:)
+              rescue StandardError => e
+                Console.error(self, "Scheduler: Error running node #{node_id}: #{e.message}")
+                JobExecution::Result[outcomes: [Model::StepOutcome.failure(node, node.steps.first,
+                                                                           error_message: e.message)], outputs: {}]
+              end
               results << [node_id, result]
             end
           end
@@ -112,7 +118,7 @@ module Apricity
         graph = Pipeline::Graph.new(nodes)
         graph.analyze
 
-        context = JobExecution::Context[pipeline_name, @pipeline.path, {}, {}, {}, graph.dependencies]
+        context = JobExecution::PipelineStateContext[pipeline_name, @pipeline.path, {}, {}, {}, graph.dependencies]
         run!(nodes, graph, context:, &sink)
       end
 
@@ -144,8 +150,8 @@ module Apricity
 
       private
 
-      def concurrent? = true
-      def empty_context = JobExecution::Context.empty(pipeline_name, pipeline.path)
+      def concurrent? = false
+      def empty_context = JobExecution::PipelineStateContext.empty(pipeline_name, pipeline.path)
 
       # rubocop:disable Metrics/MethodLength
       # rubocop:disable Metrics/CyclomaticComplexity

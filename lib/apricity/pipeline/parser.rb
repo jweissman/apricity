@@ -2,6 +2,24 @@
 
 module Apricity
   module Pipeline
+    # Helper methods for parsing
+    module ParsingHelpers
+      def normalize_script(raw)
+        lines = raw.lines.map(&:rstrip)
+
+        joined = +""
+        lines.each do |line|
+          if line.end_with?("\\")
+            joined << line.strip.chomp("\\") << ""
+          else
+            joined << line.strip << "\n"
+          end
+        end
+
+        joined.strip
+      end
+    end
+
     # Parses high-level pipeline definitions from YAML or Hash structures
     #
     # Example YAML:
@@ -23,6 +41,7 @@ module Apricity
     #                 bundle exec rspec spec/lib/apricity_spec.rb
     class Parser
       include Apricity::Model
+      extend ParsingHelpers
 
       def self.parse_actions(data = {}, path: nil)
         data[:actions].map do |action_name, action_data|
@@ -38,12 +57,18 @@ module Apricity
         Job[
           name: job_name, steps: parse_steps(job_data[:steps]),
           runs_on: parse_container(job_data[:"runs-on"]),
-          **parse_input_output(job_data),
-          conditions: parse_conditions(job_data[:conditions]), needs: job_data[:needs] || [],
+          **parse_input_output(job_data), **parse_needs_and_conditions(job_data),
           mounts: parse_mounts(job_data[:mounts], path:),
           plugins: parse_plugins(job_data[:plugins]),
-          strategy: parse_strategy(job_data[:strategy])
+          strategy: parse_strategy(job_data[:strategy]),
+          services: parse_services(job_data[:services])
         ]
+      end
+
+      def self.parse_needs_and_conditions(job_data)
+        conditions = parse_conditions(job_data[:conditions])
+        needs = job_data[:needs] || []
+        { conditions:, needs: }
       end
 
       def self.parse_strategy(strategy_data)
@@ -68,21 +93,6 @@ module Apricity
             source: normalize_script(step_data[:run])
           ]]
         end
-      end
-
-      def self.normalize_script(raw)
-        lines = raw.lines.map(&:rstrip)
-
-        joined = +""
-        lines.each do |line|
-          if line.end_with?("\\")
-            joined << line.strip.chomp("\\") << ""
-          else
-            joined << line.strip << "\n"
-          end
-        end
-
-        joined.strip
       end
 
       def self.parse_inputs(input_data_array = [])
@@ -126,6 +136,17 @@ module Apricity
           version ||= "latest"
           Model::Plugin[org:, name:, version:, with: with_options || {}]
         end
+      end
+
+      def self.parse_services(service_map = {})
+        service_map&.map do |service_name, service_data|
+          Model::Service[
+            name: service_name.to_s,
+            image: service_data[:image],
+            ports: service_data[:ports] || [],
+            env_vars: service_data[:env] || {}
+          ]
+        end || []
       end
     end
   end

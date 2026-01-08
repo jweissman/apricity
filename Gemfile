@@ -34,3 +34,5 @@ gem "rubocop-performance", "~> 1.26"
 gem "parallel_tests", "~> 5.5"
 
 gem "cyclonedx-ruby", "~> 1.1"
+
+gem "ruby-lsp-rspec", "~> 0.1.28", group: :development
