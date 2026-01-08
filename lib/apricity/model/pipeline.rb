@@ -18,7 +18,12 @@ module Apricity
         new(name: data[:name] || "default", on: data[:on], actions:, path:)
       end
 
-      def self.from_file(file_path) = from_yaml(File.read(file_path), path: file_path)
+      def self.from_file(file_path)
+        # If we are given a directory, look for 'apricity.yaml'
+        file_path = File.join(file_path, "apricity.yaml") if File.directory?(file_path)
+
+        from_yaml(File.read(file_path), path: file_path)
+      end
     end
   end
 end

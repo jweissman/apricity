@@ -1,12 +1,13 @@
 # Features
-
 - [x] SimpleCov aggregation across shards
-  - [ ] Fix annotations for unmatrixed case?
-- [~] Services (pg/redis)
-- [ ] Tiny example app with services
+- [x] Services (pg/redis)
+- [x] Simple rails app w/ services block
+
+# To-do
 - [ ] Git checkout step
+- [ ] Fix annotations for unmatrixed case?
+- [ ] Tiny example app with services
 - [ ] Secrets
-- [ ] Try a simple rails app w/ services block
 - [ ] Try vets-api
 - [ ] Fix pathing / mktmpdir cleanup
 - [ ] Persistence
