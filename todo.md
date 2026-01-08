@@ -1,7 +1,8 @@
 # Features
 
 - [x] SimpleCov aggregation across shards
-- [ ] Services (pg/redis)
+  - [ ] Fix annotations for unmatrixed case?
+- [~] Services (pg/redis)
 - [ ] Tiny example app with services
 - [ ] Git checkout step
 - [ ] Secrets

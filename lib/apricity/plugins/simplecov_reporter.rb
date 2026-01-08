@@ -29,7 +29,7 @@ module Apricity
       end
 
       def merge_coverage(run, merged)
-        run["coverage"].each do |file, info|
+        run["coverage"]&.each do |file, info|
           merge_coverage_file(info, file, merged)
         end
       end
@@ -82,8 +82,8 @@ module Apricity
       end
 
       def pipeline_finished(context:, emitter:, options: {}, event: nil)
-        warn "Context: #{context.inspect}"
-
+        # warn "Context: #{context.inspect}"
+        # debugger
         nodes_paths = analyze_nodes_paths(event.outputs_by_node, options)
         paths = nodes_paths.values.flatten.select { File.exist?(it) }
 
@@ -177,7 +177,6 @@ module Apricity
       def annotate_pipeline(report:, context:, emitter:)
         annotation = annotation(report)
 
-        # debugger
         emitter.call(
           JobExecution::Events::PipelineAnnotated[
             pipeline_name: context.pipeline_name,

@@ -36,3 +36,6 @@ gem "parallel_tests", "~> 5.5"
 gem "cyclonedx-ruby", "~> 1.1"
 
 gem "ruby-lsp-rspec", "~> 0.1.28", group: :development
+
+gem "activerecord", "~> 8.1"
+gem "pg", "~> 1.6"

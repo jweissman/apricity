@@ -3,7 +3,7 @@
 require_relative "job_execution/working_dir"
 require_relative "job_execution/default_read_timeout"
 require_relative "job_execution/node"
-require_relative "job_execution/context"
+require_relative "job_execution/pipeline_state_context"
 require_relative "job_execution/result"
 require_relative "job_execution/events"
 
@@ -268,9 +268,10 @@ module Apricity
       end
 
       def create_service(service, network, service_map)
+        Docker::Image.create("fromImage" => service.image)
+
         service_map[service.image] = Docker::Container.create(
-          "Image" => service.image,
-          "Env" => service.env_vars.map { |k, v| "#{k}=#{v}" },
+          "Image" => service.image, "Env" => service.env_vars.map { |k, v| "#{k}=#{v}" },
           "HostConfig" => { "NetworkMode" => network.id },
           "NetworkingConfig" => {
             "EndpointsConfig" => {
@@ -288,6 +289,11 @@ module Apricity
         env
       end
 
+      def service_raw_env_vars(node)
+        envars = node.services.flat_map(&:env_vars)
+        envars.reduce(&:merge)
+      end
+
       def guess_service_environment_variables(env, service)
         case service.image
         when /^redis/
@@ -297,14 +303,22 @@ module Apricity
             "postgres://#{service.env_vars["POSTGRES_USER"]}:" \
             "#{service.env_vars["POSTGRES_PASSWORD"]}@" \
             "#{service.name}:5432/#{service.env_vars["POSTGRES_DB"]}"
+          env["POSTGRES_HOST"] = service.name
         else warn("No environment variable guesses for service image #{service.image}")
         end
       end
     end
 
+    # Dependencies for the orchestrator
+    module OrchestrationDependencies
+      def planner = @planner ||= JobExecution::Planner.new(node:, env:, artifact_inputs:, config: Apricity::Configuration.instance)
+      def collector = @collector ||= JobExecution::Collector.new(node:, container:, artifact_outputs: @artifact_outputs)
+    end
+
     # Executes a single job inside a Docker container
     class Orchestrator
       include ServiceOrchestration
+      include OrchestrationDependencies
 
       attr_reader :node, :env, :artifact_inputs, :sink
 
@@ -333,10 +347,9 @@ module Apricity
       protected
 
       def run_job
-        bootstrap
-        plan
+        bootstrap && plan
         outcomes = execute
-        outputs = collect
+        outputs = collector.collect
         emit(JobExecution::Events::JobFinished[node:, status: :success, finished_at: Time.now])
         JobExecution::Result[outcomes:, outputs:]
       end
@@ -349,14 +362,17 @@ module Apricity
       end
 
       def bootstrap = configure_docker && construct_image && services
-      def services = @services ||= start_services(network)
 
-      def planner = @planner ||= JobExecution::Planner.new(node:, env:, artifact_inputs:, config: Apricity::Configuration.instance)
+      def services
+        return {} unless network
+
+        @services ||= start_services(network)
+      end
 
       def plan
         planner.call
-        @binds            = planner.binds
-        @artifact_outputs = planner.artifact_outputs
+        @binds                 = planner.binds
+        @artifact_outputs      = planner.artifact_outputs
         @effective_working_dir = planner.effective_working_dir
         @prelude += planner.prelude
         @env = planner.env
@@ -383,9 +399,6 @@ module Apricity
         success_outcome(stdout:, stderr:)
       end
 
-      # Returns a hash of output key => value or host directory
-      def collect = JobExecution::Collector.new(node:, container:, artifact_outputs: @artifact_outputs).collect
-
       private
 
       def emit(event)
@@ -393,21 +406,22 @@ module Apricity
         node.plugins&.each { |plugin| plugin.handle(event, context: context_for(node), emitter: -> { emit it }) }
       end
 
-      def context_for(node)
-        JobContext[
-          node:,
-          env:,
-          artifact_outputs: @artifact_outputs
-        ]
-      end
-
+      def context_for(node) = JobContext[node:, env:, artifact_outputs: @artifact_outputs]
       def step = @last_step_executed
       def configure_docker = Docker.options[:read_timeout] = DEFAULT_READ_TIMEOUT
-      def network = @network ||= Docker::Network.create("apricity-#{node.id}")
+
+      def network
+        return nil if node.services.to_a.empty?
+
+        @network ||= Docker::Network.create("apricity-#{node.id}")
+      end
+
       def construct_image = Docker::Image.create("fromImage" => image)
 
       def common_container_options
-        { "Env" => env.merge(service_environment_variables(node)).map { |k, v| "#{k}=#{v}" },
+        merged_env = env.merge(service_environment_variables(node))
+                        .merge(service_raw_env_vars(node))
+        { "Env" => merged_env.map { |k, v| "#{k}=#{v}" },
           "WorkingDir" => @effective_working_dir,
           "Tty" => false }
       end
@@ -416,7 +430,7 @@ module Apricity
         @container ||= Docker::Container.create(
           "Image" => image,
           "AttachStdout" => true, "AttachStderr" => true,
-          "HostConfig" => { "Binds" => @binds, "NetworkMode" => network.id },
+          "HostConfig" => { "Binds" => @binds }.merge(network ? { "NetworkMode" => network.id } : {}),
           "Cmd" => ["/bin/sh", "-lc", "while true; do sleep 3600; done"],
           **common_container_options
         )

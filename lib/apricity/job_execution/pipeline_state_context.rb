@@ -9,7 +9,8 @@ module Apricity
       :nodes,         # job_id => :success | :failure | :skipped
       :artifacts,     # key => value
       :values,        # key => value,
-      :dependencies   # job_id => [dependent_job_ids]
+      :dependencies # job_id => [dependent_job_ids]
+      # :matrix_present # boolean
     ) do
       def self.empty(name, path) = new(
         pipeline_name: name,
@@ -18,6 +19,7 @@ module Apricity
         artifacts: {},
         values: {},
         dependencies: {}
+        # matrix_present: false
       )
 
       def artifact(key)        = artifacts[key]

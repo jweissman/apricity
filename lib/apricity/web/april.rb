@@ -112,7 +112,9 @@ module Apricity
         set :pipelines, [
           Apricity::Model::Pipeline.from_file("apricity.yaml"),
           Apricity::Model::Pipeline.from_file(".apricity-parallel.yaml"),
-          Apricity::Model::Pipeline.from_file("example/hello/apricity.yaml")
+          Apricity::Model::Pipeline.from_file("example/hello/apricity.yaml"),
+          Apricity::Model::Pipeline.from_file("example/redis/apricity.yaml"),
+          Apricity::Model::Pipeline.from_file("example/pg/apricity.yaml")
         ]
       end
 

@@ -1,0 +1,7 @@
+# config/database.yml
+host: <%= ENV.fetch("POSTGRES_HOST", "localhost") %>
+username: <%= ENV.fetch("POSTGRES_USER", "testuser") %>
+password: <%= ENV.fetch("POSTGRES_PASSWORD", "testpass") %>
+adapter: 'postgresql'
+encoding: utf-8
+database: 'apricity_test_db'

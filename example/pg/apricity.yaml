@@ -1,0 +1,52 @@
+name: Postgres Verification
+actions:
+  test:
+    jobs:
+      - test:
+          runs-on: ruby:3.4
+          name: PG Test Job
+          mounts:
+            - source: .
+              target: /work
+              type: bind
+          plugins:
+            - uses: apricity/junit-reporter
+              with:
+                junit_report: rspec.xml
+                artifact_key: test-results
+          services:
+            db:
+              image: postgres:15
+              env:
+                POSTGRES_USER: testuser
+                POSTGRES_PASSWORD: testpass
+                POSTGRES_DB: apricity_test_db
+          outputs:
+            - key: test-results
+              type: artifact
+          steps:
+            - name: Bundle install
+              run: |
+                bundle config set --local path 'vendor/bundle'
+                bundle install
+            - name: Database dependency setup
+              run: |
+                apt update
+                apt install -y postgresql-client
+            - name: Wait for Postgres
+              run: |
+                until pg_isready -h db -p 5432; do
+                  echo "Waiting for postgres..."
+                  sleep 1
+                done
+            - name: Database setup
+              run: |
+                bundle exec rake db:migrate
+            - name: Run simple test
+              run: |
+                bundle exec rspec \
+                  --fail-fast \
+                  --format progress \
+                  --format RspecJunitFormatter \
+                  --out artifacts/test-results/rspec.xml \
+                  spec/user_spec.rb
