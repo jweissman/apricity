@@ -6,8 +6,9 @@ require "bundler/setup"
 require "apricity"
 require "apricity/web/april"
 
-# Load default plugins
+# Load default plugins and actions
 Apricity.register_default_plugins
+Apricity.register_default_actions
 
 # Start webserver
 Apricity::Web::April.run!

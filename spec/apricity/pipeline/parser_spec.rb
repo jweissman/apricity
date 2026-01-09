@@ -122,6 +122,20 @@ module Apricity
                                                               ports: ["6379:6379"]])
         end
       end
+
+      describe "parses pipeline with action definitions" do
+        let(:file) { File.read("spec/fixtures/test-actions-pipeline.yaml") }
+        let(:pipeline) { Apricity::Model::Pipeline.from_yaml(file) }
+        let(:test_job) { pipeline.actions.first.jobs.first }
+
+        it "parses action use in job" do
+          expect(test_job.steps.first.uses).to eq("apricity/checkout@v0")
+        end
+
+        it "parses action options in job" do
+          expect(test_job.steps.first.with).to eq(repository: "jweissman/apricity", ref: "main")
+        end
+      end
     end
   end
 end

@@ -18,7 +18,7 @@ module Apricity
             act.job("deploy", runs_on: container) do |job|
               job.input("dist", :artifact)
               job.step("deploy", run: Script.new(
-                source: "cat artifacts/dist/artifact.txt"
+                source: "cat $APRICITY_ARTIFACTS/dist/artifact.txt"
               ))
             end
 
@@ -26,8 +26,8 @@ module Apricity
               job.output("dist", :artifact)
               job.step("build", run: Script.new(
                 source: <<~SCRIPT
-                  mkdir -p artifacts/dist
-                  echo build > artifacts/dist/artifact.txt
+                  mkdir -p $APRICITY_ARTIFACTS/dist
+                  echo build > $APRICITY_ARTIFACTS/dist/artifact.txt
                 SCRIPT
               ))
             end

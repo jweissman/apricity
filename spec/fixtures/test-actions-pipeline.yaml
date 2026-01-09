@@ -1,0 +1,13 @@
+name: Test Action Parse Pipeline
+actions:
+  test-matrix:
+    jobs:
+      - test:
+          steps:
+            - name: Checkout Apricity Code
+              uses: apricity/checkout@v0
+              with:
+                repository: jweissman/apricity
+                ref: main 
+            - name: Run rake
+              run: bundle exec rake

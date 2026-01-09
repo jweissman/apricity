@@ -9,6 +9,7 @@ require "apricity/pipeline/parser"
 require "apricity/cli/apricot"
 
 Apricity.register_default_plugins
+Apricity.register_default_actions
 
 # nicer options parsing
 require "optparse"

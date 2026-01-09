@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-require_relative "job_execution/working_dir"
+require_relative "job_execution/apricity_dir"
 require_relative "job_execution/default_read_timeout"
+require_relative "job_execution/events"
 require_relative "job_execution/node"
 require_relative "job_execution/pipeline_state_context"
 require_relative "job_execution/result"
-require_relative "job_execution/events"
-
+require_relative "job_execution/working_dir"
 module Apricity
   module JobExecution
     # Internal class for planning job execution
@@ -40,7 +40,7 @@ module Apricity
 
       def configure_env
         @env["APRICITY_OUTPUT"] = "/tmp/apricity-values"
-        @env["APRICITY_ARTIFACTS"] = "#{WORKING_DIR}/artifacts"
+        @env["APRICITY_ARTIFACTS"] = File.join(APRICITY_DIR, "artifacts")
       end
 
       def input_artifacts = node.inputs.select { |i| i.type == :artifact }
@@ -57,17 +57,15 @@ module Apricity
         host_dir = artifact_inputs[input.key]
         raise "Missing artifact #{input.key}" unless host_dir
 
-        "#{host_dir}:#{WORKING_DIR}/artifacts/#{input.key}:ro"
+        "#{host_dir}:#{APRICITY_DIR}/artifacts/#{input.key}:ro"
       end
 
       def setup_output_artifact(output)
         host_dir = Dir.mktmpdir("artifact-#{output.key}-")
         host_dir = File.realpath(host_dir)
         @artifact_outputs[output.key] = host_dir
-
-        @prelude += "\nmkdir -p #{WORKING_DIR}/artifacts/#{output.key}"
-
-        "#{host_dir}:#{WORKING_DIR}/artifacts/#{output.key}"
+        @prelude += "\nmkdir -p #{APRICITY_DIR}/artifacts/#{output.key}"
+        "#{host_dir}:#{APRICITY_DIR}/artifacts/#{output.key}"
       end
 
       def compute_bind_mount(mount)
@@ -110,7 +108,7 @@ module Apricity
       end
 
       def perform(prelude:, container:, emit:, container_options: {})
-        script = [prelude, step.run.source].join("\n")
+        script = script_for_step(prelude:, step:)
         exec_cmd = ["/bin/bash", "-lc", script]
         stdout, stderr, exit_code = execute(
           command: exec_cmd,
@@ -134,6 +132,17 @@ module Apricity
           stream == :stdout ? stdout << chunk : stderr << chunk
         end
         [stdout, stderr, result[2]]
+      end
+
+      def script_for_step(prelude:, step:)
+        if step.uses?
+          action = Apricity::Actions::ActionRegistry.instance.resolve(step.uses)
+          shell_cmd = action.new(job_id: node.id, step_id: step.name,
+                                 options: step.with || {}).to_shell
+          [prelude, shell_cmd].join("\n")
+        else
+          [prelude, step.run.source].join("\n")
+        end
       end
     end
 
@@ -170,7 +179,7 @@ module Apricity
 
       def pull_artifacts
         @artifact_outputs.each do |key, host_dir|
-          container_dir = "#{JobExecution::WORKING_DIR}/artifacts/#{key}"
+          container_dir = "#{APRICITY_DIR}/artifacts/#{key}"
           Console.info(self, "collect_artifact", artifact_key: key, container_dir:, host_dir:)
           pull_artifact_from_container(container_dir, host_dir)
         end
@@ -299,13 +308,16 @@ module Apricity
         when /^redis/
           env["REDIS_URL"] = "redis://#{service.name}:6379"
         when /^postgres/
-          env["DATABASE_URL"] =
-            "postgres://#{service.env_vars["POSTGRES_USER"]}:" \
-            "#{service.env_vars["POSTGRES_PASSWORD"]}@" \
-            "#{service.name}:5432/#{service.env_vars["POSTGRES_DB"]}"
+          env["DATABASE_URL"] = assemble_estimated_postgres_url(service)
           env["POSTGRES_HOST"] = service.name
         else warn("No environment variable guesses for service image #{service.image}")
         end
+      end
+
+      def assemble_estimated_postgres_url(service)
+        "postgres://#{service.env_vars["POSTGRES_USER"]}:" \
+          "#{service.env_vars["POSTGRES_PASSWORD"]}@" \
+          "#{service.name}:5432/#{service.env_vars["POSTGRES_DB"]}"
       end
     end
 
@@ -420,7 +432,7 @@ module Apricity
 
       def common_container_options
         merged_env = env.merge(service_environment_variables(node))
-                        .merge(service_raw_env_vars(node))
+                        .merge(service_raw_env_vars(node) || {})
         { "Env" => merged_env.map { |k, v| "#{k}=#{v}" },
           "WorkingDir" => @effective_working_dir,
           "Tty" => false }

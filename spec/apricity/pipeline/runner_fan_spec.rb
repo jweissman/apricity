@@ -41,7 +41,7 @@ module Apricity
               job.output("dist", :artifact)
               job.step("build", run: Script.new(source:
                                                   "mkdir -p dist \n" \
-                                                  "echo build > artifacts/dist/artifact.txt"))
+                                                  "echo build > $APRICITY_ARTIFACTS/dist/artifact.txt"))
             end
           end
           .to_pipeline

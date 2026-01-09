@@ -1,0 +1,41 @@
+name: Git Checkout Action Test
+actions:
+  test:
+    jobs:
+      - test:
+          runs-on: ruby:3.4
+          name: Test Apricity from Git Checkout
+          # outputs:
+          #   - key: test-outputs
+          #     type: artifact
+          #   - key: coverage
+          #     type: artifact
+          mounts:
+            # Use DinD to allow apricity to test itself
+            - source: /var/run/docker.sock
+              target: /var/run/docker.sock
+              type: bind
+          steps:
+            - name: Introspect pwd and ls
+              run: |
+                pwd
+                ls -la
+            # - name: Checkout Apricity Code
+            #   uses: apricity/checkout@v0
+            #   with:
+            #     # repository: jweissman/apricity
+            #     repository: "https://github.com/jweissman/apricity"
+            #     ref: main
+
+            # - name: Bundle install
+            #   run: |
+            #     bundle config set --local path 'vendor/bundle'
+            #     bundle install
+
+            # - name: Run tests
+            #   run: |
+            #     bundle exec rspec \
+            #       --fail-fast \
+            #       --format progress \
+            #       --format RspecJunitFormatter \
+            #       --out $APRICITY_ARIFACTS/test-outputs/rspec.xml

@@ -36,5 +36,5 @@ actions:
                   --fail-fast \
                   --format progress \
                   --format RspecJunitFormatter \
-                  --out artifacts/test-results/rspec.xml \
+                  --out $APRICITY_ARTIFACTS/test-results/rspec.xml \
                   spec/counter_spec.rb

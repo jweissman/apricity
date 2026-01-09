@@ -95,7 +95,7 @@ module Apricity
       end
 
       def job_finished(context:, emitter:, options:, event:)
-        warn "JUnitReporter: job_finished called with options: #{options.inspect} / #{event.type}"
+        Console.debug self, "job_finished called with options: #{options.inspect} / #{event.type}"
         junit_file = options[:junit_report] || "junit.xml"
         artifact_key = options[:artifact_key] || "test-outputs"
         host_output_directory = context.artifact_outputs[artifact_key]

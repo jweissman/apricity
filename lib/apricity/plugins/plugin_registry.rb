@@ -29,6 +29,7 @@ module Apricity
         plugin = @plugins[key]
         unless plugin
           Console.error(self, "plugin_not_found", plugin: key)
+          # debugger
           raise "Plugin not found: #{key}"
         end
         plugin
@@ -49,7 +50,7 @@ module Apricity
       end
 
       def get_plugin(plugin) = fetch(plugin.org, plugin.name, version(plugin))
-      def self.instance = @instance ||= PluginRegistry.new
+      def self.instance = @instance ||= new
     end
   end
 end

@@ -2,7 +2,7 @@
 
 require "simplecov"
 SimpleCov.start do
-  coverage_dir './artifacts/coverage'
+  coverage_dir "#{ENV['APRICITY_ARTIFACTS']}/coverage"
 end
 
 # A very simple hello world greeter to verify RSpec is working

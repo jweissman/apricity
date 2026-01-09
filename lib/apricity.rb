@@ -18,6 +18,8 @@ require_relative "apricity/conditions"
 require_relative "apricity/output_sink"
 require_relative "apricity/plugins/plugin_registry"
 require_relative "apricity/plugins/plugin_definition"
+require_relative "apricity/actions/action_registry"
+require_relative "apricity/actions/action_definition"
 require_relative "apricity/job_execution"
 require_relative "apricity/pipeline/runner"
 require_relative "apricity/run"
@@ -36,4 +38,5 @@ module Apricity
   end
 
   def self.register_default_plugins = Plugins::PluginRegistry.instance.register_builtin_plugins
+  def self.register_default_actions = Actions::ActionRegistry.instance.register_builtin_actions
 end

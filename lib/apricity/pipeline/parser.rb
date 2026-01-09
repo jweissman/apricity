@@ -5,7 +5,7 @@ module Apricity
     # Helper methods for parsing
     module ParsingHelpers
       def normalize_script(raw)
-        lines = raw.lines.map(&:rstrip)
+        lines = raw&.lines&.map(&:rstrip) || []
 
         joined = +""
         lines.each do |line|
@@ -89,9 +89,10 @@ module Apricity
 
       def self.parse_steps(step_data_array = [])
         step_data_array.map do |step_data|
-          Step[name: step_data[:name], run: Script[
-            source: normalize_script(step_data[:run])
-          ]]
+          Step[
+            name: step_data[:name], uses: step_data[:uses], with: step_data[:with],
+            run: Script[source: normalize_script(step_data[:run])]
+          ]
         end
       end
 
