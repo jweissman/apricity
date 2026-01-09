@@ -6,12 +6,12 @@ module Apricity
     class Reducer
       # Convert pipeline definition to lower-level Node representation
       def self.lower(pipeline)
-        Console.info(self, "Reducing pipeline to job nodes...", total_steps: pipeline.total_steps)
+        # Console.info(self, "Reducing pipeline to job nodes...", total_steps: pipeline.total_steps)
         nodes = []
         pipeline.actions.each do |action|
           nodes.concat(build_action_nodes(action))
         end
-        Console.info(self, "Pipeline reduced", total_steps: pipeline.total_steps, total_nodes: nodes.size)
+        # Console.info(self, "Pipeline reduced", total_steps: pipeline.total_steps, total_nodes: nodes.size)
         nodes
       end
 

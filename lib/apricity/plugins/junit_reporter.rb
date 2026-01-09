@@ -106,7 +106,7 @@ module Apricity
         if File.exist?(junit_path)
           parse_junit_report(junit_path, node: context.node, emitter:)
         else
-          warn "Warning -- JUnitReporter: No JUnit report file at #{junit_path}"
+          warn "Warning[#{event.type}] -- JUnitReporter: No JUnit report file at #{junit_path}"
         end
       end
 

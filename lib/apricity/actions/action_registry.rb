@@ -18,7 +18,7 @@ module Apricity
         action = action_def.new
         key = "#{action.org}/#{action.name}:#{action.version}"
         @actions[key] = action_def
-        Console.info(self, "action_registered", action: key)
+        # Console.info(self, "action_registered", action: key)
       end
 
       def fetch(org, name, version)

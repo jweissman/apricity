@@ -11,7 +11,7 @@ module Apricity
                 .map { |f| File.expand_path(f) }
                 .to_h { |f| [f, File.dirname(f)] }
 
-  RSpec.describe Pipeline::Runner do
+  RSpec.describe Pipeline::Runner, :dind do
     before do
       Apricity.register_default_plugins
       Apricity.register_default_actions

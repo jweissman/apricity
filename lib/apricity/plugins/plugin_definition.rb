@@ -16,9 +16,9 @@ module Apricity
       private
 
       def handle_event(event, context:, emitter:, options:)
-        Console.info(self, "plugin_event", plugin: to_s, event_type: event.type, node_id: (
-          context.node.id if context.respond_to?(:node) && context.node
-        ))
+        # Console.info(self, "plugin_event", plugin: to_s, event_type: event.type, node_id: (
+        #   context.node.id if context.respond_to?(:node) && context.node
+        # ))
         public_send(event.type, context:, emitter:, options:, event:) if respond_to?(event.type, true)
       end
     end

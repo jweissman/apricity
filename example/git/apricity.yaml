@@ -10,9 +10,6 @@ actions:
               with:
                 junit_report: rspec.xml
                 artifact_key: test-results
-          # outputs:
-          #   - key: test-outputs
-          #     type: artifact
           mounts:
             # Use DinD to allow apricity to test itself
             - source: /var/run/docker.sock
@@ -26,8 +23,7 @@ actions:
             - name: Checkout Apricity Code
               uses: apricity/checkout@v0
               with:
-                # github_repo: jweissman/apricity
-                repository: "https://github.com/jweissman/apricity"
+                repository: https://github.com/jweissman/apricity
                 ref: main
 
             - name: Bundle install
@@ -35,10 +31,10 @@ actions:
                 bundle config set --local path 'vendor/bundle'
                 bundle install
 
-            - name: Run tests
-              run: |
-                bundle exec rspec \
-                  --fail-fast \
-                  --format progress \
-                  --format RspecJunitFormatter \
-                  --out $APRICITY_ARTIFACTS/test-outputs/rspec.xml
+            # - name: Run tests
+            #   run: |
+            #     bundle exec rspec \
+            #       --fail-fast \
+            #       --format progress \
+            #       --format RspecJunitFormatter \
+            #       --out $APRICITY_ARTIFACTS/test-outputs/rspec.xml

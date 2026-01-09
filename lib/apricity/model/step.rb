@@ -7,7 +7,7 @@ module Apricity
         super
       end
 
-      def uses? = !uses.nil?
+      def uses? = !!uses
     end
   end
 end

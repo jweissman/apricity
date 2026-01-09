@@ -11,6 +11,8 @@ require "apricity/cli/apricot"
 Apricity.register_default_plugins
 Apricity.register_default_actions
 
+# ENV["APRICITY_HOST_ARTIFACT_ROOT"] ||= File.join(Dir.pwd, ".apricity")
+
 # nicer options parsing
 require "optparse"
 options = {}

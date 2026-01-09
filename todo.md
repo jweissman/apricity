@@ -6,11 +6,12 @@
 
 # Enhancements
 - [x] Pwd artifact pathing (killed mktmpdir)
+- [ ] Surface artifacts in UI
 
 # To-do
 - [ ] Normalize annotations for nonmatrixed jobs
-- [ ] Cache action?
-- [ ] Secrets
+- [ ] Cache action (dumb cache file)
+- [ ] Secrets (env injection, not vault)
 - [ ] Tiny example app with services
 - [ ] Try vets-api
 - [ ] Persistence

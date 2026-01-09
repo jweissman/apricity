@@ -21,7 +21,7 @@ module Apricity
         plugin = plugin_def.new
         key = "#{plugin.org}/#{plugin.name}:#{plugin.version}"
         @plugins[key] = plugin_def
-        Console.info(self, "plugin_registered", plugin: key)
+        # Console.info(self, "plugin_registered", plugin: key)
       end
 
       def fetch(org, name, version)
