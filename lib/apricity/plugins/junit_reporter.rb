@@ -95,10 +95,12 @@ module Apricity
       end
 
       def job_finished(context:, emitter:, options:, event:)
-        Console.debug self, "job_finished called with options: #{options.inspect} / #{event.type}"
+        # Console.debug self, "job_finished called with options: #{options.inspect} / #{event.type}"
         junit_file = options[:junit_report] || "junit.xml"
         artifact_key = options[:artifact_key] || "test-outputs"
         host_output_directory = context.artifact_outputs[artifact_key]
+        return unless host_output_directory
+
         junit_path = File.join(host_output_directory, junit_file)
 
         if File.exist?(junit_path)

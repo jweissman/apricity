@@ -17,7 +17,8 @@ module Apricity
       private
 
       def git_checkout(url:, branch: "main", target_dir: ".")
-        <<~SH
+        command = <<~SH
+          export GIT_TERMINAL_PROMPT=0
           git config --global --add safe.directory #{target_dir}
           git -c http.sslVerify=true \
               -c credential.helper= \
@@ -25,15 +26,8 @@ module Apricity
               --branch #{branch} \
               #{url} #{target_dir}
         SH
-        # <<~BASH
-        #   ls -latr #{target_dir}
-        #   git clone \
-        #     --branch #{branch} \
-        #     #{url} #{target_dir}
-        # BASH
-        # "git clone \
-        #   --branch #{branch} \
-        #   #{url} #{target_dir}"
+        $stdout.puts "[git] #{command.lines.join.strip}"
+        command
       end
 
       def clone_url = options[:repository] || raise("Missing 'repository' option for checkout action")

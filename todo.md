@@ -2,9 +2,9 @@
 - [x] SimpleCov aggregation across shards
 - [x] Services (pg/redis)
 - [x] Simple rails app w/ services block
+- [x] Git checkout step
 
 # To-do
-- [ ] Git checkout step
 - [ ] Fix annotations for unmatrixed case?
 - [ ] Tiny example app with services
 - [ ] Secrets

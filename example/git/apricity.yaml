@@ -5,10 +5,13 @@ actions:
       - test:
           runs-on: ruby:3.4
           name: Test Apricity from Git Checkout
+          plugins:
+            - uses: apricity/junit-reporter
+              with:
+                junit_report: rspec.xml
+                artifact_key: test-results
           # outputs:
           #   - key: test-outputs
-          #     type: artifact
-          #   - key: coverage
           #     type: artifact
           mounts:
             # Use DinD to allow apricity to test itself
@@ -16,26 +19,26 @@ actions:
               target: /var/run/docker.sock
               type: bind
           steps:
-            - name: Introspect pwd and ls
+            - name: Introspect
               run: |
                 pwd
                 ls -la
-            # - name: Checkout Apricity Code
-            #   uses: apricity/checkout@v0
-            #   with:
-            #     # repository: jweissman/apricity
-            #     repository: "https://github.com/jweissman/apricity"
-            #     ref: main
+            - name: Checkout Apricity Code
+              uses: apricity/checkout@v0
+              with:
+                # github_repo: jweissman/apricity
+                repository: "https://github.com/jweissman/apricity"
+                ref: main
 
-            # - name: Bundle install
-            #   run: |
-            #     bundle config set --local path 'vendor/bundle'
-            #     bundle install
+            - name: Bundle install
+              run: |
+                bundle config set --local path 'vendor/bundle'
+                bundle install
 
-            # - name: Run tests
-            #   run: |
-            #     bundle exec rspec \
-            #       --fail-fast \
-            #       --format progress \
-            #       --format RspecJunitFormatter \
-            #       --out $APRICITY_ARIFACTS/test-outputs/rspec.xml
+            - name: Run tests
+              run: |
+                bundle exec rspec \
+                  --fail-fast \
+                  --format progress \
+                  --format RspecJunitFormatter \
+                  --out $APRICITY_ARTIFACTS/test-outputs/rspec.xml
