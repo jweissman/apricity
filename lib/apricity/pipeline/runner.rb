@@ -100,10 +100,9 @@ module Apricity
         # rubocop:enable Metrics/AbcSize
       end
 
-      # attr_reader :pipeline
-
-      def initialize(pipeline:)
+      def initialize(pipeline:, run_instance: nil)
         @pipeline = pipeline
+        @run_instance = run_instance || Run::Instance.create(pipeline)
         @outputs_by_node = Hash.new { |h, k| h[k] = {} }
 
         return if pipeline.is_a?(Model::Pipeline)
@@ -294,7 +293,8 @@ module Apricity
       end
 
       def run_node(node, sink:, env: {}, artifact_inputs: {})
-        JobExecution::Orchestrator.new(node:, env:, artifact_inputs:, sink:).perform
+        JobExecution::Orchestrator.new(run: @run_instance, node:, env:, artifact_inputs:, sink:)
+                                  .perform
       end
 
       def pipeline_name = @pipeline.name

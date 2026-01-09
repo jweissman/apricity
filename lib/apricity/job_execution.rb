@@ -13,15 +13,16 @@ module Apricity
     class Planner
       attr_reader :binds, :artifact_outputs, :working_dir, :prelude, :effective_working_dir, :env
 
-      def initialize(node:, env:, artifact_inputs:, config: Apricity::Configuration.instance)
+      def initialize(run:, node:, env:, artifact_inputs:, config: Apricity::Configuration.instance)
+        @run = run
         @node = node
-        # $stdout.puts("Planning job execution for node #{node.id} with node envars #{node.env}")
         @env = env.merge(node.env || {})
         @artifact_inputs = artifact_inputs
         @working_dir = @effective_working_dir = WORKING_DIR
-        @prelude = <<~SH
-          set -euo pipefail
-        SH
+        # @prelude = <<~SH
+        #   set -euo pipefail
+        # SH
+        @prelude = "set -euo pipefail\n"
         @binds = []
         @artifact_outputs = {}
         @config = config
@@ -61,11 +62,21 @@ module Apricity
       end
 
       def setup_output_artifact(output)
-        host_dir = Dir.mktmpdir("artifact-#{output.key}-")
-        host_dir = File.realpath(host_dir)
+        host_dir = File.realpath(compute_host_dir(output.key))
         @artifact_outputs[output.key] = host_dir
         @prelude += "\nmkdir -p #{APRICITY_DIR}/artifacts/#{output.key}"
         "#{host_dir}:#{APRICITY_DIR}/artifacts/#{output.key}"
+      end
+
+      def compute_host_dir(output_key)
+        if @run
+          start_time = @run.start_time.utc.iso8601.tr(":", "-")
+          path = File.join(Dir.pwd, ".apricity", "runs", start_time, "artifacts", output_key)
+          FileUtils.mkdir_p(path)
+          path
+        else
+          Dir.mktmpdir("artifact-#{output_key}-")
+        end
       end
 
       def compute_bind_mount(mount)
@@ -323,8 +334,10 @@ module Apricity
 
     # Dependencies for the orchestrator
     module OrchestrationDependencies
-      def planner = @planner ||= JobExecution::Planner.new(node:, env:, artifact_inputs:, config: Apricity::Configuration.instance)
+      def planner = @planner ||= JobExecution::Planner.new(run: @run, node:, env:, artifact_inputs:, config: Apricity::Configuration.instance)
       def collector = @collector ||= JobExecution::Collector.new(node:, container:, artifact_outputs: @artifact_outputs)
+
+      def default_sink = Apricity::Configuration.instance.output_sink || NullOutputSink.new
     end
 
     # Executes a single job inside a Docker container
@@ -334,8 +347,8 @@ module Apricity
 
       attr_reader :node, :env, :artifact_inputs, :sink
 
-      def initialize(node:, env: {}, artifact_inputs: {},
-                     sink: Apricity::Configuration.instance.output_sink || NullOutputSink.new)
+      def initialize(run:, node:, env: {}, artifact_inputs: {}, sink: default_sink)
+        @run = run
         @node = node
         @env = env
         @artifact_inputs = artifact_inputs

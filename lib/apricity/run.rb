@@ -49,8 +49,8 @@ module Apricity
       end
     end
 
-    Instance = Data.define(:id, :pipeline, :git_sha) do
-      def self.create(pipeline, git_sha: nil) = new(id: SecureRandom.uuid, pipeline:, git_sha:)
+    Instance = Data.define(:id, :pipeline, :git_sha, :start_time) do
+      def self.create(pipeline, git_sha: nil) = new(id: SecureRandom.uuid, pipeline:, git_sha:, start_time: Time.now)
 
       def started_at
         Apricity::Run::EventStore.get_events(id)
@@ -93,7 +93,7 @@ module Apricity
 
       private
 
-      def runner = Apricity::Pipeline::Runner.new(pipeline:)
+      def runner = Apricity::Pipeline::Runner.new(pipeline:, run_instance: self)
     end
   end
 end

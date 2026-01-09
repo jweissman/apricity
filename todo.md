@@ -4,12 +4,15 @@
 - [x] Simple rails app w/ services block
 - [x] Git checkout step
 
+# Enhancements
+- [x] Pwd artifact pathing (killed mktmpdir)
+
 # To-do
-- [ ] Fix annotations for unmatrixed case?
-- [ ] Tiny example app with services
+- [ ] Normalize annotations for nonmatrixed jobs
+- [ ] Cache action?
 - [ ] Secrets
+- [ ] Tiny example app with services
 - [ ] Try vets-api
-- [ ] Fix pathing / mktmpdir cleanup
 - [ ] Persistence
 - [ ] Coverage graph over time
 - [ ] Integration with GH
