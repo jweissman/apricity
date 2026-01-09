@@ -97,6 +97,48 @@
         ry: 20px !important;
       }
 
+      /* Keyboard shortcuts help */
+      .keyboard-shortcuts {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 12px;
+        z-index: 1000;
+        display: none;
+      }
+      .keyboard-shortcuts.visible { display: block; }
+      .keyboard-shortcuts kbd {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: monospace;
+      }
+
+      /* Sidebar collapse */
+      .job-sidebar.collapsed {
+        width: 48px;
+      }
+      .job-sidebar.collapsed .sidebar-content {
+        display: none;
+      }
+      
+      /* Responsive improvements */
+      @media (max-width: 768px) {
+        .job-sidebar {
+          width: 100%;
+          border-right: none;
+          border-bottom: 1px solid #e5e7eb;
+          padding-bottom: 1rem;
+        }
+        .flex.gap-6 {
+          flex-direction: column;
+        }
+      }
+
       /* Make node labels more spacious */
       #dag-container .nodeLabel {
         font-family: system-ui, -apple-system, sans-serif;
@@ -147,9 +189,12 @@
     </main>
 
     <footer class="bg-white border-t border-gray-200 text-center py-3 text-xs text-gray-400">
-      <p>&copy; 2025 Oddball Inc &middot; Apricity CI</p>
+      <p>&copy; 2025 Oddball Inc &middot; Apricity CI <span class="text-gray-300 mx-2">|</span> Press <kbd class="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 font-mono">?</kbd> for shortcuts</p>
     </footer>
 
+    <script src="/assets/keyboard.js"></script>
+    <script src="/assets/filter.js"></script>
+    
     <script>
       mermaid.initialize({ 
         startOnLoad: false,

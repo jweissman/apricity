@@ -54,7 +54,7 @@ module Apricity
 
       private
 
-      def concurrent? = false
+      def concurrent? = Apricity::Configuration.instance.concurrency_enabled?
       def empty_context = JobExecution::PipelineStateContext.empty(pipeline_name, pipeline.path)
 
       # rubocop:disable Metrics/MethodLength

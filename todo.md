@@ -6,7 +6,7 @@
 
 # Enhancements
 - [x] Pwd artifact pathing (killed mktmpdir)
-- [ ] Surface artifacts in UI
+- [x] Surface artifacts in UI
 
 # To-do
 - [ ] Normalize annotations for nonmatrixed jobs

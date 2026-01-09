@@ -7,7 +7,22 @@
 <div class="flex items-center justify-between mb-6">
   <div>
     <h2 class="text-2xl font-bold text-gray-800"><%= @pipeline.name %></h2>
-    <p class="text-sm text-gray-500 font-mono mt-1">Run <%= @run.id[0..7] %>...</p>
+    <div class="flex items-center space-x-4 mt-2">
+      <p class="text-sm text-gray-500 font-mono flex items-center">
+        <i class="fas fa-fingerprint mr-2 text-gray-400"></i>
+        <%= @run.id[0..7] %>...
+      </p>
+      <% if @run.git_sha %>
+        <p class="text-sm text-gray-500 font-mono flex items-center">
+          <i class="fab fa-git-alt mr-2 text-gray-400"></i>
+          <%= @run.git_sha[0..7] %>
+        </p>
+      <% end %>
+      <p class="text-sm text-gray-500 flex items-center">
+        <i class="far fa-clock mr-2 text-gray-400"></i>
+        <%= @run.start_time.strftime("%b %d, %H:%M:%S") %>
+      </p>
+    </div>
   </div>
   <div id="run-status" class="px-4 py-2">
     <span class="text-sm text-gray-400">Status loading...</span>

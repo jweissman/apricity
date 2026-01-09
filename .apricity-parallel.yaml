@@ -60,8 +60,10 @@ actions:
                 export PARALLEL_TEST_GROUPS=$MATRIX_TOTAL
                 export PARALLEL_TEST_GROUP=$MATRIX_SHARD
 
-                bundle exec parallel_rspec spec --only-group $MATRIX_SHARD --verbose -n $MATRIX_TOTAL \
-                  --test-options "--format progress --format RspecJunitFormatter --out artifacts/test-outputs/rspec-$MATRIX_SHARD.xml"
+                bundle exec parallel_rspec spec \
+                  --only-group $MATRIX_SHARD --verbose -n $MATRIX_TOTAL \
+                  --test-options "--tag ~dind --format progress --format RspecJunitFormatter \
+                  --out $APRICITY_ARTIFACTS/test-outputs/rspec-$MATRIX_SHARD.xml"
               
       - quality:
           runs-on: ruby:3.4
@@ -100,7 +102,7 @@ actions:
                 bundle install
             - name: Generate SBOM
               run: |
-                bundle exec cyclonedx-ruby -o artifacts/sbom/sbom.xml -p .
+                bundle exec cyclonedx-ruby -o $APRICITY_ARTIFACTS/sbom/sbom.xml -p .
           outputs:
             - key: sbom
               type: artifact

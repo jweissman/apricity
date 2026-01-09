@@ -34,17 +34,17 @@ actions:
             - name: Run linters
               run: |
                 bundle exec rubocop lib
-      - artifact_proof:
-          runs-on: ruby:3.4
-          name: Generate Artifact Proof
-          outputs:
-            - key: proof
-              type: artifact
-          steps:
-            - name: Write proof
-              run: |
-                mkdir -p "$APRICITY_ARTIFACTS/proof"
-                echo "hello from $(hostname) at $(date -u +%FT%TZ)" > "$APRICITY_ARTIFACTS/proof/proof.txt"
+      # - artifact_proof:
+      #     runs-on: ruby:3.4
+      #     name: Generate Artifact Proof
+      #     outputs:
+      #       - key: proof
+      #         type: artifact
+      #     steps:
+      #       - name: Write proof
+      #         run: |
+      #           mkdir -p "$APRICITY_ARTIFACTS/proof"
+      #           echo "hello from $(hostname) at $(date -u +%FT%TZ)" > "$APRICITY_ARTIFACTS/proof/proof.txt"
 
       - test:
           runs-on: ruby:3.4

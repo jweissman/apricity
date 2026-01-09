@@ -491,7 +491,7 @@ module Apricity
         bootstrap && plan
         outcomes = execute
         outputs = collector.collect
-        emit(JobExecution::Events::JobFinished[node:, status: :success, finished_at: Time.now])
+        emit(JobExecution::Events::JobFinished[node:, status: :success, finished_at: Time.now, outputs:])
         container&.delete(force: true)
         JobExecution::Result[outcomes:, outputs:]
       end

@@ -42,6 +42,7 @@ module Apricity
       def self.payload_json(event)
         case event.type
         when :job_skipped then { reason: event.reason }
+        when :job_started then job_started_payload(event)
         when :job_finished then job_finished_payload(event)
         when :job_annotated, :pipeline_annotated then { annotations: event.annotations }
         when :step_finished then { status: event.status }
@@ -50,13 +51,21 @@ module Apricity
         end
       end
 
+      def self.job_started_payload(event)
+        steps = event.node.steps.map { |step| { name: step.name } }
+        Console.debug(self, "job_started_payload", node: event.node.id, step_count: steps.size)
+        { steps: steps }
+      end
+
       def self.job_finished_payload(event)
         payload = { status: event.status }
         if event.exception
-          payload[:exception] = {
-            message: event.exception.message,
-            backtrace: event.exception.backtrace
-          }
+          payload[:exception] = { message: event.exception.message, backtrace: event.exception.backtrace }
+        end
+        if event.outputs && !event.outputs.empty?
+          # Send all outputs - artifacts are paths, other outputs are simple values
+          Console.debug(self, "job_finished_payload", outputs: event.outputs)
+          payload[:artifacts] = event.outputs
         end
         payload
       end
@@ -76,8 +85,8 @@ module Apricity
         def type = :job_skipped
         def pretty = "skipped #{node.job_name} due to #{reason}"
       end
-      JobFinished = Data.define(:node, :status, :finished_at, :exception) do
-        def initialize(node:, status:, finished_at:, exception: nil)
+      JobFinished = Data.define(:node, :status, :finished_at, :exception, :outputs) do
+        def initialize(node:, status:, finished_at:, exception: nil, outputs: {})
           super
         end
 

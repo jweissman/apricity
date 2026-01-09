@@ -2,6 +2,8 @@
 
 require "singleton"
 require "sinatra/base"
+require "zlib"
+require "stringio"
 
 module Apricity
   # In-memory store for runs
@@ -58,6 +60,39 @@ module Apricity
           out << "event: close\ndata: {}\n\n"
           out.close
           break
+        end
+      end
+
+      def read_archived_artifact(full_path)
+        # Create tar in memory first, then gzip it
+        tar_io = StringIO.new
+        Gem::Package::TarWriter.new(tar_io) do |tar|
+          Dir.glob("#{full_path}/**/*").each do |file|
+            next if File.directory?(file)
+
+            add_file_to_archive(tar, file, full_path)
+          end
+        end
+
+        # Now gzip the tar data
+        tar_io.rewind
+        gzip_data(tar_io)
+      end
+
+      def gzip_data(data_io)
+        gzip_io = StringIO.new
+        gz = Zlib::GzipWriter.new(gzip_io)
+        gz.write(data_io.read)
+        gz.close
+
+        gzip_io.string
+      end
+
+      def add_file_to_archive(tar, file, full_path)
+        relative_path = file.sub("#{full_path}/", "")
+        stat = File.stat(file)
+        tar.add_file(relative_path, stat.mode) do |tf|
+          File.open(file, "rb") { |f| tf.write(f.read) }
         end
       end
 
@@ -130,12 +165,12 @@ module Apricity
           end
         end
 
-        def mermaid_dag(pipeline)
-          nodes = Pipeline::Reducer.lower(pipeline)
-          graph = Pipeline::Graph.new(nodes)
-          graph.analyze
-          Diagrams.mermaid_dag!(nodes, graph)
-        end
+        # def mermaid_dag(pipeline)
+        #   nodes = Pipeline::Reducer.lower(pipeline)
+        #   graph = Pipeline::Graph.new(nodes)
+        #   graph.analyze
+        #   Diagrams.mermaid_dag!(nodes, graph)
+        # end
 
         def dag_data(pipeline)
           nodes = Pipeline::Reducer.lower(pipeline)
@@ -211,6 +246,32 @@ module Apricity
         Thread.new { run.perform }
 
         redirect "/runs/#{run.id}"
+      end
+
+      # Download artifact file or directory as tar.gz
+      get "/artifacts/*" do
+        artifact_path = params[:splat].first
+        full_path = File.join(Dir.pwd, ".apricity", artifact_path)
+
+        halt 404, "Artifact not found" unless File.exist?(full_path)
+
+        if File.directory?(full_path)
+          # Check if directory contains only a single file
+          files = Dir.glob("#{full_path}/**/*").reject { |f| File.directory?(f) }
+
+          if files.size == 1
+            # Single file - serve it directly
+            send_file files.first, disposition: :attachment
+          else
+            # Multiple files - serve as tar.gz
+            content_type "application/gzip"
+            attachment "#{File.basename(full_path)}.tar.gz"
+            read_archived_artifact(full_path)
+          end
+        else
+          # Serve single file
+          send_file full_path, disposition: :attachment
+        end
       end
     end
   end
