@@ -3,6 +3,6 @@
 module Apricity
   module JobExecution
     # The working directory inside the job container
-    WORKING_DIR = "/work"
+    WORKING_DIR = "/" # work"
   end
 end

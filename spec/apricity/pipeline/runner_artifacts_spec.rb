@@ -26,8 +26,15 @@ module Apricity
               job.output("dist", :artifact)
               job.step("build", run: Script.new(
                 source: <<~SCRIPT
-                  mkdir -p $APRICITY_ARTIFACTS/dist
-                  echo build > $APRICITY_ARTIFACTS/dist/artifact.txt
+                  set -euxo pipefail
+
+                  ls -la "$APRICITY_ARTIFACTS" || true
+                  ls -la "$APRICITY_ARTIFACTS/dist" || true
+                  cat "$APRICITY_ARTIFACTS/dist/artifact.txt" || true
+                  mkdir -p "$APRICITY_ARTIFACTS/dist"
+                  echo build > "$APRICITY_ARTIFACTS/dist/artifact.txt"
+                  ls -la "$APRICITY_ARTIFACTS/dist"
+                  cat "$APRICITY_ARTIFACTS/dist/artifact.txt"
                 SCRIPT
               ))
             end

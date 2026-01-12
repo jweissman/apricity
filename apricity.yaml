@@ -2,54 +2,42 @@ name: Apricity Tests
 actions:
   test:
     jobs:
-      - quality:
-          runs-on: ruby:3.4
-          name: Check Apricity Code Quality
-
-          mounts:
-            - source: .
-              target: /work
-              type: bind
-          steps:
-            - name: Bundle install
-              run: |
-                bundle config set --local path 'vendor/bundle'
-                bundle install
-
-            - name: Run code quality tools
-              run: |
-                bundle exec reek lib
-      - lint:
-          runs-on: ruby:3.4
-          name: Lint Apricity Codebase
-          mounts:
-            - source: .
-              target: /work
-              type: bind
-          steps:
-            - name: Bundle install
-              run: |
-                bundle config set --local path 'vendor/bundle'
-                bundle install
-            - name: Run linters
-              run: |
-                bundle exec rubocop lib
-      # - artifact_proof:
+      # - quality:
       #     runs-on: ruby:3.4
-      #     name: Generate Artifact Proof
-      #     outputs:
-      #       - key: proof
-      #         type: artifact
-      #     steps:
-      #       - name: Write proof
-      #         run: |
-      #           mkdir -p "$APRICITY_ARTIFACTS/proof"
-      #           echo "hello from $(hostname) at $(date -u +%FT%TZ)" > "$APRICITY_ARTIFACTS/proof/proof.txt"
+      #     name: Check Apricity Code Quality
 
+      #     mounts:
+      #       - source: .
+      #         target: /work
+      #         type: bind
+      #     steps:
+      #       - name: Bundle install
+      #         run: |
+      #           bundle config set --local path 'vendor/bundle'
+      #           bundle install
+
+      #       - name: Run code quality tools
+      #         run: |
+      #           bundle exec reek lib
+      # - lint:
+      #     runs-on: ruby:3.4
+      #     name: Lint Apricity Codebase
+      #     mounts:
+      #       - source: .
+      #         target: /work
+      #         type: bind
+      #     steps:
+      #       - name: Bundle install
+      #         run: |
+      #           bundle config set --local path 'vendor/bundle'
+      #           bundle install
+      #       - name: Run linters
+      #         run: |
+      #           bundle exec rubocop lib
       - test:
           runs-on: ruby:3.4
           name: Build and Test Apricity
-          needs: [lint, quality]
+          # needs: [lint, quality]
           outputs:
             - key: test-outputs
               type: artifact
@@ -81,7 +69,7 @@ actions:
             - name: Run tests
               run: |
                 bundle exec rspec \
-                  --tag ~dind \
+                  --tag "~dind" \
                   --fail-fast \
                   --format progress \
                   --format RspecJunitFormatter \

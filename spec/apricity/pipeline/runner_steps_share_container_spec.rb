@@ -16,6 +16,7 @@ module Apricity
           .new("shared-container")
           .action("ci") do |act|
             act.job("build", runs_on: container) do |job|
+              job.step("step0", run: Script.new(source: "mkdir -p /work"))
               job.step("step1", run: Script.new(source: "echo 'Step 1' > /work/step.txt"))
               job.step("step2", run: Script.new(source: "cat /work/step.txt"))
             end
