@@ -16,10 +16,6 @@ actions:
               target: /var/run/docker.sock
               type: bind
           steps:
-            - name: Introspect
-              run: |
-                pwd
-                ls -la
             - name: Checkout Apricity Code
               uses: apricity/checkout@v0
               with:
@@ -31,11 +27,11 @@ actions:
                 bundle config set --local path 'vendor/bundle'
                 bundle install
 
-            # - name: Run tests
-            #   run: |
-            #     bundle exec rspec \
-            #       --tag ~dind \
-            #       --fail-fast \
-            #       --format progress \
-            #       --format RspecJunitFormatter \
-            #       --out $APRICITY_ARTIFACTS/test-outputs/rspec.xml
+            - name: Run tests
+              run: |
+                bundle exec rspec \
+                  --tag ~dind \
+                  --fail-fast \
+                  --format progress \
+                  --format RspecJunitFormatter \
+                  --out $APRICITY_ARTIFACTS/test-outputs/rspec.xml

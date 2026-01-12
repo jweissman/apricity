@@ -54,7 +54,7 @@ module Apricity
               Console.error(self, "Scheduler: Error running node #{node_id}: #{e.message}")
               JobExecution::Result[outcomes: [Model::StepOutcome.failure(node, node.steps.first,
                                                                          stdout: "", stderr: "",
-                                                                         error_message: e.message)], outputs: {}]
+                                                                         exception: e)], outputs: {}]
             end
             results << [node_id, result]
           end

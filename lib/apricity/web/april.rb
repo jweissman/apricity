@@ -147,10 +147,12 @@ module Apricity
         set :pipelines, [
           Apricity::Model::Pipeline.from_file("apricity.yaml"),
           Apricity::Model::Pipeline.from_file(".apricity-parallel.yaml"),
-          Apricity::Model::Pipeline.from_file("example/hello/apricity.yaml"),
-          Apricity::Model::Pipeline.from_file("example/redis/apricity.yaml"),
-          Apricity::Model::Pipeline.from_file("example/pg/apricity.yaml"),
-          Apricity::Model::Pipeline.from_file("example/git/apricity.yaml")
+          # Apricity::Model::Pipeline.from_file("example/hello/apricity.yaml"),
+          # Apricity::Model::Pipeline.from_file("example/redis/apricity.yaml"),
+          # Apricity::Model::Pipeline.from_file("example/pg/apricity.yaml"),
+          # Apricity::Model::Pipeline.from_file("example/git/apricity.yaml")
+          *Dir.glob(File.join(__dir__, "../../../example/**/apricity.yaml"))
+              .map { |f| Apricity::Model::Pipeline.from_file(f) }
         ]
       end
 
