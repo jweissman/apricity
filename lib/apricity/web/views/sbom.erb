@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SBOM Report - Apricity</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #f3f4f6; }
+    ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex items-center space-x-3 mb-2">
+        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+          <i class="fas fa-cube text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Software Bill of Materials</h1>
+          <p class="text-sm text-gray-500 mt-1">
+            <i class="far fa-clock mr-1"></i><%= Time.now.strftime("%B %d, %Y at %H:%M") %>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-500">Total Components</p>
+            <p class="text-3xl font-bold text-gray-900 mt-1"><%= @components.size %></p>
+          </div>
+          <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+            <i class="fas fa-box text-blue-600 text-xl"></i>
+          </div>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-500">Unique Licenses</p>
+            <p class="text-3xl font-bold text-gray-900 mt-1"><%= @components.flat_map { |c| c[:licenses] }.uniq.size %></p>
+          </div>
+          <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+            <i class="fas fa-certificate text-green-600 text-xl"></i>
+          </div>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-500">Component Types</p>
+            <p class="text-3xl font-bold text-gray-900 mt-1"><%= @components.map { |c| c[:type] }.uniq.size %></p>
+          </div>
+          <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+            <i class="fas fa-tags text-purple-600 text-xl"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
+      <div class="flex items-center space-x-4">
+        <div class="flex-1 relative">
+          <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Search components, licenses, or versions..."
+            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+        <select id="typeFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+          <option value="">All Types</option>
+          <% @components.map { |c| c[:type] }.uniq.sort.each do |type| %>
+            <option value="<%= type %>"><%= type.capitalize %></option>
+          <% end %>
+        </select>
+      </div>
+    </div>
+
+    <!-- Components Table -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <i class="fas fa-cube mr-2"></i>Component
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <i class="fas fa-tag mr-2"></i>Version
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <i class="fas fa-layer-group mr-2"></i>Type
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <i class="fas fa-certificate mr-2"></i>Licenses
+              </th>
+            </tr>
+          </thead>
+          <tbody id="componentsTable" class="bg-white divide-y divide-gray-200">
+            <% @components.sort_by { |c| c[:name] }.each do |component| %>
+              <tr class="hover:bg-blue-50 transition-colors component-row" 
+                  data-name="<%= component[:name].downcase %>"
+                  data-version="<%= component[:version].downcase %>"
+                  data-type="<%= component[:type].downcase %>"
+                  data-licenses="<%= component[:licenses].join(' ').downcase %>">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-gray-900"><%= component[:name] %></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="px-2 py-1 text-xs font-mono bg-gray-100 text-gray-700 rounded"><%= component[:version] %></span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full"><%= component[:type] %></span>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="flex flex-wrap gap-1">
+                    <% if component[:licenses].empty? %>
+                      <span class="text-xs text-gray-400 italic">No license specified</span>
+                    <% else %>
+                      <% component[:licenses].each do |license| %>
+                        <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded"><%= license %></span>
+                      <% end %>
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Results Count -->
+    <div class="mt-4 text-center">
+      <p id="resultsCount" class="text-sm text-gray-500">
+        Showing <span id="visibleCount"><%= @components.size %></span> of <%= @components.size %> components
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const searchInput = document.getElementById('searchInput');
+    const typeFilter = document.getElementById('typeFilter');
+    const rows = document.querySelectorAll('.component-row');
+    const visibleCount = document.getElementById('visibleCount');
+
+    function filterComponents() {
+      const searchTerm = searchInput.value.toLowerCase();
+      const selectedType = typeFilter.value.toLowerCase();
+      let visible = 0;
+
+      rows.forEach(row => {
+        const name = row.dataset.name;
+        const version = row.dataset.version;
+        const type = row.dataset.type;
+        const licenses = row.dataset.licenses;
+
+        const matchesSearch = !searchTerm || 
+          name.includes(searchTerm) || 
+          version.includes(searchTerm) || 
+          licenses.includes(searchTerm);
+        
+        const matchesType = !selectedType || type === selectedType;
+
+        if (matchesSearch && matchesType) {
+          row.style.display = '';
+          visible++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      visibleCount.textContent = visible;
+    }
+
+    searchInput.addEventListener('input', filterComponents);
+    typeFilter.addEventListener('change', filterComponents);
+  </script>
+</body>
+</html>

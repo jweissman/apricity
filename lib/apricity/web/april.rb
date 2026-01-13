@@ -4,6 +4,8 @@ require "singleton"
 require "sinatra/base"
 require "zlib"
 require "stringio"
+require "erb"
+require "nokogiri"
 
 module Apricity
   # In-memory store for runs
@@ -36,8 +38,8 @@ module Apricity
       }.freeze
     end
 
-    # Helper methods for the web interface
-    module Support
+    # Helper methods for pipeline management
+    module Pipelines
       DEFAULT_PIPELINES = [
         Apricity::Model::Pipeline.from_file("apricity.yaml"),
         Apricity::Model::Pipeline.from_file(".apricity-parallel.yaml"),
@@ -50,7 +52,10 @@ module Apricity
         halt 404, "Pipeline #{slug} not found" unless pipeline
         pipeline
       end
+    end
 
+    # Helper methods for Server-Sent Events (SSE) streaming
+    module Streaming
       def format_sse(event)
         payload = Apricity::JobExecution::EventSerializer.as_json(event)
         sse = "event: #{event.type}\ndata: #{payload}\n\n"
@@ -85,7 +90,10 @@ module Apricity
           break
         end
       end
+    end
 
+    # Helper methods for the web interface
+    module Support
       def read_archived_artifact(full_path)
         # Create tar in memory first, then gzip it
         tar_io = StringIO.new
@@ -136,16 +144,35 @@ module Apricity
         MimeTypes::MIME_TYPES.fetch(ext, "application/octet-stream")
       end
 
+      # rubocop:disable Metrics/CyclomaticComplexity
+      # rubocop:disable Metrics/PerceivedComplexity
+      # rubocop:disable Metrics/MethodLength
       def serve_interactive_artifact(full_path, requested_path)
+        # Check for SBOM first (could be sbom.xml file or directory containing sbom.xml)
+        sbom_path = if full_path.end_with?("sbom.xml")
+                      full_path
+                    elsif File.directory?(full_path) && File.exist?(File.join(full_path, "sbom.xml"))
+                      File.join(full_path, "sbom.xml")
+                    elsif File.exist?("#{full_path}.xml") && full_path.include?("sbom")
+                      "#{full_path}.xml"
+                    end
+
+        if sbom_path
+          content_type "text/html"
+          return generate_sbom_html(sbom_path)
+        end
+
         if File.directory?(full_path)
           serve_interactive_index(full_path, requested_path)
-
         else
           # Serve file with appropriate content type
           content_type mime_type_for(full_path)
           send_file full_path
         end
       end
+      # rubocop:enable Metrics/CyclomaticComplexity
+      # rubocop:enable Metrics/PerceivedComplexity
+      # rubocop:enable Metrics/MethodLength
 
       def serve_interactive_index(full_path, requested_path)
         # If directory requested, try to serve index.html
@@ -161,9 +188,48 @@ module Apricity
           send_file index_path
         else
           html_content.sub(/<head>/i, "<head>\n  <base href=\"#{base_url}\">")
-
         end
       end
+
+      def generate_sbom_html(sbom_path)
+        require "nokogiri"
+
+        file = File.open(sbom_path)
+        doc = Nokogiri::XML(file)
+        ns = { "cdx" => doc.root.namespace.href }
+
+        @components = parse_components(doc, ns)
+        file.close
+
+        # Generate HTML
+        erb_template = File.read(File.join(__dir__, "views", "sbom.erb"))
+        ERB.new(erb_template).result(binding)
+      end
+
+      def parse_components(doc, namespace)
+        doc.xpath("//cdx:component", namespace).map do |component_node|
+          parse_component(component_node, namespace)
+        end
+      end
+
+      # rubocop:disable Metrics/AbcSize
+      # rubocop:disable Metrics/CyclomaticComplexity
+      # rubocop:disable Metrics/PerceivedComplexity
+      def parse_component(component_node, namespace)
+        name = component_node.at_xpath("cdx:name", namespace)&.text || "unknown"
+        version = component_node.at_xpath("cdx:version", namespace)&.text || "unknown"
+        component_type = component_node["type"] || "unknown"
+
+        licenses = []
+        licenses += component_node.xpath("cdx:licenses/cdx:license/cdx:id", namespace).map(&:text)
+        licenses += component_node.xpath("cdx:licenses/cdx:license/cdx:name", namespace).map(&:text)
+        licenses += component_node.xpath("cdx:licenses/cdx:license/cdx:expression", namespace).map(&:text)
+
+        { name:, version:, type: component_type, licenses: licenses.uniq }
+      end
+      # rubocop:enable Metrics/AbcSize
+      # rubocop:enable Metrics/CyclomaticComplexity
+      # rubocop:enable Metrics/PerceivedComplexity
 
       # Diagram generation helpers
       module Diagrams
@@ -209,6 +275,8 @@ module Apricity
 
     # Sinatra-based web interface for Apricity
     class April < Sinatra::Base
+      include Pipelines
+      include Streaming
       include Support
 
       configure do
