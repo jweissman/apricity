@@ -2,42 +2,42 @@ name: Apricity Tests
 actions:
   test:
     jobs:
-      # - quality:
-      #     runs-on: ruby:3.4
-      #     name: Check Apricity Code Quality
+      - quality:
+          runs-on: ruby:3.4
+          name: Check Apricity Code Quality
 
-      #     mounts:
-      #       - source: .
-      #         target: /work
-      #         type: bind
-      #     steps:
-      #       - name: Bundle install
-      #         run: |
-      #           bundle config set --local path 'vendor/bundle'
-      #           bundle install
+          mounts:
+            - source: .
+              target: /work
+              type: bind
+          steps:
+            - name: Bundle install
+              run: |
+                bundle config set --local path 'vendor/bundle'
+                bundle install
 
-      #       - name: Run code quality tools
-      #         run: |
-      #           bundle exec reek lib
-      # - lint:
-      #     runs-on: ruby:3.4
-      #     name: Lint Apricity Codebase
-      #     mounts:
-      #       - source: .
-      #         target: /work
-      #         type: bind
-      #     steps:
-      #       - name: Bundle install
-      #         run: |
-      #           bundle config set --local path 'vendor/bundle'
-      #           bundle install
-      #       - name: Run linters
-      #         run: |
-      #           bundle exec rubocop lib
+            - name: Run code quality tools
+              run: |
+                bundle exec reek lib
+      - lint:
+          runs-on: ruby:3.4
+          name: Lint Apricity Codebase
+          mounts:
+            - source: .
+              target: /work
+              type: bind
+          steps:
+            - name: Bundle install
+              run: |
+                bundle config set --local path 'vendor/bundle'
+                bundle install
+            - name: Run linters
+              run: |
+                bundle exec rubocop lib
       - test:
           runs-on: ruby:3.4
           name: Build and Test Apricity
-          # needs: [lint, quality]
+          needs: [lint, quality]
           outputs:
             - key: test-outputs
               type: artifact
@@ -61,24 +61,6 @@ actions:
               target: /var/run/docker.sock
               type: bind
           steps:
-            - name: Introspect
-              run: |
-                set -eux
-                echo "pwd=$(pwd)"
-                echo "ls -al ."
-                ls -al .
-                
-                echo "--- /work listing ---"
-                ls -al /work || true
-                
-                echo "--- does /work/Gemfile exist? ---"
-                test -f /work/Gemfile && echo "YES" || echo "NO"
-                
-                echo "--- mounts containing /work ---"
-                cat /proc/mounts | grep -E ' /work ' || true
-                
-                echo "--- env bundle vars ---"
-                env | grep -E '^BUNDLE|GEMFILE' || true
             - name: Bundle install
               run: |
                 bundle config set --local path 'vendor/bundle'
@@ -92,28 +74,28 @@ actions:
                   --format progress \
                   --format RspecJunitFormatter \
                   --out $APRICITY_ARTIFACTS/test-outputs/rspec.xml
-      # - sbom:
-      #     runs-on: ruby:3.4
-      #     name: Generate SBOM for Apricity
-      #     needs: [test]
-      #     plugins:
-      #       - uses: apricity/sbom-reporter
-      #         with:
-      #           output_file: sbom.json
-      #           artifact_key: sbom
-      #     mounts:
-      #       - source: .
-      #         target: /work
-      #         type: bind
-      #     steps:
-      #       - name: Bundle install
-      #         run: |
-      #           bundle config set --local path 'vendor/bundle'
-      #           bundle install
+      - sbom:
+          runs-on: ruby:3.4
+          name: Generate SBOM for Apricity
+          needs: [test]
+          plugins:
+            - uses: apricity/sbom-reporter
+              with:
+                output_file: sbom.json
+                artifact_key: sbom
+          mounts:
+            - source: .
+              target: /work
+              type: bind
+          steps:
+            - name: Bundle install
+              run: |
+                bundle config set --local path 'vendor/bundle'
+                bundle install
 
-      #       - name: Generate SBOM
-      #         run: |
-      #           bundle exec cyclonedx-ruby -o $APRICITY_ARTIFACTS/sbom/sbom.xml -p .
-      #     outputs:
-      #       - key: sbom
-      #         type: artifact
+            - name: Generate SBOM
+              run: |
+                bundle exec cyclonedx-ruby -o $APRICITY_ARTIFACTS/sbom/sbom.xml -p .
+          outputs:
+            - key: sbom
+              type: artifact

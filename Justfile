@@ -11,6 +11,6 @@ self-test:
   apricot --verbose
 
 test-examples:
-  apricot --verbose -- ./example/{hello,redis,pg,blog}/
+  apricot --verbose -- ./example/{hello,redis,pg,blog,git}/
 
 test: spec self-test test-examples

@@ -35,11 +35,14 @@ end.parse!
 files = ARGV.empty? ? ["apricity.yaml"] : ARGV
 
 files.each do |file|
+  sleep 0.1
   puts "Loading pipeline from #{file} with options: #{options}" if options[:verbose]
   
   git_sha = `git rev-parse HEAD`.chomp
   pipeline = Apricity::Model::Pipeline.from_file(file)
   apricot = Apricity::CLI::Apricot.new
-  apricot.monitor_execution(pipeline:, git_sha:, options:)
-  sleep 1
+  # apricot.monitor_execution(pipeline:, git_sha:, options:)
+  if !apricot.executed_successfully?(pipeline:, git_sha:, options:)
+    exit 1
+  end
 end

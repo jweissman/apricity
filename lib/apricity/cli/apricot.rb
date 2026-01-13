@@ -4,7 +4,7 @@ module Apricity
   module CLI
     # Apricot TUI renderer
     class Apricot
-      def monitor_execution(pipeline:, git_sha: nil, options: { verbose: false })
+      def executed_successfully?(pipeline:, git_sha: nil, options: { verbose: false })
         run = Apricity::Run::Instance.create(pipeline, git_sha:)
         run_id = run.id
         puts "Starting Run #{run_id[..7]} for pipeline #{pipeline.name} at git sha #{git_sha}"
@@ -14,6 +14,7 @@ module Apricity
         end
         apricot_icon = result.passed? ? "🍑" : "🪰"
         puts "\n#{apricot_icon} Run #{run_id[..7]} Complete (in #{result.duration_seconds} seconds)"
+        result.passed?
       end
 
       def handle_event(event, state, options: { verbose: false })
