@@ -18,3 +18,4 @@
 - [ ] Coverage graph over time
 - [ ] Integration with GH
 - [ ] Deployment
+- [ ] SSH into container?

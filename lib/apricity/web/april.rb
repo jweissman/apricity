@@ -20,8 +20,31 @@ module Apricity
   end
 
   module Web
+    module MimeTypes
+      MIME_TYPES = {
+        ".html" => "text/html",
+        ".htm" => "text/html",
+        ".css" => "text/css",
+        ".js" => "application/javascript",
+        ".json" => "application/json",
+        ".png" => "image/png",
+        ".jpg" => "image/jpeg",
+        ".jpeg" => "image/jpeg",
+        ".gif" => "image/gif",
+        ".svg" => "image/svg+xml",
+        ".xml" => "application/xml"
+      }.freeze
+    end
+
     # Helper methods for the web interface
     module Support
+      DEFAULT_PIPELINES = [
+        Apricity::Model::Pipeline.from_file("apricity.yaml"),
+        Apricity::Model::Pipeline.from_file(".apricity-parallel.yaml"),
+        *Dir.glob(File.join(__dir__, "../../../example/**/apricity.yaml"))
+            .map { |f| Apricity::Model::Pipeline.from_file(f) }
+      ].freeze
+
       def load_pipeline(slug)
         pipeline = settings.pipelines.find { |p| p.slug == slug }
         halt 404, "Pipeline #{slug} not found" unless pipeline
@@ -109,17 +132,36 @@ module Apricity
       end
 
       def mime_type_for(path)
-        case File.extname(path).downcase
-        when ".html", ".htm" then "text/html"
-        when ".css" then "text/css"
-        when ".js" then "application/javascript"
-        when ".json" then "application/json"
-        when ".png" then "image/png"
-        when ".jpg", ".jpeg" then "image/jpeg"
-        when ".gif" then "image/gif"
-        when ".svg" then "image/svg+xml"
-        when ".xml" then "application/xml"
-        else "application/octet-stream"
+        ext = File.extname(path).downcase
+        MimeTypes::MIME_TYPES.fetch(ext, "application/octet-stream")
+      end
+
+      def serve_interactive_artifact(full_path, requested_path)
+        if File.directory?(full_path)
+          serve_interactive_index(full_path, requested_path)
+
+        else
+          # Serve file with appropriate content type
+          content_type mime_type_for(full_path)
+          send_file full_path
+        end
+      end
+
+      def serve_interactive_index(full_path, requested_path)
+        # If directory requested, try to serve index.html
+        index_path = File.join(full_path, "index.html")
+        return unless File.exist?(index_path)
+
+        content_type "text/html"
+        # Inject base tag to fix relative asset paths
+        html_content = File.read(index_path)
+        base_url = "/interactive/artifact/#{requested_path}/"
+        # Insert <base> tag after <head> if not present
+        if html_content.include?("<base")
+          send_file index_path
+        else
+          html_content.sub(/<head>/i, "<head>\n  <base href=\"#{base_url}\">")
+
         end
       end
 
@@ -171,16 +213,7 @@ module Apricity
 
       configure do
         set :quiet, true
-        set :pipelines, [
-          Apricity::Model::Pipeline.from_file("apricity.yaml"),
-          Apricity::Model::Pipeline.from_file(".apricity-parallel.yaml"),
-          # Apricity::Model::Pipeline.from_file("example/hello/apricity.yaml"),
-          # Apricity::Model::Pipeline.from_file("example/redis/apricity.yaml"),
-          # Apricity::Model::Pipeline.from_file("example/pg/apricity.yaml"),
-          # Apricity::Model::Pipeline.from_file("example/git/apricity.yaml")
-          *Dir.glob(File.join(__dir__, "../../../example/**/apricity.yaml"))
-              .map { |f| Apricity::Model::Pipeline.from_file(f) }
-        ]
+        set :pipelines, DEFAULT_PIPELINES
       end
 
       helpers do
@@ -281,28 +314,29 @@ module Apricity
       get "/interactive/artifact/*" do
         requested_path = params[:splat].first
         full_path = safe_artifact_path(requested_path)
+        serve_interactive_artifact(full_path, requested_path)
 
-        if File.directory?(full_path)
-          # If directory requested, try to serve index.html
-          index_path = File.join(full_path, "index.html")
-          if File.exist?(index_path)
-            content_type "text/html"
-            # Inject base tag to fix relative asset paths
-            html_content = File.read(index_path)
-            base_url = "/interactive/artifact/#{requested_path}/"
-            # Insert <base> tag after <head> if not present
-            if html_content.include?("<base")
-              send_file index_path
-            else
-              html_with_base = html_content.sub(/<head>/i, "<head>\n  <base href=\"#{base_url}\">")
-              html_with_base
-            end
-          end
-        else
-          # Serve file with appropriate content type
-          content_type mime_type_for(full_path)
-          send_file full_path
-        end
+        # if File.directory?(full_path)
+        #   # If directory requested, try to serve index.html
+        #   index_path = File.join(full_path, "index.html")
+        #   if File.exist?(index_path)
+        #     content_type "text/html"
+        #     # Inject base tag to fix relative asset paths
+        #     html_content = File.read(index_path)
+        #     base_url = "/interactive/artifact/#{requested_path}/"
+        #     # Insert <base> tag after <head> if not present
+        #     if html_content.include?("<base")
+        #       send_file index_path
+        #     else
+        #       html_with_base = html_content.sub(/<head>/i, "<head>\n  <base href=\"#{base_url}\">")
+        #       html_with_base
+        #     end
+        #   end
+        # else
+        #   # Serve file with appropriate content type
+        #   content_type mime_type_for(full_path)
+        #   send_file full_path
+        # end
       end
 
       # Download artifact file or directory as tar.gz
