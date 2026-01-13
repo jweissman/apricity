@@ -61,6 +61,24 @@ actions:
               target: /var/run/docker.sock
               type: bind
           steps:
+            - name: Introspect
+              run: |
+                set -eux
+                echo "pwd=$(pwd)"
+                echo "ls -al ."
+                ls -al .
+                
+                echo "--- /work listing ---"
+                ls -al /work || true
+                
+                echo "--- does /work/Gemfile exist? ---"
+                test -f /work/Gemfile && echo "YES" || echo "NO"
+                
+                echo "--- mounts containing /work ---"
+                cat /proc/mounts | grep -E ' /work ' || true
+                
+                echo "--- env bundle vars ---"
+                env | grep -E '^BUNDLE|GEMFILE' || true
             - name: Bundle install
               run: |
                 bundle config set --local path 'vendor/bundle'

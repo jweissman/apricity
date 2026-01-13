@@ -7,15 +7,86 @@ require_relative "job_execution/node"
 require_relative "job_execution/pipeline_state_context"
 require_relative "job_execution/result"
 require_relative "job_execution/working_dir"
-# require_relative "job_execution/apricity_artifact_root"
 
 module Apricity
   module JobExecution
+    # Tiny helper to resolve paths relative to a root
+    class PathResolver
+      attr_reader :root
+
+      def initialize(root:)
+        @root = root
+      end
+
+      def resolve(path)
+        return path if path.start_with?("/")
+
+        warn "!!! Resolving relative path #{path.inspect} against root #{@root.inspect}"
+        File.expand_path(path, @root)
+      end
+    end
+
+    # Common helpers for docker
+    module DockerHelpers
+      def self.dind? = File.exist?("/.dockerenv")
+    end
+
+    # Manger working directory and host path mapping
+    Workspace = Data.define(:target, :host_path) do
+      def self.resolve(bind_mounts, resolver:)
+        candidates =
+          bind_mounts.select do |m|
+            next false unless m.type == :bind
+
+            resolved = m.source
+            resolved.start_with?(resolver.root + File::SEPARATOR)
+          end
+        mount = candidates.one? ? candidates.first : nil
+
+        return nil unless mount
+
+        host_path = mount.source
+        new(target: mount.target, host_path:)
+      end
+    end
+
+    # Internal class for managing artifact storage paths
+    class ArtifactStore
+      def initialize(run:, node:)
+        @run = run
+        @node = node
+      end
+
+      def output_dir(key) = self.class.path_for(run: @run, node: @node, artifact_key: key)
+
+      # def bind_for_output(key) = "#{output_dir(key)}:#{APRICITY_DIR}/artifacts/#{key}"
+      # def container_path(key) = "#{APRICITY_DIR}/artifacts/#{key}"
+
+      # Given run_id, job_id, artifact_key return a host directory path guaranteed to exist and be docker-safe
+      def self.path_for(run:, node:, artifact_key:)
+        run_id = run.id
+        pipeline_name = run.pipeline&.name&.gsub(/[^a-zA-Z0-9_-]/, "_") || "unknown-pipeline"
+        job_id = node.id.gsub(/[^a-zA-Z0-9_-]/, "_")
+        base_dir = File.join(host_visible_artifact_root,
+                             "pipelines", pipeline_name, "runs", run_id, "artifacts", job_id)
+        FileUtils.mkdir_p(base_dir)
+        File.join(base_dir, artifact_key)
+      end
+
+      def self.host_visible_artifact_root
+        ENV.fetch("APRICITY_HOST_ARTIFACT_ROOT") do
+          raise "APRICITY_HOST_ARTIFACT_ROOT is required for artifact outputs in DIND mode" if DockerHelpers.dind?
+
+          File.join(Dir.pwd, ".apricity") # fine for local, non-containerized runner
+        end
+      end
+    end
+
     # Internal class for planning job execution
     class Planner
-      attr_reader :binds, :artifact_outputs, :working_dir, :env # , :prelude
+      attr_reader :binds, :artifact_outputs, :working_dir, :env
 
-      def initialize(run:, node:, env:, artifact_inputs:, config: Apricity::Configuration.instance)
+      def initialize(run:, node:, env:, artifact_inputs:, pipeline_root:)
         @run = run
         @node = node
         @env = env.merge(node.env || {})
@@ -25,7 +96,7 @@ module Apricity
         @prelude = ""
         @binds = []
         @artifact_outputs = {}
-        @config = config
+        @pipeline_root = pipeline_root
       end
 
       def call
@@ -36,13 +107,15 @@ module Apricity
         self
       end
 
-      def prelude = @prelude + "\nmkdir -p #{@working_dir}"
+      def prelude = @prelude + "\nmkdir -p #{@working_dir}\ncd #{@working_dir}\n"
 
       private
 
-      attr_reader :node, :config, :artifact_inputs
+      attr_reader :node, :artifact_inputs, :pipeline_root
 
-      def dind? = File.exist?("/.dockerenv")
+      def artifact_store = @artifact_store ||= ArtifactStore.new(run: @run, node: @node)
+      def config = Apricity::Configuration.instance
+      def paths = @paths ||= PathResolver.new(root: pipeline_root)
 
       def ensure_host_artifact_root_exists
         return if ENV["APRICITY_HOST_ARTIFACT_ROOT"]
@@ -57,11 +130,10 @@ module Apricity
       end
 
       def artifact_root
-        # base = File.join(Dir.pwd, ".apricity")
         base = ENV.fetch("APRICITY_HOST_ARTIFACT_ROOT") do
           raise "APRICITY_HOST_ARTIFACT_ROOT is required for artifact outputs"
         end
-        host_path_for(base)
+        paths.resolve(base)
       end
 
       def input_artifacts = node.inputs.select { |i| i.type == :artifact }
@@ -81,111 +153,83 @@ module Apricity
         raise "Missing artifact #{key}" unless host_dir
         raise "Artifact input dir does not exist: #{host_dir}" unless Dir.exist?(host_dir)
 
-        if dind?
-          # @prelude += "\nmkdir -p #{APRICITY_DIR}/artifacts/#{key}"
+        if DockerHelpers.dind?
           @prelude += "\nmkdir -p #{APRICITY_DIR}/artifacts"
           return nil
-          # container_dir = "#{APRICITY_DIR}/artifacts/#{key}"
-
-          # @prelude += <<~SH
-          #   mkdir -p #{container_dir}
-          #   tar -C "#{host_dir}" -cf - . | tar -C "#{container_dir}" -xf -
-          # SH
-
-          # return nil
         end
 
-        bind_source = host_path_for(host_dir)
+        # bind_source = host_path_for(host_dir)
+        bind_source = paths.resolve(host_dir)
         "#{bind_source}:#{APRICITY_DIR}/artifacts/#{key}:ro"
       end
-
-      # def setup_input_artifact(input)
-      #   key = input.key
-      #   host_dir = artifact_inputs[key] || artifact_inputs[key.to_s]
-
-      #   raise "Missing artifact #{key}" unless host_dir
-      #   raise "Artifact input dir does not exist: #{host_dir}" unless Dir.exist?(host_dir)
-
-      #   if dind?
-      #     # container-local path, populated later via tar
-      #     @prelude += "\nmkdir -p #{APRICITY_DIR}/artifacts/#{key}"
-      #     return nil
-      #   end
-
-      #   bind_source = host_path_for(host_dir)
-      #   "#{bind_source}:#{APRICITY_DIR}/artifacts/#{key}:ro"
-      # end
-
-      # def setup_input_artifact(input)
-      #   host_dir = artifact_inputs[input.key] || artifact_inputs[input.key.to_s]
-
-      #   raise "Missing artifact #{input.key}" unless host_dir
-      #   raise "Artifact input dir does not exist: #{host_dir}" unless Dir.exist?(host_dir)
-
-      #   bind_source = host_path_for(host_dir)
-
-      #   "#{bind_source}:#{APRICITY_DIR}/artifacts/#{input.key}:ro"
-      # end
 
       def setup_output_artifact(output)
         key = output.key
 
-        if dind?
+        if DockerHelpers.dind?
           # Container-local artifacts; step owns the subdir
-          # @prelude += "\nmkdir -p #{APRICITY_DIR}/artifacts"
           @prelude += "\nmkdir -p #{APRICITY_DIR}/artifacts/#{key}"
           @artifact_outputs[key] = "#{APRICITY_DIR}/artifacts/#{key}"
           return nil
         end
 
-        runner_dir = RunArtifactStore.path_for(run: @run, node:, artifact_key: key)
+        runner_dir = artifact_store.output_dir(key)
         FileUtils.mkdir_p(runner_dir)
 
-        bind_source = host_path_for(runner_dir)
+        bind_source = runner_dir
         @artifact_outputs[key] = runner_dir
 
         @prelude += "\nmkdir -p #{APRICITY_DIR}/artifacts"
         "#{bind_source}:#{APRICITY_DIR}/artifacts/#{key}"
       end
 
-      def compute_bind_mount(mount)
-        case mount.type
-        when :bind then compute_binding(mount)
-        else raise "Unknown mount type #{mount.type} for mount #{mount.source} -> #{mount.target}"
-        end
-      end
+      def compute_binding(mount, workspace)
+        host_path =
+          if workspace && mount.target == workspace.target
+            workspace.host_path
+          else
+            mount.source
+          end
 
-      def compute_binding(mount)
-        host_path = host_path_for File.expand_path(mount.source)
-        unless File.exist?(host_path)
-          raise <<~MSG
-            Bind mount source does not exist from runner filesystem.
-              (source=#{mount.source.inspect}, expanded=#{File.expand_path(mount.source).inspect}, host_path_for=#{host_path.inspect})
-          MSG
-        end
+        raise "Bind mount source does not exist: #{host_path.inspect}" unless File.exist?(host_path)
 
-        handle_cwd_bind(mount, host_path:) if mount.source == "."
         "#{host_path}:#{mount.target}:rw"
       end
 
-      def handle_cwd_bind(mount, host_path:)
-        @host_workdir = host_path
-        @working_dir = mount.target
-        @env["APRICITY_HOST_WORKDIR"] = host_path
-        @env["APRICITY_HOST_ARTIFACT_ROOT"] = File.join(host_path, ".apricity")
-      end
+      # def resolve_mount_source(source)
+      #   # Absolute paths should stay absolute
+      #   return source if source.start_with?("/")
+
+      #   # Relative paths should be relative to the pipeline directory
+      #   raise "Relative mount source #{source} cannot be resolved without pipeline root"
+      # end
 
       def compute_bind_mounts(artifact_binds:)
-        return @binds = artifact_binds.compact if dind?
+        return @binds = artifact_binds.compact if DockerHelpers.dind?
 
-        bind_mounts = [*node.mounts, *config.bind_mounts].filter_map do |mount|
-          compute_bind_mount(mount)
+        effective_mounts = node.mounts.map do |mount|
+          next mount unless mount.type == :bind && !mount.source.start_with?("/")
+
+          Model::Mount[source: File.expand_path(mount.source), target: mount.target, type: mount.type]
+        end
+        mounts = [*effective_mounts, *config.bind_mounts].select { |m| m.type == :bind }
+
+        workspace = Workspace.resolve(mounts, resolver: paths)
+        apply_workspace(workspace) if workspace
+        if workspace
+          gemfile = File.join(workspace.host_path, "Gemfile")
+          warn "workspace.host_path=#{workspace.host_path} gemfile?=#{File.exist?(gemfile)}"
         end
 
-        @binds = [
-          *artifact_binds,
-          *bind_mounts
-        ]
+        bind_mounts = mounts.map { |m| compute_binding(m, workspace) }
+
+        @binds = [*artifact_binds, *bind_mounts]
+      end
+
+      def apply_workspace(workspace)
+        # @working_dir = File.expand_path(workspace.target)
+        @env["APRICITY_HOST_WORKDIR"] = workspace.host_path
+        @env["APRICITY_HOST_ARTIFACT_ROOT"] = File.join(workspace.host_path, ".apricity")
       end
 
       def host_path_for(path)
@@ -248,9 +292,7 @@ module Apricity
           event = klass[node:, step:, chunk:]
           emit[event]
           stream == :stdout ? stdout << chunk : stderr << chunk
-          # warn "Chunk on #{stream}: #{chunk.inspect}"
         end
-        # warn "Command #{command.inspect} output: #{stdout.inspect}"
         [stdout, stderr, result[2]]
       end
 
@@ -263,9 +305,6 @@ module Apricity
                 oom_killed: state["OOMKilled"], error: state["Error"], started_at: state["StartedAt"],
                 finished_at: state["FinishedAt"] }
 
-        # logs = container.logs(stdout: true, stderr: true, tail: 200)
-
-        # raise "Container stopped early: #{msg.inspect}\n--- last logs ---\n#{logs}"
         raise container_start_failure_message(where, msg)
       end
 
@@ -279,36 +318,12 @@ module Apricity
       def script_for_step(prelude:, step:)
         if step.uses?
           action = Apricity::Actions::ActionRegistry.instance.resolve(step.uses)
+
           shell_cmd = action.new(job_id: node.id, step_id: step.name,
                                  options: step.with || {}).to_shell
           [prelude, shell_cmd, "sync"].join("\n")
         else
           [prelude, step.run.source, "sync"].join("\n")
-        end
-      end
-    end
-
-    # Given run_id, job_id, artifact_key return a host directory path guaranteed to exist and be docker-safe
-    class RunArtifactStore
-      def self.path_for(run:, node:, artifact_key:)
-        run_id = run.id
-        pipeline_name = run.pipeline&.name&.gsub(/[^a-zA-Z0-9_-]/, "_") || "unknown-pipeline"
-        job_id = node.id.gsub(/[^a-zA-Z0-9_-]/, "_")
-        # base_dir = File.join(Dir.pwd, ".apricity", "pipelines", pipeline_name, "runs", run_id, "artifacts", job_id)
-        base_dir = File.join(host_visible_artifact_root,
-                             "pipelines", pipeline_name, "runs", run_id, "artifacts", job_id)
-        FileUtils.mkdir_p(base_dir)
-        File.join(base_dir, artifact_key)
-      end
-
-      def self.host_visible_artifact_root
-        ENV.fetch("APRICITY_HOST_ARTIFACT_ROOT") do
-          File.join(Dir.pwd, ".apricity") # fine for local, non-containerized runner
-          # if (host_workdir = ENV.fetch("APRICITY_HOST_WORKDIR", nil))
-          #   File.join(host_workdir, ".apricity")
-          # else
-          #   File.join(Dir.pwd, ".apricity")
-          # end
         end
       end
     end
@@ -328,15 +343,13 @@ module Apricity
 
       def collect
         values = read_values
-        pull_artifacts if dind?
+        pull_artifacts if DockerHelpers.dind?
         merged = values.merge(@artifact_outputs)
         validate!(values: merged)
         merged
       end
 
       private
-
-      def dind? = File.exist?("/.dockerenv")
 
       def read_values
         values = {}
@@ -364,7 +377,7 @@ module Apricity
       def persist_artifact_from_scratch_dir(key, scratch_dir, persisted)
         return if Dir.empty?(scratch_dir)
 
-        final_dir = RunArtifactStore.path_for(
+        final_dir = ArtifactStore.path_for(
           run: @run,
           node: node,
           artifact_key: key
@@ -382,7 +395,7 @@ module Apricity
       def pull_artifacts
         @artifact_outputs.each do |key, _container_dir|
           container_dir = "#{APRICITY_DIR}/artifacts/#{key}"
-          host_dir = RunArtifactStore.path_for(
+          host_dir = ArtifactStore.path_for(
             run: @run,
             node: node,
             artifact_key: key
@@ -425,7 +438,6 @@ module Apricity
         end
       end
 
-      # rubocop:disable Metrics/AbcSize
       def valid_output?(output, values:)
         if output.type == :value
           values.key?(output.key) && values[output.key.to_s]
@@ -436,7 +448,6 @@ module Apricity
           raise JobExecutionError, "Unknown output type #{output.type} for output #{output.key}"
         end
       end
-      # rubocop:enable Metrics/AbcSize
 
       def pull_artifact_from_container(container_dir, host_dir)
         FileUtils.mkdir_p(host_dir)
@@ -543,7 +554,11 @@ module Apricity
 
     # Dependencies for the orchestrator
     module OrchestrationDependencies
-      def planner = @planner ||= JobExecution::Planner.new(run: @run, node:, env:, artifact_inputs:, config: Apricity::Configuration.instance)
+      def planner
+        @planner ||= JobExecution::Planner.new(
+          run: @run, node:, env:, artifact_inputs:, pipeline_root: pipeline_root
+        )
+      end
 
       def collector
         @collector ||= JobExecution::Collector.new(run: @run, node:, container:,
@@ -554,7 +569,6 @@ module Apricity
     end
 
     # Executes a single job inside a Docker container
-    # rubocop:disable Metrics/ClassLength
     class Orchestrator
       include ServiceOrchestration
       include OrchestrationDependencies
@@ -562,11 +576,11 @@ module Apricity
       attr_reader :node, :env, :artifact_inputs, :sink
 
       def initialize(run:, node:, env: {}, artifact_inputs: {}, sink: default_sink)
+        # debugger
         @run = run
         @node = node
         @env = env
         @artifact_inputs = artifact_inputs
-        # @effective_working_dir = JobExecution::WORKING_DIR
         @working_dir = JobExecution::WORKING_DIR
         @last_step_executed = nil
         @prelude = "set -euo pipefail\n"
@@ -584,6 +598,10 @@ module Apricity
       end
 
       protected
+
+      def pipeline_root
+        @pipeline_root ||= File.dirname(File.expand_path(@run.pipeline.path || Dir.pwd))
+      end
 
       def run_job
         bootstrap && plan
@@ -625,7 +643,7 @@ module Apricity
       # Execute the steps inside a Docker container
       def execute
         start_container
-        copy_input_artifacts if dind?
+        copy_input_artifacts if DockerHelpers.dind?
         node.steps.map do |step|
           emit(JobExecution::Events::StepStarted[node:, step:, started_at: Time.now])
           @last_step_executed = step
@@ -647,8 +665,6 @@ module Apricity
 
       private
 
-      def dind? = File.exist?("/.dockerenv")
-
       def copy_input_artifacts
         artifact_inputs.each do |key, host_dir|
           warn "Copying input artifact #{key} from host dir #{host_dir} into container"
@@ -659,8 +675,9 @@ module Apricity
           container.exec(["/bin/sh", "-lc", "mkdir -p #{container_target_dir}"])
 
           # Copy *contents* of host_dir (including dotfiles), not host_dir itself
+          dotfiles = [".", ".."]
           entries = Dir.glob(File.join(host_dir, "{*,.*}"), File::FNM_DOTMATCH)
-                       .reject { |p| [".", ".."].include?(File.basename(p)) }
+                       .reject { |p| dotfiles.include?(File.basename(p)) }
 
           # If it's empty, we're done (still counts as "provided", just empty)
           next if entries.empty?
@@ -670,27 +687,6 @@ module Apricity
           raise "Failed to copy input artifact #{key} from #{host_dir} into container: #{e.class}: #{e.message}"
         end
       end
-
-      # def copy_input_artifacts
-      #   artifact_inputs.each do |key, host_dir|
-      #     warn "Copying input artifact #{key} from host dir #{host_dir} into container"
-
-      #     container_artifact_root = "#{APRICITY_DIR}/artifacts"
-
-      #     # Ensure root exists
-      #     container.exec(["/bin/sh", "-lc", "mkdir -p #{container_artifact_root}"])
-
-      #     # Archive the artifact directory itself into the *root* so it lands at:
-      #     # /apricity/artifacts/<key>/...
-      #     container.archive_in(host_dir, container_artifact_root)
-
-      #     # TEMP DEBUG (leave for one run)
-      #     container.exec(["/bin/sh", "-lc",
-      #                     "echo '--- artifacts tree ---'; find #{container_artifact_root} -maxdepth 3 -print"])
-      #   rescue StandardError => e
-      #     raise "Failed to copy input artifact #{key} from #{host_dir} into container: #{e.class}: #{e.message}"
-      #   end
-      # end
 
       def assert_binds_exist
         @binds.each do |b|
@@ -747,6 +743,7 @@ module Apricity
       def common_container_options
         merged_env = env.merge(service_environment_variables(node))
                         .merge(service_raw_env_vars(node) || {})
+        # warn "Using working dir #{@working_dir.inspect} for container"
         { "Env" => merged_env.map { |k, v| "#{k}=#{v}" },
           "WorkingDir" => @working_dir,
           "Tty" => false }
@@ -766,6 +763,5 @@ module Apricity
       def success_outcome(stdout:, stderr:) = Model::StepOutcome.success(node, step, stdout:, stderr:)
       def image = "#{node.runs_on.name}:#{node.runs_on.version}"
     end
-    # rubocop:enable Metrics/ClassLength
   end
 end

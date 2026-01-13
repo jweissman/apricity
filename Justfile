@@ -1,5 +1,16 @@
 logs:
   hl ./log/apricity.log -h process-id -h pid -h fiber-id -h object-id -h severity -F
 
-test:
-  rerun rspec
+spec:
+  rspec \
+    --format doc \
+    --tag "~dind" \
+    --fail-fast
+
+self-test:
+  apricot --verbose
+
+test-examples:
+  apricot --verbose -- ./example/{hello,redis,pg,blog}/
+
+test: spec self-test test-examples

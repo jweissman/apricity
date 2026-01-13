@@ -28,12 +28,18 @@ OptionParser.new do |opts|
     exit
   end
 end.parse!
-file = ARGV.last || "apricity.yaml"
 
+# puts "ARGV: #{ARGV.inspect}" if options[:verbose]
+# file = ARGV.last || "apricity.yaml"
 
-puts "Loading pipeline from #{file} with options: #{options}" if options[:verbose]
+files = ARGV.empty? ? ["apricity.yaml"] : ARGV
 
-git_sha = `git rev-parse HEAD`.chomp
-pipeline = Apricity::Model::Pipeline.from_file(file)
-apricot = Apricity::CLI::Apricot.new
-apricot.monitor_execution(pipeline:, git_sha:, options:)
+files.each do |file|
+  puts "Loading pipeline from #{file} with options: #{options}" if options[:verbose]
+  
+  git_sha = `git rev-parse HEAD`.chomp
+  pipeline = Apricity::Model::Pipeline.from_file(file)
+  apricot = Apricity::CLI::Apricot.new
+  apricot.monitor_execution(pipeline:, git_sha:, options:)
+  sleep 1
+end

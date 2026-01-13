@@ -51,7 +51,7 @@ module Apricity
             result = begin
               run_node.call(node, sink:, context:)
             rescue StandardError => e
-              Console.error(self, "Scheduler: Error running node #{node_id}: #{e.message}")
+              Console.error(self, "Scheduler: Error running node #{node_id}: #{e.message}", e.backtrace.join("\n"))
               JobExecution::Result[outcomes: [Model::StepOutcome.failure(node, node.steps.first,
                                                                          stdout: "", stderr: "",
                                                                          exception: e)], outputs: {}]
