@@ -200,19 +200,17 @@ module Apricity
 
       private
 
-      def execute(command:, container:, emit:)
-        # assert_running(container, where: "before executing step #{step.name}")
-        execute!(command:, container:, emit:) # , container_options:)
-      rescue Docker::Error::DockerError => e
-        # raise "Container start failed: #{e.class}: #{e.message}"
-        raise <<~MSG
-          Docker error during execution of step #{step.name}: #{e.class}: #{e.message}
-          Working directory: #{@meta.working_dir.inspect}
-          Binds: #{@meta.binds.inspect}
-        MSG
-      end
+      # def execute(command:, container:, emit:)
+      #   execute!(command:, container:, emit:)
+      # rescue Docker::Error::DockerError => e
+      #   raise <<~MSG
+      #     Docker error during execution of step #{step.name}: #{e.class}: #{e.message}
+      #     Working directory: #{@meta.working_dir.inspect}
+      #     Binds: #{@meta.binds.inspect}
+      #   MSG
+      # end
 
-      def execute!(command:, container:, emit:)
+      def execute(command:, container:, emit:)
         stdout = +""
         stderr = +""
 
@@ -314,8 +312,6 @@ module Apricity
         elsif output.type == :artifact
           dir = values[output.key]
           dir && Dir.exist?(dir) && !Dir.empty?(dir)
-          # else
-          #   raise JobExecutionError, "Unknown output type #{output.type} for output #{output.key}"
         end
       end
 

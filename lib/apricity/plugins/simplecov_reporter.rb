@@ -88,7 +88,7 @@ module Apricity
         paths = nodes_paths.values.flatten.select { File.exist?(it) }
 
         stats = collate_reports(paths) # nodes_paths.values.flatten)
-        coverage_percent = stats[:covered_percent]
+        coverage_percent = stats[:coverage_percent]
         warn "SimplecovReporter[pipeline_finished]: Merged coverage: #{coverage_percent}% from #{paths.size} reports."
 
         emitter[SimplecovReportModels::SimpleCovReportParsedEvent.new(coverage_percent:)]
@@ -96,8 +96,24 @@ module Apricity
         annotate_pipeline(report: stats, context:, emitter:)
       end
 
+      # old job finished using last_run.json per job
+      # def job_finished(context:, emitter:, options: {}, event: nil)
+      #   coverage_report = options.fetch(:coverage_report, ".last_run.json")
+      #   artifact_key = options.fetch(:artifact_key, "coverage")
+      #   host_output_directory = context.artifact_outputs[artifact_key]
+      #   return unless assert_present(host_output_directory,
+      #                                "SimplecovReporter[#{event&.type}]: No coverage found \
+      #                                for job #{context.node.id}")
+
+      #   parse_and_annotate_job(File.join(host_output_directory, coverage_report), context:, emitter:)
+      # rescue StandardError => e
+      #   warn "SimplecovReporter[#{event&.type}]: Error in after_job for job #{context.node.id}: #{e.message}"
+      #   raise e
+      # end
+
+      # new job finished using resultset.json per job
       def job_finished(context:, emitter:, options: {}, event: nil)
-        coverage_report = options.fetch(:coverage_report, ".last_run.json")
+        coverage_report = options.fetch(:coverage_report, ".resultset.json")
         artifact_key = options.fetch(:artifact_key, "coverage")
         host_output_directory = context.artifact_outputs[artifact_key]
         return unless assert_present(host_output_directory,
@@ -145,20 +161,19 @@ module Apricity
         data = JSON.parse(file.read)
         file.close
 
-        # if data["result"] || data["result"]["line"].nil?
-        unless assert_present(data["result"] && data["result"]["line"],
-                              "MergeCoverage: Invalid SimpleCov .last_result.json report format in #{path}")
-          # warn "Warning -- SimplecovReporter: Invalid SimpleCov .last_result.json report format in #{path}"
+        unless assert_present(data && data.is_a?(Hash),
+                              "MergeCoverage: Invalid SimpleCov .resultset.json report format in #{path}")
           return { coverage_percent: 0 }
         end
 
-        coverage_percent = data["result"]["line"]
+        # debugger
+        coverage_percent = collate_reports([path])[:coverage_percent]
         emitter[SimplecovReportModels::SimpleCovReportParsedEvent.new(coverage_percent:)]
-
         { coverage_percent: }
       end
 
       def annotate_job(report:, context:, emitter:)
+        # debugger
         coverage = report[:coverage_percent]
         emitter[JobExecution::Events::JobAnnotated[
           node: context.node,

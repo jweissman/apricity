@@ -2,7 +2,7 @@
 
 module Apricity
   module JobExecution
-    # Manger working directory and host path mapping
+    # Mange working directory and host path mapping
     Workspace = Data.define(:target, :host_path) do
       def self.resolve(bind_mounts, resolver:)
         candidates =
