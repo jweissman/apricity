@@ -96,6 +96,33 @@ module Apricity
         end
       end
 
+      def safe_artifact_path(requested_path)
+        # Normalize and validate path stays within .apricity
+        artifact_root = File.join(Dir.pwd, ".apricity")
+        full_path = File.expand_path(File.join(artifact_root, requested_path))
+
+        # Security: ensure path is within artifact_root and doesn't escape
+        halt 403, "Access denied" unless full_path.start_with?(artifact_root)
+
+        halt 404, "Not found" unless File.exist?(full_path)
+        full_path
+      end
+
+      def mime_type_for(path)
+        case File.extname(path).downcase
+        when ".html", ".htm" then "text/html"
+        when ".css" then "text/css"
+        when ".js" then "application/javascript"
+        when ".json" then "application/json"
+        when ".png" then "image/png"
+        when ".jpg", ".jpeg" then "image/jpeg"
+        when ".gif" then "image/gif"
+        when ".svg" then "image/svg+xml"
+        when ".xml" then "application/xml"
+        else "application/octet-stream"
+        end
+      end
+
       # Diagram generation helpers
       module Diagrams
         class << self
@@ -248,6 +275,34 @@ module Apricity
         Thread.new { run.perform }
 
         redirect "/runs/#{run.id}"
+      end
+
+      # Serve interactive artifact content (e.g., coverage HTML reports)
+      get "/interactive/artifact/*" do
+        requested_path = params[:splat].first
+        full_path = safe_artifact_path(requested_path)
+
+        if File.directory?(full_path)
+          # If directory requested, try to serve index.html
+          index_path = File.join(full_path, "index.html")
+          if File.exist?(index_path)
+            content_type "text/html"
+            # Inject base tag to fix relative asset paths
+            html_content = File.read(index_path)
+            base_url = "/interactive/artifact/#{requested_path}/"
+            # Insert <base> tag after <head> if not present
+            if html_content.include?("<base")
+              send_file index_path
+            else
+              html_with_base = html_content.sub(/<head>/i, "<head>\n  <base href=\"#{base_url}\">")
+              html_with_base
+            end
+          end
+        else
+          # Serve file with appropriate content type
+          content_type mime_type_for(full_path)
+          send_file full_path
+        end
       end
 
       # Download artifact file or directory as tar.gz
