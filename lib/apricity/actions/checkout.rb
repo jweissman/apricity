@@ -12,7 +12,7 @@ module Apricity
         super(org: "apricity", name: "checkout", version: "v0", options:, job_id:, step_id:)
       end
 
-      def to_shell = git_checkout(url: clone_url, branch:, target_dir:)
+      def to_shell = git_checkout(url: clone_url, branch: options[:ref], target_dir:)
 
       private
 

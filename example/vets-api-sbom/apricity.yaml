@@ -1,0 +1,62 @@
+name: Vets API SBOM
+actions:
+  test:
+    jobs:
+      - sbom:
+          runs-on: ruby:3.4
+          name: Generate SBOM for Vets API
+          plugins:
+            - uses: apricity/sbom-reporter
+              with:
+                output_file: sbom.json
+                artifact_key: sbom
+          steps:
+            - name: Checkout Vets API
+              uses: apricity/checkout@v0
+              with:
+                repository: https://github.com/department-of-veterans-affairs/vets-api
+                ref: master
+            - name: Install Cyclone DX Ruby Gem
+              run: |
+                gem install cyclonedx-ruby
+            - name: Generate SBOM for Vets API
+              run: |
+                export PATH="$(ruby -e 'print Gem.bindir'):$PATH"
+
+                cyclonedx-ruby -o $APRICITY_ARTIFACTS/sbom/sbom.xml -p .
+          outputs:
+            - key: sbom
+              type: artifact
+      # - test:
+      #     runs-on: ruby:3.4
+      #     name: Test Apricity from Git Checkout
+      #     plugins:
+      #       - uses: apricity/junit-reporter
+      #         with:
+      #           junit_report: rspec.xml
+      #           artifact_key: test-results
+      #     mounts:
+      #       # Use DinD to allow apricity to test itself
+      #       - source: /var/run/docker.sock
+      #         target: /var/run/docker.sock
+      #         type: bind
+      #     steps:
+      #       - name: Checkout Apricity Code
+      #         uses: apricity/checkout@v0
+      #         with:
+      #           repository: https://github.com/jweissman/apricity
+      #           ref: main
+
+      #       - name: Bundle install
+      #         run: |
+      #           bundle config set --local path 'vendor/bundle'
+      #           bundle install
+
+      #       - name: Run tests
+      #         run: |
+      #           bundle exec rspec \
+      #             --tag ~dind \
+      #             --fail-fast \
+      #             --format progress \
+      #             --format RspecJunitFormatter \
+      #             --out $APRICITY_ARTIFACTS/test-outputs/rspec.xml

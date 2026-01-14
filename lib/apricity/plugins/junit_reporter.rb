@@ -164,7 +164,6 @@ module Apricity
       def annotate_pipeline(report:, context:, emitter:)
         annotation = annotation(report)
 
-        # debugger
         emitter.call(
           JobExecution::Events::PipelineAnnotated[
             pipeline_name: context.pipeline_name,

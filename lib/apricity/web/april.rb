@@ -383,28 +383,6 @@ module Apricity
         requested_path = params[:splat].first
         full_path = safe_artifact_path(requested_path)
         serve_interactive_artifact(full_path, requested_path)
-
-        # if File.directory?(full_path)
-        #   # If directory requested, try to serve index.html
-        #   index_path = File.join(full_path, "index.html")
-        #   if File.exist?(index_path)
-        #     content_type "text/html"
-        #     # Inject base tag to fix relative asset paths
-        #     html_content = File.read(index_path)
-        #     base_url = "/interactive/artifact/#{requested_path}/"
-        #     # Insert <base> tag after <head> if not present
-        #     if html_content.include?("<base")
-        #       send_file index_path
-        #     else
-        #       html_with_base = html_content.sub(/<head>/i, "<head>\n  <base href=\"#{base_url}\">")
-        #       html_with_base
-        #     end
-        #   end
-        # else
-        #   # Serve file with appropriate content type
-        #   content_type mime_type_for(full_path)
-        #   send_file full_path
-        # end
       end
 
       # Download artifact file or directory as tar.gz
