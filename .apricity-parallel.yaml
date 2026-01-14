@@ -72,6 +72,10 @@ actions:
             - source: .
               target: /work
               type: bind
+            # Use DinD to allow apricity to test itself
+            - source: /var/run/docker.sock
+              target: /var/run/docker.sock
+              type: bind
           steps:
             - name: Introspect Artifacts
               run: |

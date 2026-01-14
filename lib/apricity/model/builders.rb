@@ -5,7 +5,7 @@ module Apricity
     module Builders
       # Job builder DSL
       class JobBuilder
-        attr_reader :name, :steps, :runs_on, :inputs, :outputs, :conditions, :needs
+        attr_reader :name, :steps, :runs_on, :inputs, :outputs, :conditions, :needs, :strategy
 
         def initialize(runs_on:, name: nil)
           @name = name
@@ -15,6 +15,7 @@ module Apricity
           @outputs = []
           @conditions = []
           @needs = []
+          @strategy = Strategy.empty
         end
 
         def step(name, run:)
@@ -42,6 +43,11 @@ module Apricity
           self
         end
 
+        def matrix(matrix = {})
+          @strategy = Strategy.new(matrix:)
+          self
+        end
+
         def to_job
           Model::Job[
                   name:,
@@ -50,7 +56,8 @@ module Apricity
                   inputs:,
                   outputs:,
                   conditions:,
-                  needs:
+                  needs:,
+                  strategy:
                 ]
         end
       end

@@ -178,18 +178,57 @@ module Apricity
         end.to_h
       end
 
-      def extract_values(node, result, context) = node.outputs.each { extract_value!(it, result, context) }
+      def extract_values(node, result, context) = node.outputs.each { extract_value!(it, result, context, node) }
 
-      def extract_value!(output, result, context)
+      def artifact_mutex = @artifact_mutex ||= Mutex.new
+
+      # rubocop:disable Metrics/MethodLength
+      # rubocop:disable Metrics/AbcSize
+      def extract_value!(output, result, context, node)
         case output.type
         when :value
           context.values[output.key] = extract_value(result.outputs, output.key)
+
         when :artifact
-          context.artifacts[output.key] = extract_value(result.outputs, output.key)
+          artifact_mutex.synchronize do
+            artifact = extract_value(result.outputs, output.key)
+            return unless artifact
+
+            existing = context.artifacts[output.key]
+
+            context.artifacts[output.key] =
+              case existing
+              when nil
+                { node.id => artifact }
+              when Hash
+                existing.merge(node.id => artifact)
+              when String
+                raise "Unexpected String artifact state for #{output.key} (should be a Hash)"
+              else
+                raise "Invalid artifact state for #{output.key}: #{existing.inspect}"
+              end
+
+            # existing = context.artifacts[output.key]
+
+            # context.artifacts[output.key] =
+            #   case existing
+            #   when nil
+            #     artifact                       # first producer
+            #   when String
+            #     { node.id => artifact }        # second producer → promote
+            #   when Hash
+            #     existing.merge(node.id => artifact)
+            #   else
+            #     raise "Invalid artifact state for #{output.key}: #{existing.inspect}"
+            #   end
+          end
+
         else
           raise "Unknown output type #{output.type} for output #{output.key}"
         end
       end
+      # rubocop:enable Metrics/MethodLength
+      # rubocop:enable Metrics/AbcSize
 
       def extract_value(outputs, key) = (outputs[key] if outputs.key?(key))
 

@@ -18,7 +18,18 @@ module Apricity
             act.job("deploy", runs_on: container) do |job|
               job.input("dist", :artifact)
               job.step("deploy", run: Script.new(
-                source: "cat $APRICITY_ARTIFACTS/dist/artifact.txt"
+                source: <<~SCRIPT
+                  set -euo pipefail
+                  echo "Contents of artifact directory:"
+                  ls -la "$APRICITY_ARTIFACTS"
+                  echo "Contents of artifacts/dist directory:"
+                  ls -la $APRICITY_ARTIFACTS/dist
+
+                  echo "Reading artifact file:"
+                  cat "$APRICITY_ARTIFACTS/dist/artifact.txt"
+                SCRIPT
+
+                # cat $APRICITY_ARTIFACTS/dist/artifact.txt"
               ))
             end
 
@@ -43,7 +54,7 @@ module Apricity
       end
 
       it "allows downstream jobs to read files from upstream jobs' artifact directories" do
-        expect(outcomes.last.stdout).to eq("build\n")
+        expect(outcomes.last.stdout).to include("build\n")
       end
     end
   end

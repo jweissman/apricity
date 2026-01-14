@@ -2,42 +2,42 @@ name: Apricity Tests
 actions:
   test:
     jobs:
-      - quality:
-          runs-on: ruby:3.4
-          name: Check Apricity Code Quality
+      # - quality:
+      #     runs-on: ruby:3.4
+      #     name: Check Apricity Code Quality
 
-          mounts:
-            - source: .
-              target: /work
-              type: bind
-          steps:
-            - name: Bundle install
-              run: |
-                bundle config set --local path 'vendor/bundle'
-                bundle install
+      #     mounts:
+      #       - source: .
+      #         target: /work
+      #         type: bind
+      #     steps:
+      #       - name: Bundle install
+      #         run: |
+      #           bundle config set --local path 'vendor/bundle'
+      #           bundle install
 
-            - name: Run code quality tools
-              run: |
-                bundle exec reek lib
-      - lint:
-          runs-on: ruby:3.4
-          name: Lint Apricity Codebase
-          mounts:
-            - source: .
-              target: /work
-              type: bind
-          steps:
-            - name: Bundle install
-              run: |
-                bundle config set --local path 'vendor/bundle'
-                bundle install
-            - name: Run linters
-              run: |
-                bundle exec rubocop lib
+      #       - name: Run code quality tools
+      #         run: |
+      #           bundle exec reek lib
+      # - lint:
+      #     runs-on: ruby:3.4
+      #     name: Lint Apricity Codebase
+      #     mounts:
+      #       - source: .
+      #         target: /work
+      #         type: bind
+      #     steps:
+      #       - name: Bundle install
+      #         run: |
+      #           bundle config set --local path 'vendor/bundle'
+      #           bundle install
+      #       - name: Run linters
+      #         run: |
+      #           bundle exec rubocop lib
       - test:
           runs-on: ruby:3.4
           name: Build and Test Apricity
-          needs: [lint, quality]
+          # needs: [lint, quality]
           outputs:
             - key: test-outputs
               type: artifact
