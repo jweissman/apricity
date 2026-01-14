@@ -7,13 +7,14 @@
 # Enhancements
 - [x] Pwd artifact pathing (killed mktmpdir)
 - [x] Surface artifacts in UI
+- [x] Dis-aggregate artifacts for matrixed jobs so we can simplecov collate
+- [x] Normalize annotations for nonmatrixed jobs
 
 # To-do
-- [ ] Dis-aggregate artifacts for matrixed jobs so we can simplecov collate
-- [ ] Normalize annotations for nonmatrixed jobs
 - [ ] Cache action (dumb cache file)
 - [ ] Secrets (env injection, not vault)
 - [ ] Tiny example app with services
+- [ ] Check the JUnit aggregation looks fine for matrix/nonmatrixed jobs
 - [ ] Try vets-api
 - [ ] Persistence
 - [ ] Coverage graph over time

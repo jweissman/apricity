@@ -2,14 +2,15 @@
   <div class="space-y-2">
     <% @runs.reverse.first(10).each do |run| %>
       <a href="/runs/<%= run.id %>" class="block group">
-        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 transition-all">
+        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 hover:shadow-md transition-all duration-200">
           <div class="flex items-center space-x-4">
             <div class="text-2xl">
               <%= pretty_status(run.status) %>
             </div>
             <div>
               <div class="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors"><%= run.pipeline.name %></div>
-              <div class="text-xs text-gray-400 font-mono mt-0.5">
+              <div class="text-xs text-gray-400 font-mono mt-0.5 flex items-center">
+                <i class="fas fa-fingerprint mr-1.5 text-gray-300"></i>
                 <%= run.id[0..7] %>...
               </div>
             </div>
@@ -19,18 +20,22 @@
               <% if run.started_at %>
                 <i class="far fa-clock mr-1"></i><%= run.started_at.strftime("%b %d, %H:%M:%S") %>
               <% else %>
-                Pending
+                <span class="text-gray-400">Pending</span>
               <% end %>
             </div>
-            <div class="text-xs mt-1">
+            <div class="text-xs mt-1.5">
               <% if run.status == :running %>
-                <span class="text-amber-600 font-medium animate-pulse-subtle">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium animate-pulse-subtle">
                   <i class="fas fa-circle-notch fa-spin text-xs mr-1"></i>Running
                 </span>
               <% elsif run.status == :success %>
-                <span class="text-green-600 font-medium">Passed</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">
+                  <i class="fas fa-check mr-1"></i>Passed
+                </span>
               <% elsif run.status == :failure %>
-                <span class="text-red-600 font-medium">Failed</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">
+                  <i class="fas fa-times mr-1"></i>Failed
+                </span>
               <% else %>
                 <span class="text-gray-500"><%= run.status %></span>
               <% end %>

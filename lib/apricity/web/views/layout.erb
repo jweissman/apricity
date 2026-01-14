@@ -102,20 +102,34 @@
         position: fixed;
         bottom: 20px;
         right: 20px;
-        background: rgba(0, 0, 0, 0.8);
+        background: rgba(17, 24, 39, 0.95);
+        backdrop-filter: blur(8px);
         color: white;
-        padding: 12px 16px;
-        border-radius: 8px;
-        font-size: 12px;
+        padding: 16px 20px;
+        border-radius: 12px;
+        font-size: 13px;
         z-index: 1000;
         display: none;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        min-width: 220px;
       }
-      .keyboard-shortcuts.visible { display: block; }
+      .keyboard-shortcuts.visible { 
+        display: block;
+        animation: slideIn 0.15s ease-out;
+      }
+      @keyframes slideIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
       .keyboard-shortcuts kbd {
-        background: rgba(255, 255, 255, 0.2);
-        padding: 2px 6px;
-        border-radius: 3px;
-        font-family: monospace;
+        background: rgba(255, 255, 255, 0.15);
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 11px;
+        font-weight: 500;
+        border: 1px solid rgba(255, 255, 255, 0.2);
       }
 
       /* Sidebar collapse */
@@ -166,10 +180,10 @@
   </head>
 
   <body class="min-h-screen flex flex-col bg-gray-50">
-    <header class="bg-white backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
+    <header class="bg-white backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50 shadow-sm">
       <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         <a href="/" class="flex items-center space-x-3 group">
-          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:shadow-blue-500/40 transition-all">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:shadow-blue-500/40 group-hover:scale-105 transition-all">
             <i class="fas fa-snowflake text-white text-sm"></i>
           </div>
           <h1 class="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text">
@@ -177,8 +191,8 @@
           </h1>
         </a>
         <nav class="flex items-center space-x-4 text-sm">
-          <a href="/" class="text-gray-500 hover:text-gray-900 transition-colors">
-            <i class="fas fa-home mr-1"></i> Dashboard
+          <a href="/" class="text-gray-500 hover:text-gray-900 transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-100">
+            <i class="fas fa-home mr-1.5"></i> Dashboard
           </a>
         </nav>
       </div>
@@ -189,7 +203,7 @@
     </main>
 
     <footer class="bg-white border-t border-gray-200 text-center py-3 text-xs text-gray-400">
-      <p>&copy; 2025 Oddball Inc &middot; Apricity CI <span class="text-gray-300 mx-2">|</span> Press <kbd class="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 font-mono">?</kbd> for shortcuts</p>
+      <p>&copy; <script>document.write(new Date().getFullYear())</script> Oddball Inc &middot; Apricity CI <span class="text-gray-300 mx-2">|</span> Press <kbd class="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 font-mono text-xs">?</kbd> for shortcuts</p>
     </footer>
 
     <script src="/assets/keyboard.js"></script>
