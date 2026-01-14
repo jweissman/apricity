@@ -19,3 +19,6 @@
 - [ ] Integration with GH
 - [ ] Deployment
 - [ ] SSH into container?
+
+# Bugs
+- [ ] Try to repair step timestamps/durations on the f/e

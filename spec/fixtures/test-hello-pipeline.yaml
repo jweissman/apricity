@@ -17,6 +17,11 @@ actions:
             - uses: apricity/junit-reporter
               with:
                 junit_report: rspec.xml
+                artifact_key: test-output
+            - uses: apricity/simplecov-reporter
+              with:
+                coverage_report: .resultset.json
+                artifact_key: coverage
           outputs:
             - key: test-output
               type: artifact
@@ -33,5 +38,5 @@ actions:
                   --fail-fast \
                   --format progress \
                   --format RspecJunitFormatter \
-                  --out ../artifacts/test-output/rspec.xml \
+                  --out $APRICITY_ARTIFACTS/artifacts/test-output/rspec.xml \
                   spec/greeter_spec.rb

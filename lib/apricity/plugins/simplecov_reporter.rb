@@ -125,6 +125,22 @@ module Apricity
         raise e
       end
 
+      def parse_simplecov_report(path, emitter:)
+        file = File.open(path)
+        data = JSON.parse(file.read)
+        file.close
+
+        unless assert_present(data && data.is_a?(Hash),
+                              "MergeCoverage: Invalid SimpleCov .resultset.json report format in #{path}")
+          return { coverage_percent: 0 }
+        end
+
+        # debugger
+        coverage_percent = collate_reports([path])[:coverage_percent]
+        emitter[SimplecovReportModels::SimpleCovReportParsedEvent.new(coverage_percent:)]
+        { coverage_percent: }
+      end
+
       private
 
       def assert_present(value, message)
@@ -154,22 +170,6 @@ module Apricity
 
         report = parse_simplecov_report(coverage_path, emitter:)
         annotate_job(report:, context:, emitter:)
-      end
-
-      def parse_simplecov_report(path, emitter:)
-        file = File.open(path)
-        data = JSON.parse(file.read)
-        file.close
-
-        unless assert_present(data && data.is_a?(Hash),
-                              "MergeCoverage: Invalid SimpleCov .resultset.json report format in #{path}")
-          return { coverage_percent: 0 }
-        end
-
-        # debugger
-        coverage_percent = collate_reports([path])[:coverage_percent]
-        emitter[SimplecovReportModels::SimpleCovReportParsedEvent.new(coverage_percent:)]
-        { coverage_percent: }
       end
 
       def annotate_job(report:, context:, emitter:)

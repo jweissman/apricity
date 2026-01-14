@@ -2,15 +2,10 @@
 
 require "simplecov"
 SimpleCov.start do
-  coverage_dir "#{ENV['APRICITY_ARTIFACTS']}/coverage"
+  coverage_dir "#{ENV.fetch('APRICITY_ARTIFACTS', '.')}/coverage"
 end
 
-# A very simple hello world greeter to verify RSpec is working
-class Greeter
-  def greet
-    "Hello, World!"
-  end
-end
+require_relative "../lib/greeter"
 
 RSpec.describe Greeter do
   subject(:greeter) { described_class.new }

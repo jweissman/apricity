@@ -6,9 +6,7 @@ require "simplecov"
 SimpleCov.command_name "rspec-shard-#{ENV["MATRIX_SHARD"]}" if ENV["MATRIX_SHARD"]
 SimpleCov.start do
   puts "Starting SimpleCov for Apricity SimplecovReporter Plugin"
-  # coverage_dir "./artifacts/coverage"
   coverage_dir "#{ENV.fetch("APRICITY_ARTIFACTS", ".")}/coverage"
-  # root "/work"
 end
 
 require "debug"

@@ -50,7 +50,6 @@ actions:
                 artifact_key: test-outputs
             - uses: apricity/simplecov-reporter
               with:
-                # coverage_report: .last_run.json
                 coverage_report: .resultset.json
                 artifact_key: coverage
           mounts:
@@ -75,6 +74,7 @@ actions:
                   --format progress \
                   --format RspecJunitFormatter \
                   --out $APRICITY_ARTIFACTS/test-outputs/rspec.xml
+
       - sbom:
           runs-on: ruby:3.4
           name: Generate SBOM for Apricity

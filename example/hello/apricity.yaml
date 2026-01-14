@@ -16,7 +16,7 @@ actions:
                 artifact_key: test-results
             - uses: apricity/simplecov-reporter
               with:
-                last_run_report: .last_run.json
+                coverage_report: .resultset.json
                 artifact_key: coverage
           outputs:
             - key: test-results

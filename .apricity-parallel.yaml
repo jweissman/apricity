@@ -64,7 +64,40 @@ actions:
                   --only-group $MATRIX_SHARD --verbose -n $MATRIX_TOTAL \
                   --test-options "--tag ~dind --format progress --format RspecJunitFormatter \
                   --out $APRICITY_ARTIFACTS/test-outputs/rspec-$MATRIX_SHARD.xml"
-              
+      - coverage:
+          runs-on: ruby:3.4
+          name: Merge Coverage Reports
+          needs: [test]
+          mounts:
+            - source: .
+              target: /work
+              type: bind
+          steps:
+            - name: Introspect Artifacts
+              run: |
+                ls -l $APRICITY_ARTIFACTS/coverage
+                echo "
+                  Test matrix shards produced the following coverage reports:
+                  -----------------------------------------------------------
+                "
+                find $APRICITY_ARTIFACTS/coverage -name ".resultset.json" -exec echo "{}" \;
+            - name: Bundle install
+              run: |
+                bundle config set --local path 'vendor/bundle'
+                bundle install
+            - name: Merge coverage reports
+              run: |
+                bundle exec ruby -rsimplecov -e "
+                  SimpleCov.collate Dir['$APRICITY_ARTIFACTS/coverage/**/.resultset.json'] do
+                    SimpleCov.coverage_dir '$APRICITY_ARTIFACTS/aggregate-coverage'
+                  end
+                "
+          inputs:
+            - key: coverage
+              type: artifact
+          outputs:
+            - key: aggregate-coverage
+              type: artifact        
       - quality:
           runs-on: ruby:3.4
           name: Check Apricity Code Quality

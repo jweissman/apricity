@@ -19,6 +19,8 @@ module Apricity
 
       JUnitResult = Data.define(:test_name, :classname, :time, :status, :message)
       JUnitReport = Data.define(:tests, :failures, :errors, :skipped, :test_results) do
+        def to_s = "JUnitReport(tests: #{tests}, failures: #{failures}, errors: #{errors}, skipped: #{skipped})"
+
         def merge(other)
           JUnitReport[
             tests: tests + other.tests,

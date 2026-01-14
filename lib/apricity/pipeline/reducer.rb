@@ -3,6 +3,7 @@
 module Apricity
   module Pipeline
     # Reduces a high-level pipeline definition into executable job nodes
+    # -- maybe call this 'lowerer' to deconflict with 'reducer' in evented map-reduce sense?
     class Reducer
       # Convert pipeline definition to lower-level Node representation
       def self.lower(pipeline)
