@@ -16,11 +16,12 @@ module Apricity
       end
 
       def self.timestamp(event)
-        if event.respond_to?(:started_at)
-          event.started_at
-        else
-          (event.respond_to?(:finished_at) ? event.finished_at : Time.now)
-        end
+        time = if event.respond_to?(:started_at)
+                 event.started_at
+               else
+                 event.respond_to?(:finished_at) ? event.finished_at : Time.now
+               end
+        (time.to_f * 1000).to_i # epoch milliseconds for JS compatibility
       end
 
       def self.node_json(node)

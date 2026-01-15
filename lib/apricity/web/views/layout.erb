@@ -78,9 +78,9 @@
 
       /* DAG container styling */
       #dag-container {
-        min-height: 200px;
-        padding: 32px 24px;
-        background: linear-gradient(to bottom, #fafafa 0%, #ffffff 100%);
+        min-height: 180px;
+        padding: 24px 20px;
+        background: linear-gradient(135deg, #fafbfc 0%, #ffffff 50%, #f8fafc 100%);
         border-radius: 12px;
       }
 
@@ -88,7 +88,16 @@
       #dag-container svg {
         max-width: 100%;
         height: auto;
-        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.05));
+      }
+
+      /* Style the nodes */
+      #dag-container .node rect,
+      #dag-container .node circle,
+      #dag-container .node ellipse,
+      #dag-container .node polygon,
+      #dag-container .node path {
+        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.06));
+        transition: filter 0.15s ease, transform 0.15s ease;
       }
 
       /* Force stadium nodes to be wider */
@@ -157,23 +166,47 @@
       #dag-container .nodeLabel {
         font-family: system-ui, -apple-system, sans-serif;
         font-weight: 500;
+        font-size: 12px;
       }
 
       /* Hover effect on DAG nodes */
       #dag-container .node:hover {
-        filter: brightness(1.05);
         cursor: pointer;
       }
+      
+      #dag-container .node:hover rect,
+      #dag-container .node:hover circle,
+      #dag-container .node:hover ellipse,
+      #dag-container .node:hover polygon {
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1)) brightness(1.02);
+      }
 
-      /* Smooth edge rendering */
+      /* Edge/arrow styling */
       #dag-container .edgePath path {
         stroke-width: 2px;
-        opacity: 0.7;
+        stroke: #94a3b8;
+        transition: stroke 0.15s ease, stroke-width 0.15s ease;
+      }
+      
+      #dag-container .edgePath marker path {
+        fill: #94a3b8;
       }
 
       #dag-container .edgePath:hover path {
-        opacity: 1;
+        stroke: #64748b;
         stroke-width: 2.5px;
+      }
+      
+      /* Focus states for accessibility */
+      a:focus-visible, button:focus-visible {
+        outline: 2px solid #3b82f6;
+        outline-offset: 2px;
+        border-radius: 4px;
+      }
+      
+      /* Step card focus ring */
+      .step-output-toggle:focus-visible {
+        box-shadow: inset 0 0 0 2px #3b82f6;
       }
 
     </style>
