@@ -237,7 +237,7 @@ module Apricity
     end
     # rubocop:enable Metrics/ClassLength
 
-    StepMetadata = Data.define(:working_dir, :binds)
+    StepMetadata = Data.define(:working_dir, :binds, :container)
     # Executes a single step inside a Docker container
     class StepExecutor
       attr_reader :step, :env, :sink, :node
@@ -261,15 +261,7 @@ module Apricity
 
       private
 
-      # def execute(command:, container:, emit:)
-      #   execute!(command:, container:, emit:)
-      # rescue Docker::Error::DockerError => e
-      #   raise <<~MSG
-      #     Docker error during execution of step #{step.name}: #{e.class}: #{e.message}
-      #     Working directory: #{@meta.working_dir.inspect}
-      #     Binds: #{@meta.binds.inspect}
-      #   MSG
-      # end
+      attr_reader :meta
 
       def execute(command:, container:, emit:)
         stdout = +""
@@ -280,22 +272,28 @@ module Apricity
           event = klass[node:, step:, chunk:]
           emit[event]
           stream == :stdout ? stdout << chunk : stderr << chunk
-          # $stdout.print(chunk) if stream == :stdout
-          # $stderr.print(chunk) if stream == :stderr
         end
         [stdout, stderr, result[2]]
       end
 
       def script_for_step(prelude:, step:)
         if step.uses?
-          action = Apricity::Actions::ActionRegistry.instance.resolve(step.uses)
-
-          shell_cmd = action.new(job_id: node.id, step_id: step.name,
-                                 options: step.with || {}).to_shell
+          # action_def = Apricity::Actions::ActionRegistry.instance.resolve(step.uses)
+          # action = action_def.new(job_id: node.id, step_id: step.name,
+          #                         options: step.with || {})
+          action = resolve_action(step)
+          action.before_execute(meta:) if action.respond_to?(:before_execute)
+          # shell_cmd = action.to_shell
+          shell_cmd = action.respond_to?(:to_shell) ? action.to_shell : ""
           [prelude, shell_cmd, "sync"].join("\n")
         else
           [prelude, step.run.source, "sync"].join("\n")
         end
+      end
+
+      def resolve_action(step)
+        action_def = Apricity::Actions::ActionRegistry.instance.resolve(step.uses)
+        action_def.new(job_id: node.id, step_id: step.name, options: step.with || {})
       end
     end
 
@@ -519,6 +517,7 @@ module Apricity
       def exec(cmd, **options, &) = container.exec(cmd, **options.merge(container_options), &)
       def delete = container.delete(force: true)
       def archive_in(src_paths, dest_path) = container.archive_in(src_paths, dest_path)
+      def archive_out(path) = container.archive_out(path)
       def running? = container.json.dig("State", "Running")
 
       private
@@ -615,15 +614,17 @@ module Apricity
         copy_input_artifacts if DockerHelpers.dind?
         node.steps.map do |step|
           @last_step_executed = step
+          started_at = Time.now
           step_outcome = execute_step(step)
-          emit(JobExecution::Events::StepFinished[node:, step:, status: step_outcome.status, finished_at: Time.now])
+          emit(JobExecution::Events::StepFinished[node:, step:, status: step_outcome.status, started_at:,
+                                                  finished_at: Time.now])
           step_outcome
         end
       end
 
       def execute_step(step)
         emit(JobExecution::Events::StepStarted[node:, step:, started_at: Time.now])
-        meta = StepMetadata[working_dir: @working_dir, binds: @binds]
+        meta = StepMetadata[working_dir: @working_dir, binds: @binds, container:]
         step_executor = JobExecution::StepExecutor.new(step:, env:, sink:, node:, meta:)
         stdout, stderr = step_executor.perform(prelude: @prelude, container:, emit: -> { emit it })
         success_outcome(stdout:, stderr:)

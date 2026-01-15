@@ -36,7 +36,7 @@ files = ARGV.empty? ? ["apricity.yaml"] : ARGV
 
 files.each do |file|
   sleep 0.1
-  puts "Loading pipeline from #{file} with options: #{options}" if options[:verbose]
+  # puts "Loading pipeline from #{file} with options: #{options}" if options[:verbose]
   
   git_sha = `git rev-parse HEAD`.chomp
   pipeline = Apricity::Model::Pipeline.from_file(file)

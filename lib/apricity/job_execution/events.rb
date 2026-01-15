@@ -110,9 +110,13 @@ module Apricity
         def type = :step_started
         def pretty = "started step #{step.name}"
       end
-      StepFinished = Data.define(:node, :step, :status, :finished_at) do
+      StepFinished = Data.define(:node, :step, :status, :started_at, :finished_at) do
         def type = :step_finished
-        def pretty = "finished step #{step.name} with status #{status}"
+        def pretty = "finished step #{step.name} with status #{status} in #{duration_seconds}s"
+
+        def duration_seconds
+          started_at ? ((finished_at || Time.now) - started_at).round(2) : nil
+        end
       end
 
       # No timestamp needed for chunk events as they are numerous

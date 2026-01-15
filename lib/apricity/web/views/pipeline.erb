@@ -26,6 +26,50 @@
   </div>
 </div>
 
+<!-- Pipeline DAG Structure -->
+<div class="mb-6 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+  <div class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+    <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide flex items-center">
+      <i class="fas fa-project-diagram mr-2 text-blue-500"></i>
+      Pipeline Structure
+    </h3>
+  </div>
+  <div id="dag-container" class="flex justify-center p-4"></div>
+</div>
+
+<script>
+  window.PipelineDag = <%= dag_data(@pipeline) %>;
+</script>
+<script>
+  // Render static DAG (no job status, just structure)
+  document.addEventListener('DOMContentLoaded', async () => {
+    const dag = window.PipelineDag;
+    if (!dag || !dag.nodes) return;
+    
+    const lines = ["graph LR"];
+    dag.nodes.forEach(node => {
+      const safe = node.id.replace(/::/g, "_").replace(/[\[\]=,\s]+/g, "_");
+      const label = node.label.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      lines.push(`  ${safe}([○ ${label}])`);
+      lines.push(`  style ${safe} fill:#f8fafc,stroke:#cbd5e1,stroke-width:2px`);
+    });
+    dag.edges.forEach(edge => {
+      const from = edge.from.replace(/::/g, "_").replace(/[\[\]=,\s]+/g, "_");
+      const to = edge.to.replace(/::/g, "_").replace(/[\[\]=,\s]+/g, "_");
+      lines.push(`  ${from} --> ${to}`);
+    });
+    
+    const container = document.getElementById('dag-container');
+    try {
+      const { svg } = await mermaid.render('pipeline-dag', lines.join("\n"));
+      container.innerHTML = svg;
+    } catch (e) {
+      console.error("Mermaid render error:", e);
+      container.innerHTML = `<p class="text-gray-400 text-sm">Unable to render diagram</p>`;
+    }
+  });
+</script>
+
 <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
   <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
     <i class="fas fa-history mr-3 text-indigo-500"></i>

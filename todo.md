@@ -2,7 +2,8 @@
 - [x] SimpleCov aggregation across shards
 - [x] Services (pg/redis)
 - [x] Simple rails app w/ services block
-- [x] Git checkout step
+- [x] Git checkout action
+- [x] Cache action (dumb cache file)
 
 # Enhancements
 - [x] Pwd artifact pathing (killed mktmpdir)
@@ -11,7 +12,6 @@
 - [x] Normalize annotations for nonmatrixed jobs
 
 # To-do
-- [ ] Cache action (dumb cache file)
 - [ ] Secrets (env injection, not vault)
 - [ ] Tiny example app with services
 - [ ] Check the JUnit aggregation looks fine for matrix/nonmatrixed jobs
@@ -28,4 +28,4 @@
 - [ ] Persist pipeline state so we don't _have_ to replay events if pipeline is finished?
 
 # Bugs
-- [ ] Try to repair step timestamps/durations on the f/e
+- [x] Try to repair step timestamps/durations on the f/e

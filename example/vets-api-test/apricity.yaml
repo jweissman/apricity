@@ -1,0 +1,44 @@
+name: Vets API Test
+actions:
+  test:
+    jobs:
+      - test:
+          runs-on: ruby:3.3
+          name: Test Vets API
+          steps:
+            - name: Checkout Vets API
+              uses: apricity/checkout@v0
+              with:
+                repository: https://github.com/department-of-veterans-affairs/vets-api
+                ref: master
+
+            - name: Load Bundled Gems from Cache
+              uses: apricity/cache@v0
+              with:
+                key: bundler-ruby-3.3
+                checksum_file: Gemfile.lock
+                perform_restore: true
+                paths:
+                  - vendor/bundle
+
+            - name: Bundle install
+              run: |
+                bundle config set --local path 'vendor/bundle'
+                bundle install
+
+            - name: Cache Bundled Gems
+              uses: apricity/cache@v0
+              with:
+                key: bundler-ruby-3.3
+                checksum_file: Gemfile.lock
+                perform_save: true
+                paths:
+                  - vendor/bundle
+
+            - name: Run Linter
+              run: |
+                bundle exec rubocop app lib
+            # - name: Run Test Command
+            #   run: |
+            #     bundle exec rspec spec/models/user_spec.rb
+      

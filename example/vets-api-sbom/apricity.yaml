@@ -27,6 +27,33 @@ actions:
           outputs:
             - key: sbom
               type: artifact
+      - test:
+          runs-on: ruby:3.4
+          name: Test Vets API
+          steps:
+            - name: Checkout Vets API
+              uses: apricity/checkout@v0
+              with:
+                repository: https://github.com/department-of-veterans-affairs/vets-api
+                ref: master
+            - name: Load Bundled Gems from Cache
+              uses: apricity/cache-restore@v0
+              with:
+                key: bundler-ruby-3.4
+                checksum_file: Gemfile.lock
+                paths:
+                  - vendor/bundle
+            - name: Bundle install
+              run: |
+                bundle config set --local path 'vendor/bundle'
+                bundle install
+            - name: Cache Bundled Gems
+              uses: apricity/cache-save@v0
+              with:
+                key: bundler-ruby-3.4
+                checksum_file: Gemfile.lock
+                paths:
+                  - vendor/bundle
       # - test:
       #     runs-on: ruby:3.4
       #     name: Test Apricity from Git Checkout

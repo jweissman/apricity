@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "cache"
 require_relative "checkout"
 
 module Apricity
@@ -11,6 +12,7 @@ module Apricity
       end
 
       def register_builtin_actions
+        register Cache
         register Checkout
       end
 

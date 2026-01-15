@@ -2,37 +2,8 @@
 
 module Apricity
   module CLI
-    # Apricot TUI renderer
-    class Apricot
-      def executed_successfully?(pipeline:, git_sha: nil, options: { verbose: false })
-        run = Apricity::Run::Instance.create(pipeline, git_sha:)
-        run_id = run.id
-        puts "Starting Run #{run_id[..7]} for pipeline #{pipeline.name} at git sha #{git_sha}"
-        state = Apricity::Run::State.empty(pipeline)
-        result = run.perform do |event|
-          state = handle_event(event, state, options:)
-        end
-        apricot_icon = result.passed? ? "🍑" : "🪰"
-        puts "\n#{apricot_icon} Run #{run_id[..7]} Complete (in #{result.duration_seconds} seconds)"
-        result.passed?
-      end
-
-      def handle_event(event, state, options: { verbose: false })
-        state = state.reduce(event)
-        render_tui(state) unless options[:verbose]
-
-        is_chunk = %i[stdout_chunk stderr_chunk].include?(event.type)
-        if is_chunk
-          # print event.chunk
-          # grey
-          print "\e[90m#{event.chunk}\e[0m"
-        else
-          puts event.pretty.capitalize
-        end
-
-        state
-      end
-
+    # Render strategies for Apricot CLI
+    module Renderer
       def render_tui(state)
         system("clear") || system("cls")
 
@@ -122,6 +93,65 @@ module Apricity
         pretty_value.each do |k, v|
           puts "    - #{k}: #{v}"
         end
+      end
+    end
+
+    # Apricot TUI renderer
+    class Apricot
+      include Renderer
+
+      def executed_successfully?(pipeline:, git_sha: nil, options: { verbose: false })
+        run = Apricity::Run::Instance.create(pipeline, git_sha:)
+        run_id = run.id
+        result = execute(pipeline:, run:, options:)
+        apricot_icon = result.passed? ? "🍑" : "🪰"
+        puts "\n#{apricot_icon} Run #{run_id[..7]} Complete (in #{result.duration_seconds} seconds)"
+        result.passed?
+      end
+
+      private
+
+      def execute(pipeline:, run:, options: {})
+        state = Apricity::Run::State.empty(pipeline)
+        unless options[:verbose]
+          # for liveness, start a separate thread to update the UI
+          Thread.new do
+            loop do
+              sleep 0.1
+              render_tui(state)
+            end
+          end
+        end
+        run.perform { state = handle_event(it, state, options:) }
+      end
+
+      # def start_ui_thread(state)
+
+      # end
+
+      def handle_event(event, state, options: { verbose: false })
+        state = state.reduce(event)
+        if options[:verbose]
+          echo_event(event)
+        else
+          render_tui(state)
+        end
+        state
+      end
+
+      def echo_event(event)
+        # puts event.pretty
+        is_chunk = %i[stdout_chunk stderr_chunk].include?(event.type)
+        unless is_chunk
+          warn event.pretty.capitalize
+          return
+        end
+
+        # print event.chunk
+        # grey
+        print "\e[90m#{event.chunk}\e[0m"
+        # else
+        #   puts event.pretty.capitalize
       end
     end
   end

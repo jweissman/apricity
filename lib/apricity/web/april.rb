@@ -286,12 +286,13 @@ module Apricity
 
       helpers do
         def pretty_status(status)
+          # Colored circle indicators for clean, consistent look
           case status
-          when :running then "⌛️"
-          when :success then "✅"
-          when :failure then "❌"
-          when :skipped then "⏭️"
-          else "❓"
+          when :running then "🟡"
+          when :success then "🟢"
+          when :failure then "🔴"
+          # when :skipped then "⚪"
+          else "⚪"
           end
         end
 
