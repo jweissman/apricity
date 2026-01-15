@@ -1,25 +1,24 @@
-<div class="mb-6">
-  <a href="/" class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
-    <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+<div class="mb-8">
+  <a href="/" class="inline-flex items-center text-sm text-slate-500 hover:text-sky-600 transition-colors duration-200 group">
+    <i class="fas fa-arrow-left mr-2 group-hover:-translate-x-1 transition-transform duration-200"></i>Back to Dashboard
   </a>
 </div>
 
-<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+<div class="card-elevated rounded-2xl border border-slate-200/50 p-8 mb-8">
   <div class="flex items-center justify-between">
     <div>
-      <h2 class="text-2xl font-bold text-gray-900"><%= @pipeline.name %></h2>
-      <p class="text-sm text-gray-500 mt-1">
-        <%= @pipeline.actions.size %> action<%= @pipeline.actions.size != 1 ? 's' : '' %> &middot;
-        <%= @pipeline.total_steps %> steps
+      <h2 class="text-2xl font-bold text-slate-800"><%= @pipeline.name %></h2>
+      <p class="text-sm text-slate-500 mt-2">
+        <%= @pipeline.actions.size %> action<%= @pipeline.actions.size != 1 ? 's' : '' %> · <%= @pipeline.total_steps %> steps
       </p>
     </div>
     <form action="/pipelines/<%= @pipeline.slug %>/run" method="post">
       <input type="hidden" name="pipeline_slug" value="<%= @pipeline.slug %>">
       <button
         type="submit"
-        class="inline-flex items-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors shadow-md hover:shadow-lg"
+        class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-500 hover:to-teal-600 text-white font-medium rounded-xl transition-all duration-200 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:scale-[1.02] active:scale-[0.98]"
       >
-        <i class="fas fa-play mr-2 text-sm"></i>
+        <i class="fas fa-play mr-2.5 text-sm"></i>
         Start New Run
       </button>
     </form>
@@ -27,14 +26,16 @@
 </div>
 
 <!-- Pipeline DAG Structure -->
-<div class="mb-6 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-  <div class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
-    <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide flex items-center">
-      <i class="fas fa-project-diagram mr-2 text-blue-500"></i>
+<div class="mb-8 card-elevated rounded-2xl border border-slate-200/50 overflow-hidden">
+  <div class="px-7 py-5 border-b border-slate-100/80 bg-gradient-to-r from-sky-50/60 via-blue-50/40 to-indigo-50/30">
+    <h3 class="text-sm font-semibold text-slate-600 uppercase tracking-wider flex items-center">
+      <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center mr-3 shadow-sm shadow-sky-500/20">
+        <i class="fas fa-project-diagram text-white text-[10px]"></i>
+      </div>
       Pipeline Structure
     </h3>
   </div>
-  <div id="dag-container" class="flex justify-center p-4"></div>
+  <div id="dag-container" class="flex justify-center p-6"></div>
 </div>
 
 <script>
@@ -50,8 +51,8 @@
     dag.nodes.forEach(node => {
       const safe = node.id.replace(/::/g, "_").replace(/[\[\]=,\s]+/g, "_");
       const label = node.label.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-      lines.push(`  ${safe}([○ ${label}])`);
-      lines.push(`  style ${safe} fill:#f8fafc,stroke:#cbd5e1,stroke-width:2px`);
+      lines.push(`  ${safe}([${label}])`);
+      lines.push(`  style ${safe} fill:#f8fafc,stroke:#e2e8f0,stroke-width:1.5px`);
     });
     dag.edges.forEach(edge => {
       const from = edge.from.replace(/::/g, "_").replace(/[\[\]=,\s]+/g, "_");
@@ -65,14 +66,16 @@
       container.innerHTML = svg;
     } catch (e) {
       console.error("Mermaid render error:", e);
-      container.innerHTML = `<p class="text-gray-400 text-sm">Unable to render diagram</p>`;
+      container.innerHTML = `<p class="text-slate-400 text-sm">Unable to render diagram</p>`;
     }
   });
 </script>
 
-<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-  <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-    <i class="fas fa-history mr-3 text-indigo-500"></i>
+<div class="card-elevated rounded-2xl border border-slate-200/50 p-8">
+  <h3 class="text-lg font-semibold text-slate-800 mb-5 flex items-center">
+    <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center mr-3 shadow-md shadow-indigo-500/15">
+      <i class="fas fa-history text-white text-xs"></i>
+    </div>
     Run History
   </h3>
   <div
@@ -82,9 +85,9 @@
     hx-swap="innerHTML"
   ></div>
   <div id="job-list">
-    <div class="text-center py-8 text-gray-400">
-      <i class="fas fa-spinner fa-spin mr-2"></i>
-      Loading runs...
+    <div class="text-center py-12 text-slate-400">
+      <i class="fas fa-circle-notch fa-spin mr-2 text-sky-400"></i>
+      <span class="text-slate-500">Loading runs...</span>
     </div>
   </div>
 </div>

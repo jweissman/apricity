@@ -6,7 +6,10 @@ module Apricity
   module Actions
     # Caching action definition
     class Cache < ActionDefinition
-      CACHE_ROOT = File.expand_path(File.join(Dir.home, ".apricity", "cache")).freeze
+      # CACHE_ROOT = File.expand_path(File.join(Dir.home, ".apricity", "cache")).freeze
+      CACHE_ROOT = ENV.fetch("APRICITY_CACHE_ROOT") do
+        File.expand_path(File.join(Dir.home, ".apricity", "cache"))
+      end.freeze
 
       attr_reader :job_id, :step_id, :job_name
 
@@ -57,7 +60,8 @@ module Apricity
                         paths: options[:paths] || [])
         elsif options[:perform_save]
           log "Saving cache to #{cache_dir}"
-          save_cache(container: meta.container, working_dir: meta.working_dir, cache_dir:, paths: options[:paths] || [])
+          save_cache(container: meta.container, working_dir: meta.working_dir, cache_dir:,
+                     paths: options[:paths] || [])
         else
           raise "Cache action must specify either :perform_restore or :perform_save option"
         end

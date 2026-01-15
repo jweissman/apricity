@@ -14,7 +14,8 @@ module Apricity
   module JobExecution
     # Internal class for managing artifact storage paths
     class ArtifactStore
-      DEFAULT_ROOT = File.join(Dir.pwd, ".apricity").freeze
+      # DEFAULT_ROOT = File.join(Dir.pwd, ".apricity").freeze
+      DEFAULT_ROOT = ENV.fetch("APRICITY_ARTIFACT_ROOT") { File.join(Dir.pwd, ".apricity") }.freeze
       def initialize(run:, node:, host_visible_artifact_root: DEFAULT_ROOT)
         @run = run
         @node = node
@@ -118,9 +119,6 @@ module Apricity
             raise "Artifact producers do not share artifact root: #{artifact_roots.inspect}"
           end
 
-          # bind_source = paths.resolve(artifact_roots.first)
-          # # return "#{bind_source}:#{APRICITY_DIR}/artifacts/#{key}:ro"
-          # return "#{bind_source}:#{APRICITY_DIR}/artifacts:ro"
           # Fan-in, non-DinD: bind each producer's artifact dir
           return host_dir.map do |producer_id, dir|
             raise "Artifact input dir does not exist: #{dir}" unless Dir.exist?(dir)
@@ -146,25 +144,6 @@ module Apricity
       # rubocop:enable Metrics/CyclomaticComplexity
       # rubocop:enable Metrics/AbcSize
       # rubocop:enable Metrics/MethodLength
-
-      # def setup_input_artifact(input)
-      #   key = input.key
-      #   host_dir = artifact_inputs[key] || artifact_inputs[key.to_s]
-
-      #   # debugger
-      #   warn "!!! Setting up input artifact #{key.inspect} for job #{@node.id.inspect}: host_dir=#{host_dir.inspect}"
-
-      #   raise "Missing artifact #{key}" unless host_dir
-      #   raise "Artifact input dir does not exist: #{host_dir}" unless Dir.exist?(host_dir)
-
-      #   if DockerHelpers.dind?
-      #     @prelude += "\nmkdir -p #{APRICITY_DIR}/artifacts"
-      #     return nil
-      #   end
-
-      #   bind_source = paths.resolve(host_dir)
-      #   "#{bind_source}:#{APRICITY_DIR}/artifacts/#{key}:ro"
-      # end
 
       def setup_output_artifact(output)
         key = output.key
@@ -465,11 +444,11 @@ module Apricity
         case service.image
         when /redis/i
           env["REDIS_URL"] = "redis://#{service.name}:6379"
-        when /postgres/i
-          env["DATABASE_URL"] = assemble_estimated_postgres_url(service)
-          env["POSTGRES_HOST"] = service.name
         when /postgis/i
           env["DATABASE_URL"] = assemble_estimated_postgres_url(service, protocol: "postgis")
+          env["POSTGRES_HOST"] = service.name
+        when /postgres/i
+          env["DATABASE_URL"] = assemble_estimated_postgres_url(service)
           env["POSTGRES_HOST"] = service.name
         end
       end
@@ -667,17 +646,6 @@ module Apricity
       end
       # rubocop:enable Metrics/MethodLength
 
-      # def copy_dir_into_container(src, dest)
-      #   container.exec(["/bin/sh", "-lc", "mkdir -p #{dest}"])
-
-      #   entries = Dir.glob(File.join(src, "{*,.*}"), File::FNM_DOTMATCH)
-      #                .reject { |p| DOTFILES.include?(File.basename(p)) }
-
-      #   return if entries.empty?
-
-      #   container.archive_in(entries, dest)
-      # end
-
       def copy_dir_contents_into_container(src, dest)
         return copy_dir_into_container_dind(src, dest) if DockerHelpers.dind?
 
@@ -700,31 +668,6 @@ module Apricity
         container.archive_in(entries, dest)
       end
 
-      # def copy_dir_contents_into_container(src, dest)
-      #   container.exec(["/bin/sh", "-lc", "mkdir -p #{dest}"])
-
-      #   entries = Dir.glob(File.join(src, "{*,.*}"), File::FNM_DOTMATCH)
-      #                .reject { |p| DOTFILES.include?(File.basename(p)) }
-
-      #   return if entries.empty?
-
-      #   container.archive_in(entries, dest)
-      # end
-
-      # def copy_input_artifact(key, host_dir)
-      #   container_target_dir = "#{APRICITY_DIR}/artifacts/#{key}"
-
-      #   container.exec(["/bin/sh", "-lc", "mkdir -p #{container_target_dir}"])
-
-      #   dotfiles = [".", ".."]
-      #   entries = Dir.glob(File.join(host_dir, "{*,.*}"), File::FNM_DOTMATCH)
-      #                .reject { |p| dotfiles.include?(File.basename(p)) }
-
-      #   return if entries.empty?
-
-      #   container.archive_in(entries, container_target_dir)
-      # end
-
       def emit(event)
         @sink&.call(event)
         node.plugins&.each { |plugin| plugin.handle(event, context: context_for(node), emitter: -> { emit it }) }
@@ -742,8 +685,15 @@ module Apricity
 
       def construct_image = Docker::Image.create("fromImage" => image)
 
+      # def merged_env
+      #   normalize_env(env.merge(service_environment_variables(node)).merge(service_raw_env_vars(node) || {}))
+      # end
       def merged_env
-        normalize_env(env.merge(service_environment_variables(node)).merge(service_raw_env_vars(node) || {}))
+        normalize_env(
+          service_environment_variables(node)
+            .merge(service_raw_env_vars(node) || {})
+            .merge(env)
+        )
       end
 
       def container

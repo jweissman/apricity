@@ -4,6 +4,7 @@
 - [x] Simple rails app w/ services block
 - [x] Git checkout action
 - [x] Cache action (dumb cache file)
+- [x] Env injection
 
 # Enhancements
 - [x] Pwd artifact pathing (killed mktmpdir)
@@ -12,16 +13,17 @@
 - [x] Normalize annotations for nonmatrixed jobs
 
 # To-do
-- [ ] Secrets (env injection, not vault)
+- [ ] Secrets (env injection from fly secrets?)
 - [ ] Tiny example app with services
 - [ ] Check the JUnit aggregation looks fine for matrix/nonmatrixed jobs
-- [ ] Try vets-api
+- [~] Try vets-api
+  - [ ] User model specs running
 - [ ] Persistence
 - [ ] Coverage graph over time
 - [ ] Integration with GH
 - [ ] Deployment
 - [ ] SSH into container?
-- [ ] Change threaded exec to async gem?
+- [ ] Change threaded exec to async gem (new backend for scheduler)
 - [ ] runs-on integration w/ gh??
 - [ ] cold start flow (wrapper around git receive?)
 - [ ] e2es for f/e

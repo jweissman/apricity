@@ -46,7 +46,7 @@ module Apricity
         when :job_started then job_started_payload(event)
         when :job_finished then job_finished_payload(event)
         when :job_annotated, :pipeline_annotated then { annotations: event.annotations }
-        when :step_finished then { status: event.status }
+        when :step_finished then { status: event.status, duration: event.duration_seconds }
         when :stdout_chunk, :stderr_chunk then { chunk: event.chunk }
         else {}
         end
