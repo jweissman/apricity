@@ -5,6 +5,23 @@ actions:
       - test:
           runs-on: ruby:3.3
           name: Test Vets API
+          services:
+            postgres:
+              image: postgis/postgis:14-3.3-alpine
+              env:
+                POSTGRES_USER: postgres
+                POSTGRES_PASSWORD: password
+            redis:
+              image: redis:7
+          env:
+            CI: "true"
+            RAILS_ENV: test
+            DISABLE_BOOTSNAP: "true"
+            SETTINGS__DATABASE_URL: "postgis://postgres:password@postgres:5432/vets_api_development?pool=4"
+            SETTINGS__TEST_DATABASE_URL: "postgis://postgres:password@postgres:5432/vets_api_test"
+            SETTINGS__REDIS__APP_DATA__URL: "redis://redis:6379"
+            SETTINGS__REDIS__SIDEKIQ__URL: "redis://redis:6379"
+
           steps:
             - name: Checkout Vets API
               uses: apricity/checkout@v0
@@ -21,6 +38,17 @@ actions:
                 paths:
                   - vendor/bundle
 
+            - name: Install deps for pg_isready
+              run: |
+                apt-get update
+                apt-get install -y postgresql-client
+
+            - name: Wait for postgres
+              run: |
+                until pg_isready -h postgres -p 5432; do
+                  echo "Waiting for postgres..."
+                  sleep 1
+                done
             - name: Bundle install
               run: |
                 bundle config set --local path 'vendor/bundle'
@@ -38,7 +66,12 @@ actions:
             - name: Run Linter
               run: |
                 bundle exec rubocop app lib
-            # - name: Run Test Command
-            #   run: |
-            #     bundle exec rspec spec/models/user_spec.rb
+
+            - name: Prepare Test Database
+              run: |
+                bundle exec rails db:test:prepare
+
+            - name: Run one spec file
+              run: |
+                bundle exec rspec --fail-fast spec/models/user_spec.rb
       

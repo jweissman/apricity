@@ -136,6 +136,20 @@ module Apricity
           expect(test_job.steps.first.with).to eq(repository: "jweissman/apricity", ref: "main")
         end
       end
+
+      describe "parses pipelines with env variables" do
+        let(:file) { File.read("spec/fixtures/test-env-pipeline.yaml") }
+        let(:pipeline) { Apricity::Model::Pipeline.from_yaml(file) }
+        let(:env_job) { pipeline.actions.first.jobs.first }
+
+        it "parses job-level env variables" do
+          expect(env_job.env_vars).to eq({
+                                           GOAL: "testing",
+                                           SAMPLE_ENV_VAR: "sample_value",
+                                           THIS_IS_A_TEST: true
+                                         })
+        end
+      end
     end
   end
 end

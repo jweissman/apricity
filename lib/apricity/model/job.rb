@@ -4,7 +4,9 @@ module Apricity
   module Model
     Job = Data.define(
       :name, :steps, :runs_on,
-      :inputs, :outputs, :conditions, :needs, :mounts, :plugins, :strategy, :services
+      :inputs, :outputs,
+      :conditions, :needs,
+      :mounts, :plugins, :strategy, :services, :env_vars
     ) do
       # Initializer to provide default empty arrays/hashes
       # rubocop:disable Metrics/ParameterLists
@@ -13,6 +15,7 @@ module Apricity
         runs_on:,
         steps:,
         conditions: [],
+        env_vars: {},
         inputs: [],
         mounts: [],
         needs: [],

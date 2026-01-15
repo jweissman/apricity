@@ -463,17 +463,19 @@ module Apricity
 
       def guess_service_environment_variables(env, service)
         case service.image
-        when /^redis/
+        when /redis/i
           env["REDIS_URL"] = "redis://#{service.name}:6379"
-        when /^postgres/
+        when /postgres/i
           env["DATABASE_URL"] = assemble_estimated_postgres_url(service)
           env["POSTGRES_HOST"] = service.name
-        else warn("No environment variable guesses for service image #{service.image}")
+        when /postgis/i
+          env["DATABASE_URL"] = assemble_estimated_postgres_url(service, protocol: "postgis")
+          env["POSTGRES_HOST"] = service.name
         end
       end
 
-      def assemble_estimated_postgres_url(service)
-        "postgres://#{service.env_vars["POSTGRES_USER"]}:" \
+      def assemble_estimated_postgres_url(service, protocol: "postgres")
+        "#{protocol}://#{service.env_vars["POSTGRES_USER"]}:" \
           "#{service.env_vars["POSTGRES_PASSWORD"]}@" \
           "#{service.name}:5432/#{service.env_vars["POSTGRES_DB"]}"
       end
@@ -604,8 +606,10 @@ module Apricity
         @artifact_outputs = the_plan.artifact_outputs
         @working_dir = the_plan.working_dir
         @prelude += the_plan.prelude
-        @env = the_plan.env
+        @env = normalize_env the_plan.env.merge(node.env || {})
       end
+
+      def normalize_env(hash) = hash.transform_keys(&:to_s).transform_values(&:to_s)
 
       # Execute the steps inside a Docker container
       def execute
@@ -738,7 +742,9 @@ module Apricity
 
       def construct_image = Docker::Image.create("fromImage" => image)
 
-      def merged_env = env.merge(service_environment_variables(node)).merge(service_raw_env_vars(node) || {})
+      def merged_env
+        normalize_env(env.merge(service_environment_variables(node)).merge(service_raw_env_vars(node) || {}))
+      end
 
       def container
         @container ||= ContainerSession.new(image:, binds: @binds, env: merged_env, working_dir: @working_dir, network:)

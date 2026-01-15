@@ -1,0 +1,16 @@
+name: Test Envar Parse Pipeline
+actions:
+  test-matrix:
+    jobs:
+      - test:
+          env:
+            SAMPLE_ENV_VAR: sample_value
+            GOAL: testing
+            THIS_IS_A_TEST: true
+          runs-on: ruby:3.4
+          steps:
+            - name: Print Environment Variables
+              run: |
+                echo "SAMPLE_ENV_VAR: $SAMPLE_ENV_VAR"
+                echo "GOAL: $GOAL"
+                echo "THIS_IS_A_TEST: $THIS_IS_A_TEST"

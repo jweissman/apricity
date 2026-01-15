@@ -57,12 +57,19 @@ module Apricity
         Job[
           name: job_name, steps: parse_steps(job_data[:steps]),
           runs_on: parse_container(job_data[:"runs-on"]),
+          **parse_job_extras(job_data, path:)
+        ]
+      end
+
+      def self.parse_job_extras(job_data, path: nil)
+        {
           **parse_input_output(job_data), **parse_needs_and_conditions(job_data),
           mounts: parse_mounts(job_data[:mounts], path:),
           plugins: parse_plugins(job_data[:plugins]),
           strategy: parse_strategy(job_data[:strategy]),
-          services: parse_services(job_data[:services])
-        ]
+          services: parse_services(job_data[:services]),
+          env_vars: job_data[:env] || {}
+        }
       end
 
       def self.parse_needs_and_conditions(job_data)

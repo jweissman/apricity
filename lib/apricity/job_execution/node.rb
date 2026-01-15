@@ -27,7 +27,7 @@ module Apricity
           conditions: job.conditions, needs: job.needs,
           mounts: job.mounts, services: job.services,
           plugins: plugins(job, node_id),
-          matrix: {}, env: {}
+          matrix: {}, env: job.env_vars || {}
         )
       end
 
