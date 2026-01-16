@@ -187,11 +187,25 @@ module Apricity
         @binds = [*artifact_binds.flatten, *bind_mounts]
       end
 
-      def normalized_mounts
-        node.mounts.map do |mount|
-          next mount unless mount.type == :bind && !mount.source.start_with?("/")
+      # def normalized_mounts
+      #   node.mounts.map do |mount|
+      #     next mount unless mount.type == :bind && !mount.source.start_with?("/")
 
-          Model::Mount[source: File.expand_path(mount.source), target: mount.target, type: mount.type]
+      #     # next mount if ENV["RACK_ENV"] == "production" && mount.source == "/var/run/docker.sock"
+
+      #     Model::Mount[source: File.expand_path(mount.source), target: mount.target, type: mount.type]
+      #   end
+      # end
+
+      def normalized_mounts
+        node.mounts.filter_map do |mount|
+          # next if ENV["RACK_ENV"] == "production" && mount.type == :bind && mount.source == "/var/run/docker.sock"
+
+          if mount.type == :bind && !mount.source.start_with?("/")
+            Model::Mount[source: File.expand_path(mount.source), target: mount.target, type: mount.type]
+          else
+            mount
+          end
         end
       end
 
@@ -565,8 +579,13 @@ module Apricity
       end
 
       def handle_failure(exception)
-        Console.error(self, "run_step:error", message: exception.message, job_name: node.job_name,
-                                              step_name: step&.name)
+        # Console.error(self, "run_step:error", message: exception.message, job_name: node.job_name,
+        #                                       step_name: step&.name)
+        # Emit StepFinished for the step that failed, so the UI updates correctly
+        if step
+          emit(JobExecution::Events::StepFinished[node:, step:, status: :failure, started_at: Time.now,
+                                                  finished_at: Time.now])
+        end
         emit(JobExecution::Events::JobFinished[node:, status: :failure, finished_at: Time.now, exception:])
         JobExecution::Result[outcomes: [failure_outcome(exception:)], outputs: {}]
       end

@@ -3,8 +3,8 @@
 # frozen_string_literal: true
 
 require "bundler/setup"
-require "apricity"
-require "apricity/web/april"
+require_relative "../lib/apricity"
+require_relative "../lib/apricity/web/april"
 
 # Load default plugins and actions
 Apricity.register_default_plugins

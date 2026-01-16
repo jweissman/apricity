@@ -23,6 +23,9 @@ module Apricity
           git -c http.sslVerify=true \
               -c credential.helper= \
               clone --depth=1 \
+              --single-branch \
+              --no-tags \
+              --filter=blob:none \
               --branch #{branch} \
               #{url} #{target_dir}
         SH

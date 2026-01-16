@@ -1,0 +1,44 @@
+# fly.toml app configuration file generated for apricity-little-sun-6030 on 2026-01-16T10:24:54-05:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'apricity-little-sun-6030'
+primary_region = 'iad'
+
+[build]
+
+[env]
+  APRICITY_ARTIFACT_ROOT = '/data/artifacts'
+  APRICITY_CACHE_ROOT = '/data/cache'
+  APRICITY_DOCKER_READ_TIMEOUT = 1200
+  DOCKER_API_VERSION = '1.43'
+  DOCKER_VERSION = '1.43'
+  DOCKER_HOST = 'tcp://[fdaa:38:ea0b:a7b:60d:67cb:bb13:2]:2375'
+  PORT = '8080'
+  RACK_ENV = 'production'
+  BUNDLE_DEPLOYMENT = "true"
+  BUNDLE_WITHOUT = "development:test"
+  BUNDLE_PATH = "/usr/local/bundle"
+  HOME = "/home/ruby"
+
+[[mounts]]
+  source = 'data'
+  destination = '/data'
+
+[http_service]
+  internal_port = 8080
+  processes = ["web"]
+  force_https = true
+  auto_stop_machines = 'off'
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  memory = '2gb'
+  cpu_kind = 'shared'
+  cpus = 2
+
+[processes]
+  web = "bundle exec rackup --host 0.0.0.0 --port 8080"
+  worker = "bin/worker"

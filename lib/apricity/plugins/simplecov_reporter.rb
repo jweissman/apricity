@@ -190,6 +190,8 @@ module Apricity
       end
 
       def annotate_pipeline(report:, context:, emitter:)
+        return if report[:coverage_percent].zero?
+
         annotation = annotation(report)
 
         emitter.call(

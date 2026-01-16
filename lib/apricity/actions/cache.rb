@@ -55,11 +55,9 @@ module Apricity
 
       def perform_cache_action(options:, cache_dir:, meta:)
         if options[:perform_restore]
-          log "Restoring cache from #{cache_dir}"
           restore_cache(container: meta.container, working_dir: meta.working_dir, cache_dir:,
                         paths: options[:paths] || [])
         elsif options[:perform_save]
-          log "Saving cache to #{cache_dir}"
           save_cache(container: meta.container, working_dir: meta.working_dir, cache_dir:,
                      paths: options[:paths] || [])
         else

@@ -1,6 +1,6 @@
 <% if @runs.any? %>
   <div class="space-y-3">
-    <% @runs.reverse.first(10).each do |run| %>
+    <% @runs.first(10).each do |run| %>
       <a href="/runs/<%= run.id %>" class="block group">
         <div class="flex items-center justify-between p-5 bg-white rounded-2xl border border-slate-200/60 hover:border-sky-200 hover:shadow-md hover:shadow-sky-100/50 transition-all duration-300">
           <div class="flex items-center space-x-4">
@@ -8,7 +8,7 @@
               <%= pretty_status(run.status) %>
             </div>
             <div>
-              <div class="font-semibold text-slate-800 group-hover:text-sky-700 transition-colors duration-200"><%= run.pipeline.name %></div>
+              <div class="font-semibold text-slate-800 group-hover:text-sky-700 transition-colors duration-200"><%= run.pipeline_name %></div>
               <div class="text-xs text-slate-400 font-mono mt-1 flex items-center">
                 <i class="fas fa-fingerprint mr-1.5 text-slate-300"></i>
                 <%= run.id[0..7] %>...
@@ -24,15 +24,15 @@
               <% end %>
             </div>
             <div class="text-xs mt-2">
-              <% if run.status == :running %>
+              <% if run.status == 'running' %>
                 <span class="inline-flex items-center px-3 py-1 rounded-full bg-gradient-to-r from-amber-50 to-orange-50 text-amber-600 font-medium border border-amber-200/60 animate-pulse-subtle">
                   <i class="fas fa-circle-notch fa-spin text-xs mr-1.5"></i>Running
                 </span>
-              <% elsif run.status == :success %>
+              <% elsif run.status == 'success' %>
                 <span class="inline-flex items-center px-3 py-1 rounded-full bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-600 font-medium border border-emerald-200/60">
                   <i class="fas fa-check mr-1.5"></i>Passed
                 </span>
-              <% elsif run.status == :failure %>
+              <% elsif run.status == 'failure' %>
                 <span class="inline-flex items-center px-3 py-1 rounded-full bg-gradient-to-r from-rose-50 to-red-50 text-rose-600 font-medium border border-rose-200/60">
                   <i class="fas fa-times mr-1.5"></i>Failed
                 </span>

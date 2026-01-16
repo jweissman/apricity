@@ -3,10 +3,10 @@
 
 require "bundler/setup"
 require "yaml"
-require "debug"
-require "apricity"
-require "apricity/pipeline/parser"
-require "apricity/cli/apricot"
+# require "debug"
+require_relative "../lib/apricity"
+require_relative "../lib/apricity/pipeline/parser"
+require_relative "../lib/apricity/cli/apricot"
 
 Apricity.register_default_plugins
 Apricity.register_default_actions

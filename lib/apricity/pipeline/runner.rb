@@ -34,6 +34,7 @@ module Apricity
       end
 
       def run!(nodes, graph, context: empty_context, &sink)
+        start_pipeline(nodes, sink:)
         ret = if concurrent?
                 run_concurrently(nodes, context:,
                                         sink:)
@@ -43,9 +44,22 @@ module Apricity
         finish_pipeline(nodes, context:, sink:, ret:)
       end
 
+      def start_pipeline(_nodes, sink:)
+        pipeline_started = JobExecution::Events::PipelineStarted[
+          pipeline_name:, started_at: Time.now
+        ]
+        # plugins = nodes.flat_map(&:plugins).compact.uniq(&:key)
+        # plugins.each { |plugin| plugin.handle(pipeline_started, context:, emitter: sink) }
+        sink[pipeline_started]
+      end
+
       def finish_pipeline(nodes, context:, sink:, ret:)
-        pipeline_finished = JobExecution::Events::PipelineFinished[pipeline_name:, finished_at: Time.now,
-                                                                   outputs_by_node: @outputs_by_node]
+        passed = context.nodes.values.all? { |status| %i[success skipped].include?(status) }
+        pipeline_finished = JobExecution::Events::PipelineFinished[
+          pipeline_name:, finished_at: Time.now,
+          outputs_by_node: @outputs_by_node,
+          status: (passed ? :success : :failure)
+        ]
         plugins = nodes.flat_map(&:plugins).compact.uniq(&:key)
         plugins.each { |plugin| plugin.handle(pipeline_finished, context:, emitter: sink) }
         sink[pipeline_finished]

@@ -42,7 +42,7 @@ actions:
             - name: Install deps
               run: |
                 apt-get update
-                apt-get install -y postgresql-client pdftk poppler-utils
+                apt-get install -y postgresql-client pdftk poppler-utils imagemagick ghostscript tesseract-ocr
 
             - name: Wait for postgres
               run: |
@@ -71,7 +71,7 @@ actions:
 
             - name: Run some spec files
               run: |
-                bundle exec rspec --fail-fast spec/models
+                bundle exec rspec --fail-fast spec/models spec/lib
       
             - name: Run Linter
               run: |

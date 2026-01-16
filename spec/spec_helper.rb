@@ -9,7 +9,7 @@ SimpleCov.start do
   coverage_dir "#{ENV.fetch("APRICITY_ARTIFACTS", ".")}/coverage"
 end
 
-require "debug"
+# require "debug"
 
 require "apricity"
 require "apricity/model/builders"

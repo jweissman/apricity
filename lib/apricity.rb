@@ -7,6 +7,9 @@ require "rubygems/package"
 require "securerandom"
 require "stringio"
 require "yaml"
+require "redis"
+
+# require "debug"
 
 require_relative "apricity/version"
 require_relative "apricity/configuration"

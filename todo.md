@@ -13,15 +13,19 @@
 - [x] Normalize annotations for nonmatrixed jobs
 
 # To-do
+- [ ] Deployment
+- [ ] Persistence
 - [ ] Secrets (env injection from fly secrets?)
 - [ ] Tiny example app with services
 - [ ] Check the JUnit aggregation looks fine for matrix/nonmatrixed jobs
 - [~] Try vets-api
-  - [ ] User model specs running
-- [ ] Persistence
+  - [x] spec/model passing
+  - [x] spec/lib passing
+  - [ ] all specs in spec/ passing
+  - [ ] all modules
+
 - [ ] Coverage graph over time
 - [ ] Integration with GH
-- [ ] Deployment
 - [ ] SSH into container?
 - [ ] Change threaded exec to async gem (new backend for scheduler)
 - [ ] runs-on integration w/ gh??

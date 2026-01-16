@@ -129,7 +129,12 @@ module Apricity
         def pretty = "(stderr chunk from step #{step.name})"
       end
 
-      PipelineFinished = Data.define(:pipeline_name, :finished_at, :outputs_by_node) do
+      PipelineStarted = Data.define(:pipeline_name, :started_at) do
+        def type = :pipeline_started
+        def pretty = "pipeline #{pipeline_name} started"
+      end
+
+      PipelineFinished = Data.define(:pipeline_name, :finished_at, :outputs_by_node, :status) do
         def type = :pipeline_finished
         def pretty = "pipeline #{pipeline_name} finished"
       end

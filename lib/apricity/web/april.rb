@@ -7,19 +7,33 @@ require "stringio"
 require "erb"
 require "nokogiri"
 
+require_relative "../run_store"
+
 module Apricity
   # In-memory store for runs
-  class RunStore
-    include Singleton
+  # class RunStore
+  #   # In memory backend implementation
+  #   class InMemoryBackend
+  #     def initialize = @runs = {}
+  #     def add_run(run) = @runs[run.id] = run
+  #     def get_run(run_id) = @runs[run_id]
+  #     def list_runs = @runs.values
+  #   end
 
-    def initialize
-      @runs = {}
-    end
+  #   include Singleton
 
-    def add_run(run) = @runs[run.id] = run
-    def get_run(run_id) = @runs[run_id]
-    def list_runs = @runs.values
-  end
+  #   def initialize(backend: InMemoryBackend.new)
+  #     @backend = backend
+  #   end
+
+  #   def add_run(run) = backend.add_run(run)
+  #   def get_run(run_id) = backend.get_run(run_id)
+  #   def list_runs = backend.list_runs
+
+  #   private
+
+  #   attr_reader :backend
+  # end
 
   module Web
     module MimeTypes
@@ -41,8 +55,8 @@ module Apricity
     # Helper methods for pipeline management
     module Pipelines
       DEFAULT_PIPELINES = [
-        Apricity::Model::Pipeline.from_file("apricity.yaml"),
-        Apricity::Model::Pipeline.from_file(".apricity-parallel.yaml"),
+        # Apricity::Model::Pipeline.from_file("apricity.yaml"),
+        # Apricity::Model::Pipeline.from_file(".apricity-parallel.yaml"),
         *Dir.glob(File.join(__dir__, "../../../example/**/apricity.yaml"))
             .map { |f| Apricity::Model::Pipeline.from_file(f) }
       ].freeze
@@ -54,46 +68,175 @@ module Apricity
       end
     end
 
+    # Helper methods for SBOM (Software Bill of Materials) handling
+    module SBOM
+      def generate_sbom_html(sbom_path)
+        require "nokogiri"
+
+        file = File.open(sbom_path)
+        doc = Nokogiri::XML(file)
+        ns = { "cdx" => doc.root.namespace.href }
+
+        @components = parse_components(doc, ns)
+        file.close
+
+        # Generate HTML
+        erb_template = File.read(File.join(__dir__, "views", "sbom.erb"))
+        ERB.new(erb_template).result(binding)
+      end
+
+      def parse_components(doc, namespace)
+        doc.xpath("//cdx:component", namespace).map do |component_node|
+          parse_component(component_node, namespace)
+        end
+      end
+
+      # rubocop:disable Metrics/AbcSize
+      # rubocop:disable Metrics/CyclomaticComplexity
+      # rubocop:disable Metrics/PerceivedComplexity
+      def parse_component(component_node, namespace)
+        name = component_node.at_xpath("cdx:name", namespace)&.text || "unknown"
+        version = component_node.at_xpath("cdx:version", namespace)&.text || "unknown"
+        component_type = component_node["type"] || "unknown"
+
+        licenses = []
+        licenses += component_node.xpath("cdx:licenses/cdx:license/cdx:id", namespace).map(&:text)
+        licenses += component_node.xpath("cdx:licenses/cdx:license/cdx:name", namespace).map(&:text)
+        licenses += component_node.xpath("cdx:licenses/cdx:license/cdx:expression", namespace).map(&:text)
+
+        { name:, version:, type: component_type, licenses: licenses.uniq }
+      end
+      # rubocop:enable Metrics/AbcSize
+      # rubocop:enable Metrics/CyclomaticComplexity
+      # rubocop:enable Metrics/PerceivedComplexity
+    end
+
     # Helper methods for Server-Sent Events (SSE) streaming
     module Streaming
-      def format_sse(event)
-        payload = Apricity::JobExecution::EventSerializer.as_json(event)
-        sse = "event: #{event.type}\ndata: #{payload}\n\n"
-        puts "Formatted SSE: #{sse}"
-        sse
+      # def format_sse(event, event_id)
+      #   payload = Apricity::JobExecution::EventSerializer.as_json(event)
+      #   "id: #{event_id}\nevent: #{event.type}\ndata: #{payload}\n\n"
+      # end
+
+      def format_sse_json(event_type, json, event_id)
+        raise "Invalid event" unless event_type && json
+
+        "id: #{event_id}\nevent: #{event_type}\ndata: #{json}\n\n"
+      end
+
+      def replay_stored_events(run, out)
+        last_event_id = request.env["HTTP_LAST_EVENT_ID"].to_i
+        events = Apricity::Run::EventStore.get_events_json(run.id)
+
+        events.each_with_index do |event, idx|
+          event_id = idx + 1
+          next unless event_id > last_event_id
+
+          # out << format_sse(event, event_id) if event_id > last_event_id
+          out << format_sse_json(event_type_from_json(event), event, event_id) if event_id > last_event_id
+        end
+
+        events.size
       end
 
       def stream_events(run, out)
+        current_id = replay_stored_events(run, out)
+
         queue = Queue.new
         subscriber = Apricity::Run::Subscriber[queue]
-        Apricity::Run::EventStore.get_events(run.id).each { out << format_sse(it) }
         Apricity::Run::Subscriptions.add_subscriber(run.id, subscriber)
-        begin
-          streaming_loop(out, queue)
-        rescue IOError, Errno::EPIPE
-          # client disconnected
-        ensure
-          Apricity::Run::Subscriptions.remove_subscriber(params[:id], subscriber)
+
+        # when client disconnects, force-unblock the streaming loop
+        out.callback do
+          Apricity::Run::Subscriptions.remove_subscriber(run.id, subscriber)
+          queue << :__close__
+        end
+
+        out.errback do
+          Apricity::Run::Subscriptions.remove_subscriber(run.id, subscriber)
+          queue << :__close__
+        end
+
+        streaming_loop(out, queue, current_id)
+      rescue IOError, Errno::EPIPE
+      # client disconnected
+      ensure
+        Apricity::Run::Subscriptions.remove_subscriber(run.id, subscriber) if subscriber
+      end
+
+      def streaming_loop(out, queue, start_id)
+        current_id = start_id
+
+        loop do
+          event = queue.pop
+          # event = begin
+          #   queue.pop(true)
+          # rescue StandardError
+          #   nil
+          # end
+          # sleep 0.25 unless event
+          break if event == :__close__
+
+          unless event.is_a?(String)
+            warn "StreamingLoop: Invalid event received: #{event.inspect}"
+            next
+          end
+
+          current_id += 1
+          type = event_type_from_json(event)
+          next unless type
+
+          begin
+            out << format_sse_json(type, event, current_id)
+            out.flush if out.respond_to?(:flush)
+          rescue IOError, Errno::EPIPE, Errno::ECONNRESET
+            break
+          end
+
+          break send_close_and_finish(out) if type == "pipeline_finished"
         end
       end
 
-      def streaming_loop(out, queue)
-        loop do
-          event = queue.pop
-          puts "Sending event #{event.type} to client"
-          out << format_sse(event)
-          next unless event.type == :pipeline_finished
+      def send_close_and_finish(out)
+        out << "event: close\ndata: {}\n\n"
+        out.close
+      rescue IOError, Errno::EPIPE, Errno::ECONNRESET
+        # ignore
+      end
 
-          # puts "Pipeline finished, closing stream"
-          out << "event: close\ndata: {}\n\n"
-          out.close
-          break
-        end
+      # def event_type_from_json(json) = JSON.parse(json)["type"]
+      def event_type_from_json(json)
+        json && json[/"type":"([^"]+)"/, 1]
       end
     end
 
     # Helper methods for the web interface
     module Support
+      def serve_interactive_artifact_route
+        requested_path = params[:splat].first
+        full_path = safe_artifact_path(requested_path)
+        serve_interactive_artifact(full_path, requested_path)
+      end
+
+      def serve_artifact_download_route
+        artifact_path = params[:splat].first
+        full_path = File.join(Dir.pwd, ".apricity", artifact_path)
+        halt 404, "Artifact not found" unless File.exist?(full_path)
+
+        serve_artifact_file_or_directory(full_path)
+      end
+
+      def serve_artifact_file_or_directory(full_path)
+        return send_file(full_path, disposition: :attachment) unless File.directory?(full_path)
+
+        files = Dir.glob("#{full_path}/**/*").reject { |f| File.directory?(f) }
+        return send_file(files.first, disposition: :attachment) if files.size == 1
+
+        content_type "application/gzip"
+        attachment "#{File.basename(full_path)}.tar.gz"
+        read_archived_artifact(full_path)
+      end
+
       def read_archived_artifact(full_path)
         # Create tar in memory first, then gzip it
         tar_io = StringIO.new
@@ -191,46 +334,6 @@ module Apricity
         end
       end
 
-      def generate_sbom_html(sbom_path)
-        require "nokogiri"
-
-        file = File.open(sbom_path)
-        doc = Nokogiri::XML(file)
-        ns = { "cdx" => doc.root.namespace.href }
-
-        @components = parse_components(doc, ns)
-        file.close
-
-        # Generate HTML
-        erb_template = File.read(File.join(__dir__, "views", "sbom.erb"))
-        ERB.new(erb_template).result(binding)
-      end
-
-      def parse_components(doc, namespace)
-        doc.xpath("//cdx:component", namespace).map do |component_node|
-          parse_component(component_node, namespace)
-        end
-      end
-
-      # rubocop:disable Metrics/AbcSize
-      # rubocop:disable Metrics/CyclomaticComplexity
-      # rubocop:disable Metrics/PerceivedComplexity
-      def parse_component(component_node, namespace)
-        name = component_node.at_xpath("cdx:name", namespace)&.text || "unknown"
-        version = component_node.at_xpath("cdx:version", namespace)&.text || "unknown"
-        component_type = component_node["type"] || "unknown"
-
-        licenses = []
-        licenses += component_node.xpath("cdx:licenses/cdx:license/cdx:id", namespace).map(&:text)
-        licenses += component_node.xpath("cdx:licenses/cdx:license/cdx:name", namespace).map(&:text)
-        licenses += component_node.xpath("cdx:licenses/cdx:license/cdx:expression", namespace).map(&:text)
-
-        { name:, version:, type: component_type, licenses: licenses.uniq }
-      end
-      # rubocop:enable Metrics/AbcSize
-      # rubocop:enable Metrics/CyclomaticComplexity
-      # rubocop:enable Metrics/PerceivedComplexity
-
       # Diagram generation helpers
       module Diagrams
         class << self
@@ -277,6 +380,7 @@ module Apricity
     class April < Sinatra::Base
       include Pipelines
       include Streaming
+      include SBOM
       include Support
 
       configure do
@@ -287,7 +391,7 @@ module Apricity
       helpers do
         def pretty_status(status)
           # Colored circle indicators for clean, consistent look
-          case status
+          case status.to_sym
           when :running then "🟡"
           when :success then "🟢"
           when :failure then "🔴"
@@ -326,13 +430,13 @@ module Apricity
 
       get "/pipelines/:slug/runs" do
         @pipeline = load_pipeline(params[:slug])
-        @runs = Apricity::RunStore.instance.list_runs.select { |r| r.pipeline.slug == params[:slug] }
+        @runs = Apricity::RunStore.instance.list_runs.select { |r| r.pipeline_slug == params[:slug] }
         erb :runs, layout: false
       end
 
       get "/runs" do
         @runs = Apricity::RunStore.instance.list_runs
-        @runs.map { |run| { id: run.id, status: run.status, started_at: run.started_at } }
+        @runs.map { |run| { id: run.id, status: run.status, started_at: run.created_at } }
         erb :runs, layout: false
       end
 
@@ -341,7 +445,8 @@ module Apricity
         @run = Apricity::RunStore.instance.get_run(run_id)
         halt 404, "Run #{run_id} not found" unless @run
 
-        @pipeline = @run.pipeline
+        pipeline_slug = @run.pipeline_slug
+        @pipeline = settings.pipelines.find { |p| p.slug == pipeline_slug }
 
         erb :run
       end
@@ -355,10 +460,17 @@ module Apricity
         run = Apricity::RunStore.instance.get_run(params[:id])
         halt 404, "Run #{params[:id]} not found" unless run
 
-        if run.finished?
+        events = Apricity::Run::EventStore.get_events_json(params[:id])
+
+        # finished = events.any? { |e| e.type == :pipeline_finished }
+        # finished = events.any? { |json| json.include?('"type":"pipeline_finished"') }
+        finished = run.status != "running" && run.status != "pending"
+
+        if finished
           stream do |out|
-            Apricity::Run::EventStore.get_events(params[:id]).each do |event|
-              out << format_sse(event)
+            events.each_with_index do |event, idx|
+              # out << format_sse(event, idx + 1)
+              out << format_sse_json(JSON.parse(event)["type"], event, idx + 1)
             end
             out << "event: close\ndata: {}\n\n"
             out.close
@@ -371,46 +483,15 @@ module Apricity
 
       post "/pipelines/:slug/run" do
         pipeline = load_pipeline(params[:slug])
-        run = Run::Instance.create(pipeline)
-        RunStore.instance.add_run(run)
-
-        Thread.new { run.perform }
-
-        redirect "/runs/#{run.id}"
+        run_id = Run::Worker.enqueue(pipeline)
+        redirect "/runs/#{run_id}"
       end
 
       # Serve interactive artifact content (e.g., coverage HTML reports)
-      get "/interactive/artifact/*" do
-        requested_path = params[:splat].first
-        full_path = safe_artifact_path(requested_path)
-        serve_interactive_artifact(full_path, requested_path)
-      end
+      get("/interactive/artifact/*") { serve_interactive_artifact_route }
 
       # Download artifact file or directory as tar.gz
-      get "/artifacts/*" do
-        artifact_path = params[:splat].first
-        full_path = File.join(Dir.pwd, ".apricity", artifact_path)
-
-        halt 404, "Artifact not found" unless File.exist?(full_path)
-
-        if File.directory?(full_path)
-          # Check if directory contains only a single file
-          files = Dir.glob("#{full_path}/**/*").reject { |f| File.directory?(f) }
-
-          if files.size == 1
-            # Single file - serve it directly
-            send_file files.first, disposition: :attachment
-          else
-            # Multiple files - serve as tar.gz
-            content_type "application/gzip"
-            attachment "#{File.basename(full_path)}.tar.gz"
-            read_archived_artifact(full_path)
-          end
-        else
-          # Serve single file
-          send_file full_path, disposition: :attachment
-        end
-      end
+      get("/artifacts/*") { serve_artifact_download_route }
     end
   end
 end

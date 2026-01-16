@@ -1,0 +1,38 @@
+#!/usr/bin/env ruby
+
+# bin/worker
+# require "bundler/setup"
+require "redis"
+require_relative "../lib/apricity"
+require_relative "../lib/apricity/web/april"
+
+Apricity.register_default_plugins
+Apricity.register_default_actions
+
+def process_jobs
+  loop do
+    msg = Apricity::Run::RunQueue.instance.pop
+    run_id = msg[:run_id]
+    pipeline_slug = msg[:pipeline_slug]
+  
+    pipeline = Apricity::Web::April.settings.pipelines.find { |p| p.slug == pipeline_slug }
+    run = Apricity::Run::Instance.new(id: run_id, pipeline:, git_sha: nil, start_time: Time.now)
+    # Apricity::RunStore.instance.add_run(run)
+  
+    puts "🚀 Starting run #{run.id} for pipeline '#{pipeline.slug}'"
+    run.perform
+  end
+end
+
+concurrency = ENV.fetch("APRICITY_WORKER_CONCURRENCY", "2").to_i
+workers = []
+concurrency.times do 
+  workers << Thread.new do
+    process_jobs
+  end
+end
+
+puts "❄️  Waiting for jobs [concurrency=#{concurrency}]..."
+
+workers.each(&:join)
+
