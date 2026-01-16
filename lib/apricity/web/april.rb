@@ -488,7 +488,7 @@ module Apricity
 
       post "/pipelines/:slug/run" do
         pipeline = load_pipeline(params[:slug])
-        run_id = Run::Worker.enqueue(pipeline)
+        run_id = Run::Worker.perform(pipeline)
         redirect "/runs/#{run_id}"
       end
 

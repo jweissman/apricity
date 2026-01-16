@@ -27,7 +27,7 @@ primary_region = 'iad'
 [[mounts]]
   source = 'data'
   destination = '/data'
-
+  
 [http_service]
   internal_port = 8080
   processes = ["web"]
@@ -43,4 +43,3 @@ primary_region = 'iad'
 
 [processes]
   web = "bundle exec rackup --host 0.0.0.0 --port 8080"
-  worker = "bin/worker"

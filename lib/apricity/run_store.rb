@@ -86,7 +86,7 @@ module Apricity
     include Singleton
 
     def initialize(backend: RedisBackend.new(
-      redis: Redis.new(url: ENV.fetch("APRICITY_REDIS_URL", "redis://localhost:6379"))
+      redis: Redis.new(url: ENV.fetch("REDIS_URL", "redis://localhost:6379"))
     ))
       # InMemoryBackend.new)
       @backend = backend

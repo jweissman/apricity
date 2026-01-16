@@ -295,6 +295,7 @@ module Apricity
         run = Run::Instance.create(pipeline)
         RunStore.instance.add_run(run)
 
+        puts "❄️ Performing run #{run.id} for pipeline '#{pipeline.slug}'"
         Thread.new { run.perform }
 
         run.id
