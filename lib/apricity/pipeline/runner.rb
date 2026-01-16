@@ -217,25 +217,6 @@ module Apricity
 
             artifacts[node.id] = artifact
           end
-          # artifact_mutex.synchronize do
-          #   artifact = extract_value(result.outputs, output.key)
-          #   return unless artifact
-
-          #   existing = context.artifacts[output.key]
-
-          #   context.artifacts[output.key] =
-          #     case existing
-          #     when nil
-          #       { node.id => artifact }
-          #     when Hash
-          #       existing.merge(node.id => artifact)
-          #     when String
-          #       raise "Unexpected String artifact state for #{output.key} (should be a Hash)"
-          #     else
-          #       raise "Invalid artifact state for #{output.key}: #{existing.inspect}"
-          #     end
-          # end
-
         else
           raise "Unknown output type #{output.type} for output #{output.key}"
         end

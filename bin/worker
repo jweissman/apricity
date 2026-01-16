@@ -4,10 +4,16 @@
 # require "bundler/setup"
 require "redis"
 require_relative "../lib/apricity"
-require_relative "../lib/apricity/web/april"
+# require_relative "../lib/apricity/web/april"
 
 Apricity.register_default_plugins
 Apricity.register_default_actions
+
+KNOWN_PIPELINES = Dir.glob(File.join(__dir__, "../example/**/apricity.yaml"))
+                     .map { |f| Apricity::Model::Pipeline.from_file(f) }
+                     .freeze
+
+def find_pipeline_by_slug(slug) = KNOWN_PIPELINES.find { |p| p&.slug == slug }
 
 def process_jobs
   loop do
@@ -15,12 +21,14 @@ def process_jobs
     run_id = msg[:run_id]
     pipeline_slug = msg[:pipeline_slug]
   
-    pipeline = Apricity::Web::April.settings.pipelines.find { |p| p.slug == pipeline_slug }
+    # pipeline = Apricity::Web::April.settings.pipelines.find { |p| p.slug == pipeline_slug }
+    pipeline = find_pipeline_by_slug(pipeline_slug)
     run = Apricity::Run::Instance.new(id: run_id, pipeline:, git_sha: nil, start_time: Time.now)
     # Apricity::RunStore.instance.add_run(run)
   
-    puts "🚀 Starting run #{run.id} for pipeline '#{pipeline.slug}'"
+    puts "Starting run #{run.id} for pipeline '#{pipeline.slug}'..."
     run.perform
+    puts "Finished run #{run.id} for pipeline '#{pipeline.slug}'."
   end
 end
 

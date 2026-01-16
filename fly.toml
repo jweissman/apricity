@@ -12,6 +12,7 @@ primary_region = 'iad'
   APRICITY_ARTIFACT_ROOT = '/data/artifacts'
   APRICITY_CACHE_ROOT = '/data/cache'
   APRICITY_DOCKER_READ_TIMEOUT = 1200
+  APRICITY_WORKER_CONCURRENCY = 4
   DOCKER_API_VERSION = '1.43'
   DOCKER_VERSION = '1.43'
   DOCKER_HOST = 'tcp://[fdaa:38:ea0b:a7b:60d:67cb:bb13:2]:2375'
@@ -21,6 +22,7 @@ primary_region = 'iad'
   BUNDLE_WITHOUT = "development:test"
   BUNDLE_PATH = "/usr/local/bundle"
   HOME = "/home/ruby"
+  REDIS_URL = "redis://default:5b4adf48cfae41678708ca6937049984@fly-apricity-redis.upstash.io:6379"
 
 [[mounts]]
   source = 'data'

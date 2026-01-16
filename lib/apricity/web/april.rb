@@ -6,6 +6,7 @@ require "zlib"
 require "stringio"
 require "erb"
 require "nokogiri"
+require "timeout"
 
 require_relative "../run_store"
 
@@ -168,13 +169,15 @@ module Apricity
         current_id = start_id
 
         loop do
-          event = queue.pop
-          # event = begin
-          #   queue.pop(true)
-          # rescue StandardError
-          #   nil
-          # end
-          # sleep 0.25 unless event
+          event = begin
+            Timeout.timeout(1) { queue.pop }
+          rescue ThreadError, Timeout::Error
+            nil
+          end
+          unless event
+            sleep 0.25
+            next
+          end
           break if event == :__close__
 
           unless event.is_a?(String)
@@ -187,9 +190,11 @@ module Apricity
           next unless type
 
           begin
-            out << format_sse_json(type, event, current_id)
-            out.flush if out.respond_to?(:flush)
-          rescue IOError, Errno::EPIPE, Errno::ECONNRESET
+            Timeout.timeout(5) do
+              out << format_sse_json(type, event, current_id)
+              out.flush if out.respond_to?(:flush)
+            end
+          rescue IOError, Errno::EPIPE, Errno::ECONNRESET, Timeout::Error
             break
           end
 

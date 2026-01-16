@@ -31,12 +31,6 @@ module Apricity
           subs = @subscribers[run_id].dup
           subs.each { |subscriber| subscriber.push(event) }
         end
-
-        # def dispatch(run_id, event)
-        #   @subscribers[run_id].each do |subscriber|
-        #     subscriber.push(event)
-        #   end
-        # end
       end
 
       # Redis backend implementation
