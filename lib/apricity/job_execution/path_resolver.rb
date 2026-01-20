@@ -13,7 +13,7 @@ module Apricity
       def resolve(path)
         return path if path.start_with?("/")
 
-        warn "!!! Resolving relative path #{path.inspect} against root #{@root.inspect}"
+        # warn "!!! Resolving relative path #{path.inspect} against root #{@root.inspect}"
         File.expand_path(path, @root)
       end
     end

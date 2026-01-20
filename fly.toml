@@ -12,10 +12,10 @@ primary_region = 'iad'
   APRICITY_ARTIFACT_ROOT = '/data/artifacts'
   APRICITY_CACHE_ROOT = '/data/cache'
   APRICITY_DOCKER_READ_TIMEOUT = 1200
-  APRICITY_WORKER_CONCURRENCY = 4
+  APRICITY_WORKER_CONCURRENCY = 2
   DOCKER_API_VERSION = '1.43'
   DOCKER_VERSION = '1.43'
-  DOCKER_HOST = 'tcp://[fdaa:38:ea0b:a7b:60d:f63:b8ae:2]:2375'
+  DOCKER_HOST = 'tcp://[fdaa:38:ea0b:a7b:60d:230b:b25d:2]:2375'
   PORT = '8080'
   RACK_ENV = 'production'
   BUNDLE_DEPLOYMENT = "true"
@@ -42,4 +42,4 @@ primary_region = 'iad'
   cpus = 2
 
 [processes]
-  web = "bundle exec rackup --host 0.0.0.0 --port 8080"
+  web = "bundle exec foreman start"

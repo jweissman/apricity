@@ -4,43 +4,48 @@
 # require "bundler/setup"
 require "redis"
 require_relative "../lib/apricity"
+require_relative "../lib/apricity/worker"
+Apricity::Worker.bootstrap  
 # require_relative "../lib/apricity/web/april"
 
-Apricity.register_default_plugins
-Apricity.register_default_actions
+# KNOWN_PIPELINES = Dir.glob(File.join(__dir__, "../example/**/apricity.yaml"))
+#                      .map { |f| Apricity::Model::Pipeline.from_file(f) }
+#                      .freeze
 
-KNOWN_PIPELINES = Dir.glob(File.join(__dir__, "../example/**/apricity.yaml"))
-                     .map { |f| Apricity::Model::Pipeline.from_file(f) }
-                     .freeze
+# def find_pipeline_by_slug(slug) = KNOWN_PIPELINES.find { |p| p&.slug == slug }
 
-def find_pipeline_by_slug(slug) = KNOWN_PIPELINES.find { |p| p&.slug == slug }
+# def process_jobs = loop { process_job }
 
-def process_jobs
-  loop do
-    msg = Apricity::Run::RunQueue.instance.pop
-    run_id = msg[:run_id]
-    pipeline_slug = msg[:pipeline_slug]
+# def process_job
+#     msg = Apricity::Run::RunQueue.instance.pop
+#     run_id = msg[:run_id]
+#     pipeline_slug = msg[:pipeline_slug]
+#     pipeline = find_pipeline_by_slug(pipeline_slug)
+#     run = Apricity::Run::Instance.new(id: run_id, pipeline:, git_sha: nil, start_time: Time.now)
   
-    # pipeline = Apricity::Web::April.settings.pipelines.find { |p| p.slug == pipeline_slug }
-    pipeline = find_pipeline_by_slug(pipeline_slug)
-    run = Apricity::Run::Instance.new(id: run_id, pipeline:, git_sha: nil, start_time: Time.now)
-    # Apricity::RunStore.instance.add_run(run)
+#     puts "Starting '#{pipeline.slug}' [#{run.id}]"
+#     t0 = Time.now
+#     run.perform
+#     t1 = Time.now
+#     duration = (t1 - t0)
+#     duration_seconds = (duration % 60).round(2)
+#     puts "Finished '#{pipeline.slug}' in #{duration_seconds}s [#{run.id}]."
+# end
+
+# # def bootstrap
+#   Apricity.register_default_plugins
+#   Apricity.register_default_actions
+
+#   puts "🚀  Starting Apricity worker..."
+#   concurrency = ENV.fetch("APRICITY_WORKER_CONCURRENCY", "2").to_i
+#   workers = []
+#   concurrency.times do 
+#     workers << Thread.new do
+#       process_jobs
+#     end
+#   end
   
-    puts "Starting run #{run.id} for pipeline '#{pipeline.slug}'..."
-    run.perform
-    puts "Finished run #{run.id} for pipeline '#{pipeline.slug}'."
-  end
-end
-
-concurrency = ENV.fetch("APRICITY_WORKER_CONCURRENCY", "2").to_i
-workers = []
-concurrency.times do 
-  workers << Thread.new do
-    process_jobs
-  end
-end
-
-puts "❄️  Waiting for jobs [concurrency=#{concurrency}]..."
-
-workers.each(&:join)
-
+#   puts "❄️  Waiting for jobs [concurrency=#{concurrency}]..."
+  
+#   workers.each(&:join)
+# # end

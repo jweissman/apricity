@@ -4,17 +4,11 @@ require_relative "run/timestamps"
 require_relative "run/node_state"
 require_relative "run/step_state"
 require_relative "run/state"
+require_relative "run/result"
 require_relative "run_store"
 
 module Apricity
   module Run
-    Result = Data.define(:run, :started_at, :finished_at, :step_states, :final_run_state) do
-      def duration_seconds = (finished_at - started_at).round(2)
-      def failed_nodes = final_run_state.nodes.values.select { it.status == :failure }
-      def retryable? = failed_nodes.any?
-      def passed? = failed_nodes.empty?
-    end
-
     Subscriber = Data.define(:queue) do
       def push(event) = queue << event
     end
@@ -42,6 +36,31 @@ module Apricity
           @started = false
 
           @threads = {} # [run_id, subscriber.object_id] => Thread
+
+          @pub = Redis.new(url: redis_url)
+          @publish_queue = Queue.new
+
+          @publisher = self.class.publisher_thread(@pub, queue: @publish_queue)
+        end
+
+        def self.publisher_thread(pub, queue:)
+          Thread.new { publisher_loop(pub, queue:) }.tap do |t|
+            t.name = "apricity-redis-publisher"
+            t.abort_on_exception = true
+            t.report_on_exception = true
+          end
+        end
+
+        def self.publisher_loop(pub, queue:)
+          loop do
+            msg = queue.pop
+            break if msg == :__stop__
+
+            chan, payload = msg
+            pub.publish(chan, payload)
+          rescue StandardError => e
+            warn "publisher error: #{e.class}: #{e.message}"
+          end
         end
 
         def ensure_started!
@@ -64,9 +83,7 @@ module Apricity
             on.pmessage do |_pattern, channel, msg|
               run_id = channel.split(":").last
 
-              # @mutex.synchronize do
               @in_memory.dispatch(run_id, msg)
-              # end
             end
           end
         end
@@ -81,7 +98,8 @@ module Apricity
         end
 
         def dispatch(run_id, event)
-          Redis.new(url: redis_url).publish(channel(run_id), Apricity::JobExecution::EventSerializer.as_json(event))
+          payload = Apricity::JobExecution::EventSerializer.as_json(event)
+          @publish_queue << [channel(run_id), payload]
         end
 
         private
@@ -258,7 +276,7 @@ module Apricity
         run_id
       end
 
-      def self.perform(pipeline)
+      def self.inline(pipeline)
         run = Run::Instance.create(pipeline)
         RunStore.instance.add_run(run)
 
@@ -268,6 +286,14 @@ module Apricity
 
         run.id
       end
+
+      def self.perform(pipeline)
+        return inline(pipeline) if inline_run?
+
+        enqueue(pipeline)
+      end
+
+      def self.inline_run? = ENV.fetch("APRICITY_INLINE_RUN", "false") == "true"
     end
   end
 end

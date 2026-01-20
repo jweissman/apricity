@@ -2,13 +2,15 @@
 
 # frozen_string_literal: true
 
-require "bundler/setup"
-require_relative "../lib/apricity"
-require_relative "../lib/apricity/web/april"
+raise "This file is deprecated; use `bundle exec puma -C config/puma.rb` to start the Apricity web server."
+# just use puma instead of this
+# require "bundler/setup"
+# require_relative "../lib/apricity"
+# require_relative "../lib/apricity/web/april"
 
-# Load default plugins and actions
-Apricity.register_default_plugins
-Apricity.register_default_actions
+# # Load default plugins and actions
+# Apricity.register_default_plugins
+# Apricity.register_default_actions
 
-# Start webserver
-Apricity::Web::April.run!
+# # Start webserver
+# Apricity::Web::April.run!

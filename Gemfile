@@ -43,3 +43,5 @@ gem "pg", "~> 1.6"
 # gem "irb"
 
 gem "redis", "~> 5.4"
+
+gem "foreman", "~> 0.90.0"

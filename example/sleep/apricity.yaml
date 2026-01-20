@@ -1,0 +1,14 @@
+name: Slow Pipeline
+actions:
+  test:
+    jobs:
+      - test:
+          runs-on: ruby:3.4
+          name: Sleeping Job
+          steps:
+            - name: Sleep
+              run: |
+                sleep 120
+            - name: Echo Hello
+              run: |
+                echo "Hello, Apricity!"

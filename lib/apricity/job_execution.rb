@@ -100,7 +100,7 @@ module Apricity
         key = input.key
         host_dir = artifact_inputs[key] || artifact_inputs[key.to_s]
 
-        warn "!!! Setting up input artifact #{key.inspect} for job #{@node.id.inspect}: host_dir=#{host_dir.inspect}"
+        # warn "!!! Setting up input artifact #{key.inspect} for job #{@node.id.inspect}: host_dir=#{host_dir.inspect}"
 
         raise "Missing artifact #{key}" unless host_dir
 
