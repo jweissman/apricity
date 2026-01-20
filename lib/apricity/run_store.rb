@@ -96,19 +96,14 @@ module Apricity
     def add_run_record(record) = backend.add_run(record)
     def get_run(run_id) = backend.get_run(run_id)
     def list_runs = backend.list_runs
-    def set_run_status(run_id, status) = backend.set_run_status(run_id, status)
+    def set_run_status(run_id, status) = backend.set_run_status(run_id, status.to_s)
 
     def apply_event(run_id:, event:)
-      # $stdout.puts "[RunStore#apply_event] #{event.type} for run #{run_id}"
       record = get_run(run_id)
       return unless record
 
-      # $stdout.puts "[RunStore#apply_event] Found run record: #{record}"
-      # $stdout.puts event.pretty
-      # debugger
-
       case event.type
-      when :pipeline_started then set_run_status(run_id, :running)
+      when :pipeline_started then set_run_status(run_id, "running")
       when :pipeline_finished
         set_run_status(run_id, event.status.to_s)
       end

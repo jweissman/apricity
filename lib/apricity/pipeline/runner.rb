@@ -41,6 +41,7 @@ module Apricity
               else
                 run_linear(graph.topological_sort, context:, sink:)
               end
+      ensure
         finish_pipeline(nodes, context:, sink:, ret:)
       end
 
@@ -48,17 +49,15 @@ module Apricity
         pipeline_started = JobExecution::Events::PipelineStarted[
           pipeline_name:, started_at: Time.now
         ]
-        # plugins = nodes.flat_map(&:plugins).compact.uniq(&:key)
-        # plugins.each { |plugin| plugin.handle(pipeline_started, context:, emitter: sink) }
         sink[pipeline_started]
       end
 
       def finish_pipeline(nodes, context:, sink:, ret:)
-        passed = context.nodes.values.all? { |status| %i[success skipped].include?(status) }
+        node_statuses = context.nodes.values
+        passed = node_statuses.any? && node_statuses.all? { |status| %i[success skipped].include?(status) }
         pipeline_finished = JobExecution::Events::PipelineFinished[
           pipeline_name:, finished_at: Time.now,
-          outputs_by_node: @outputs_by_node,
-          status: (passed ? :success : :failure)
+          outputs_by_node: @outputs_by_node, status: (passed ? :success : :failure)
         ]
         plugins = nodes.flat_map(&:plugins).compact.uniq(&:key)
         plugins.each { |plugin| plugin.handle(pipeline_finished, context:, emitter: sink) }

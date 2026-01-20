@@ -1,0 +1,11 @@
+name: Echo Pipeline
+actions:
+  test:
+    jobs:
+      - test:
+          runs-on: ruby:3.4
+          name: Echo Job
+          steps:
+            - name: Echo Hello
+              run: |
+                echo "Hello, Apricity!"

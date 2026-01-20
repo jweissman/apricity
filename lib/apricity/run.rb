@@ -80,23 +80,6 @@ module Apricity
           @mutex.synchronize { @in_memory.remove_subscriber(run_id, subscriber) }
         end
 
-        # def add_subscriber(run_id, subscriber)
-        #   t = Thread.new do
-        #     Redis.new(url: redis_url).subscribe(channel(run_id)) do |on|
-        #       on.message do |_chan, msg|
-        #         # event = Apricity::JobExecution::EventSerializer.from_json(msg)
-        #         subscriber.push(msg) # event)
-        #       end
-        #     end
-        #   end
-        #   @threads[[run_id, subscriber.object_id]] = t
-        # end
-
-        # def remove_subscriber(run_id, subscriber)
-        #   t = @threads.delete([run_id, subscriber.object_id])
-        #   t&.kill
-        # end
-
         def dispatch(run_id, event)
           Redis.new(url: redis_url).publish(channel(run_id), Apricity::JobExecution::EventSerializer.as_json(event))
         end
@@ -113,7 +96,6 @@ module Apricity
       def initialize(backend: RedisBackend.new(
         redis_url: ENV.fetch("REDIS_URL", "redis://localhost:6379")
       ))
-        # InMemoryBackend.new)
         @backend = backend
       end
 
@@ -152,12 +134,6 @@ module Apricity
         def initialize(redis:)
           @redis = redis
         end
-
-        # def get_events(run_id)
-        #   redis.lrange(key(run_id), 0, -1).map do |json|
-        #     Apricity::JobExecution::EventSerializer.from_json(json)
-        #   end
-        # end
 
         def get_events_json(run_id)
           redis.lrange(key(run_id), 0, -1)
@@ -199,15 +175,6 @@ module Apricity
       private
 
       attr_reader :backend
-
-      # @events = Hash.new { |h, k| h[k] = [] }
-      # def self.get_events(run_id) = @events[run_id]
-
-      # def self.append_event(run_id, event)
-      #   # $stdout.puts "[EventStore#append] #{event.type}: #{event.pretty}"
-      #   @events[run_id] << event
-      #   Subscriptions.dispatch(run_id, event)
-      # end
     end
 
     Instance = Data.define(:id, :pipeline, :git_sha, :start_time) do
@@ -295,8 +262,9 @@ module Apricity
         run = Run::Instance.create(pipeline)
         RunStore.instance.add_run(run)
 
-        puts "❄️ Performing run #{run.id} for pipeline '#{pipeline.slug}'"
+        puts "Starting run #{run.id} for pipeline '#{pipeline.slug}'"
         Thread.new { run.perform }
+        puts "Thread started for run #{run.id} for pipeline '#{pipeline.slug}'"
 
         run.id
       end
