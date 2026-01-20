@@ -1,59 +1,63 @@
-<div class="mb-8">
-  <a href="/" class="inline-flex items-center text-sm text-slate-500 hover:text-sky-600 transition-colors duration-200 group">
-    <i class="fas fa-arrow-left mr-2 group-hover:-translate-x-1 transition-transform duration-200"></i>Back to Dashboard
-  </a>
-</div>
+<!-- Breadcrumb -->
+<nav class="mb-6 flex items-center text-sm text-slate-500">
+  <a href="/" class="hover:text-sky-600 transition-colors">Dashboard</a>
+  <i class="fas fa-chevron-right mx-2 text-slate-300 text-xs"></i>
+  <a href="/pipelines/<%= @pipeline.slug %>" class="hover:text-sky-600 transition-colors"><%= @pipeline.name %></a>
+  <i class="fas fa-chevron-right mx-2 text-slate-300 text-xs"></i>
+  <span class="text-slate-700 font-medium">Run <%= @run.id[0..7] %></span>
+</nav>
 
 <!-- Run Header Card -->
-<div class="card-elevated rounded-2xl border border-slate-200/50 p-8 mb-8">
-  <div class="flex items-center justify-between">
-    <div>
-      <h2 class="text-2xl font-bold text-slate-800"><%= @pipeline.name %></h2>
-      <div class="flex items-center flex-wrap gap-3 mt-4">
-        <span class="inline-flex items-center px-3.5 py-2 rounded-xl bg-slate-100/80 text-slate-600 text-sm font-mono">
-          <i class="fas fa-fingerprint mr-2.5 text-slate-400 text-xs"></i>
-          <%= @run.id[0..7] %>...
-        </span>
-        <% if @run.git_sha %>
-          <span class="inline-flex items-center px-3.5 py-2 rounded-xl bg-violet-50 text-violet-600 text-sm font-mono">
-            <i class="fab fa-git-alt mr-2.5 text-violet-400"></i>
-            <%= @run.git_sha[0..7] %>
+<div class="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+  <div class="flex items-start justify-between">
+    <div class="space-y-3">
+      <div class="flex items-center gap-3">
+        <h1 class="text-xl font-semibold text-slate-800"><%= @pipeline.name %></h1>
+        <div id="run-status">
+          <span class="inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full border font-medium bg-slate-50 text-slate-600 border-slate-200">
+            <span class="w-2 h-2 rounded-full bg-slate-300 animate-pulse"></span>
+            Loading
           </span>
-        <% end %>
-        <span class="inline-flex items-center text-sm text-slate-500">
-          <i class="far fa-clock mr-2 text-slate-400"></i>
-          <%= @run.start_time.strftime("%b %d, %H:%M:%S") %>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-4 text-sm">
+        <span class="text-slate-500 font-mono text-xs bg-slate-100 px-2 py-1 rounded" title="Run ID">
+          <%= @run.id[0..7] %>
+        </span>
+        <span class="text-slate-400">·</span>
+        <span class="text-slate-600">
+          <%= @run.start_time.strftime("%b %d, %Y at %H:%M") %>
+        </span>
+        <span id="run-duration" class="text-slate-600 font-medium hidden">
+          <!-- Duration will be populated by JS -->
         </span>
       </div>
     </div>
-    <div id="run-status" class="px-4 py-2">
-      <span class="text-sm text-slate-400 animate-pulse flex items-center gap-2">
-        <i class="fas fa-circle-notch fa-spin text-sky-400"></i>
-        Loading...
-      </span>
+    
+    <div class="flex items-center gap-2">
+      <!-- Future: Add retry/cancel buttons here -->
     </div>
   </div>
 </div>
 
-<div id="annotations-list" class="space-y-2 hidden mb-8">
-  <div class="text-slate-400">No annotations available.</div>
-</div>
+<!-- Pipeline Annotations (hidden until populated) -->
+<div id="annotations-list" class="hidden mb-6"></div>
 
 <!-- Pipeline DAG -->
-<div class="mb-8 card-elevated rounded-2xl border border-slate-200/50 overflow-hidden">
-  <div class="px-7 py-5 border-b border-slate-100/80 bg-gradient-to-r from-sky-50/60 via-blue-50/40 to-indigo-50/30">
-    <h3 class="text-sm font-semibold text-slate-600 uppercase tracking-wider flex items-center">
-      <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center mr-3 shadow-sm shadow-sky-500/20">
-        <i class="fas fa-project-diagram text-white text-[10px]"></i>
-      </div>
+<div class="mb-6 bg-white rounded-xl border border-slate-200 overflow-hidden">
+  <div class="px-5 py-3 border-b border-slate-100 bg-slate-50/50">
+    <h2 class="text-xs font-medium text-slate-500 uppercase tracking-wide flex items-center gap-2">
+      <i class="fas fa-sitemap text-slate-400"></i>
       Pipeline Flow
-    </h3>
+    </h2>
   </div>
-  <div id="dag-container" class="flex justify-center p-6"></div>
+  <div id="dag-container" class="flex justify-center p-4 bg-gradient-to-b from-slate-50/50 to-white"></div>
 </div>
 
-<div class="layout">
-  <div id="job-list" class="card-elevated rounded-2xl border border-slate-200/50 p-8"></div>
+<!-- Jobs Section -->
+<div class="bg-white rounded-xl border border-slate-200 p-6">
+  <div id="job-list"></div>
 </div>
 
 

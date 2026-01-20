@@ -13,8 +13,14 @@
 - [x] Normalize annotations for nonmatrixed jobs
 
 # To-do
-- [ ] Deployment
-- [ ] Persistence
+- [~] Deployment
+- [~] Persistence
+- [ ] Repo/ref cold start endpoint
+- [ ] Stabilization
+  - [ ] Heartbeats
+  - [ ] Step timeouts
+- [ ] JUnit + coverage verification on a smaller repo first
+- [ ] Minio/s3 for artifact store
 - [ ] Secrets (env injection from fly secrets?)
 - [ ] Tiny example app with services
 - [ ] Check the JUnit aggregation looks fine for matrix/nonmatrixed jobs
@@ -34,4 +40,5 @@
 - [ ] Persist pipeline state so we don't _have_ to replay events if pipeline is finished?
 
 # Bugs
+- [ ] Address network accumulation somehow?
 - [x] Try to repair step timestamps/durations on the f/e

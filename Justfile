@@ -26,7 +26,7 @@ dev-worker:
   bundle exec bin/worker
 
 dev:
-  hivemind
+  bundle exec foreman start
 
 kill:
   kill -9 $(lsof -i:4567 -t)

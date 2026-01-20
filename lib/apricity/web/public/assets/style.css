@@ -1,0 +1,323 @@
+/* Apricity CI - Clean Design System */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ensure buttons and links have pointer cursor */
+a,
+button,
+[role="button"],
+[onclick] {
+  cursor: pointer;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Terminal keeps dark scrollbar */
+.terminal-output::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+.terminal-output::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+.terminal-output::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Terminal-like output styling */
+.terminal-output {
+  font-family: 'SF Mono', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: -0.02em;
+}
+
+/* ansi_up color classes - winter sun terminal theme */
+.terminal-output .ansi-black-fg {
+  color: #1e293b;
+}
+
+.terminal-output .ansi-red-fg {
+  color: #f87171;
+}
+
+.terminal-output .ansi-green-fg {
+  color: #4ade80;
+}
+
+.terminal-output .ansi-yellow-fg {
+  color: #facc15;
+}
+
+.terminal-output .ansi-blue-fg {
+  color: #60a5fa;
+}
+
+.terminal-output .ansi-magenta-fg {
+  color: #c084fc;
+}
+
+.terminal-output .ansi-cyan-fg {
+  color: #22d3ee;
+}
+
+.terminal-output .ansi-white-fg {
+  color: #f1f5f9;
+}
+
+.terminal-output .ansi-bright-black-fg {
+  color: #475569;
+}
+
+.terminal-output .ansi-bright-red-fg {
+  color: #fca5a5;
+}
+
+.terminal-output .ansi-bright-green-fg {
+  color: #86efac;
+}
+
+.terminal-output .ansi-bright-yellow-fg {
+  color: #fde047;
+}
+
+.terminal-output .ansi-bright-blue-fg {
+  color: #93c5fd;
+}
+
+.terminal-output .ansi-bright-magenta-fg {
+  color: #d8b4fe;
+}
+
+.terminal-output .ansi-bright-cyan-fg {
+  color: #67e8f9;
+}
+
+.terminal-output .ansi-bright-white-fg {
+  color: #ffffff;
+}
+
+.terminal-output .ansi-black-bg {
+  background-color: #1e293b;
+}
+
+.terminal-output .ansi-red-bg {
+  background-color: #dc2626;
+}
+
+.terminal-output .ansi-green-bg {
+  background-color: #16a34a;
+}
+
+.terminal-output .ansi-yellow-bg {
+  background-color: #ca8a04;
+}
+
+.terminal-output .ansi-blue-bg {
+  background-color: #2563eb;
+}
+
+.terminal-output .ansi-magenta-bg {
+  background-color: #9333ea;
+}
+
+.terminal-output .ansi-cyan-bg {
+  background-color: #0891b2;
+}
+
+.terminal-output .ansi-white-bg {
+  background-color: #f1f5f9;
+}
+
+.terminal-output .ansi-bold {
+  font-weight: bold;
+}
+
+.terminal-output .ansi-italic {
+  font-style: italic;
+}
+
+.terminal-output .ansi-underline {
+  text-decoration: underline;
+}
+
+/* Default text color for stdout */
+.terminal-output .stdout {
+  color: #cbd5e1;
+}
+
+.terminal-output .stderr {
+  color: #fca5a5;
+}
+
+/* DAG container - winter morning light */
+#dag-container {
+  min-height: 180px;
+  padding: 32px 28px;
+  background: linear-gradient(165deg, #f0f9ff 0%, #ffffff 40%, #f8fafc 100%);
+  position: relative;
+}
+
+/* Subtle aurora effect at the top */
+#dag-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 0%, rgba(14, 165, 233, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 80% 0%, rgba(99, 102, 241, 0.03) 0%, transparent 40%);
+  border-radius: 16px;
+  pointer-events: none;
+}
+
+/* Mermaid SVG enhancements */
+#dag-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Style the nodes */
+#dag-container .node rect,
+#dag-container .node circle,
+#dag-container .node ellipse,
+#dag-container .node polygon,
+#dag-container .node path {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.06));
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+/* Force stadium nodes to be wider */
+#dag-container .node rect {
+  rx: 20px !important;
+  ry: 20px !important;
+}
+
+/* Keyboard shortcuts help - frost glass panel */
+.keyboard-shortcuts {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #e2e8f0;
+  padding: 18px 22px;
+  border-radius: 16px;
+  font-size: 13px;
+  z-index: 1000;
+  display: none;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  min-width: 240px;
+}
+
+.keyboard-shortcuts.visible {
+  display: block;
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.keyboard-shortcuts kbd {
+  background: rgba(148, 163, 184, 0.15);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-family: 'SF Mono', system-ui, -apple-system, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #f1f5f9;
+}
+
+/* Sidebar layout */
+.job-sidebar.collapsed {
+  width: 56px;
+}
+
+.job-sidebar.collapsed .sidebar-content {
+  display: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .job-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .flex.gap-6 {
+    flex-direction: column;
+  }
+}
+
+/* DAG styling */
+#dag-container .nodeLabel {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-weight: 500;
+  font-size: 11px;
+}
+
+#dag-container .node:hover {
+  cursor: pointer;
+}
+
+#dag-container .edgePath path {
+  stroke-width: 1.5px;
+  stroke: #cbd5e1;
+}
+
+#dag-container .edgePath marker path {
+  fill: #cbd5e1;
+}
+
+/* Focus states for accessibility */
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid #0ea5e9;
+  outline-offset: 2px;
+}
+
+/* Selection color */
+::selection {
+  background: rgba(14, 165, 233, 0.2);
+  color: inherit;
+}

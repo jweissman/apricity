@@ -37,27 +37,34 @@ module Apricity
 
           @threads = {} # [run_id, subscriber.object_id] => Thread
 
-          @pub = Redis.new(url: redis_url)
+          # @pub = Redis.new(url: redis_url)
           @publish_queue = Queue.new
 
-          @publisher = self.class.publisher_thread(@pub, queue: @publish_queue)
+          @publisher = self.class.publisher_thread(redis_url, queue: @publish_queue)
         end
 
-        def self.publisher_thread(pub, queue:)
-          Thread.new { publisher_loop(pub, queue:) }.tap do |t|
+        def self.publisher_thread(redis_url, queue:)
+          Thread.new { publisher_loop(redis_url, queue:) }.tap do |t|
             t.name = "apricity-redis-publisher"
             t.abort_on_exception = true
             t.report_on_exception = true
           end
         end
 
-        def self.publisher_loop(pub, queue:)
+        def self.publisher_loop(redis_url, queue:)
+          pub = Redis.new(url: redis_url)
+
           loop do
             msg = queue.pop
             break if msg == :__stop__
 
             chan, payload = msg
             pub.publish(chan, payload)
+          rescue RedisClient::ConnectionError, SystemCallError => e
+            warn "publisher reconnecting after #{e.class}: #{e.message}"
+            sleep 1
+            pub = Redis.new(url: redis_url)
+            retry
           rescue StandardError => e
             warn "publisher error: #{e.class}: #{e.message}"
           end
@@ -68,10 +75,19 @@ module Apricity
 
           @started = true
 
-          Thread.new { pattern_subscribe("apricity:events_live:*") }
-                .tap do |t|
-            t.name = "apricity-redis-psub"
-            t.abort_on_exception = true
+          Thread.new do
+            Thread.current.name = "apricity-redis-psub" if Thread.current.respond_to?(:name=)
+
+            loop do
+              pattern_subscribe("apricity:events_live:*") # blocks
+            rescue RedisClient::ConnectionError, EOFError, SystemCallError => e
+              warn "psub reconnecting after #{e.class}: #{e.message}"
+              sleep 1
+            rescue StandardError => e
+              warn "psub unexpected error #{e.class}: #{e.message}"
+              sleep 2
+            end
+          end.tap do |t|
             t.report_on_exception = true
           end
         end
@@ -86,6 +102,8 @@ module Apricity
               @in_memory.dispatch(run_id, msg)
             end
           end
+        ensure
+          redis&.close
         end
 
         def add_subscriber(run_id, subscriber)

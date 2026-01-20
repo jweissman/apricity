@@ -5,10 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Apricity Dashboard</title>
+    <title>Apricity CI</title>
 
     <!-- Dynamic favicon - updated by JS based on build status -->
-    <link id="favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%236366f1'/></svg>">
+    <link id="favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%230ea5e9'/></svg>">
 
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
@@ -19,369 +19,32 @@
     <script src="https://unpkg.com/htmx.org@1.6.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/mermaid@11.12.2/dist/mermaid.min.js"></script>
 
-
-    <style>
-      /* Apricity - Winter Sun Design System */
-      :root {
-        /* Winter sun palette - cool, calm, professional */
-        --frost-50: #f0f9ff;
-        --frost-100: #e0f2fe;
-        --frost-200: #bae6fd;
-        --frost-300: #7dd3fc;
-        --frost-400: #38bdf8;
-        --frost-500: #0ea5e9;
-        --ice-50: #f8fafc;
-        --ice-100: #f1f5f9;
-        --ice-200: #e2e8f0;
-        --ice-300: #cbd5e1;
-        --snow: #ffffff;
-        --twilight-50: #eef2ff;
-        --twilight-100: #e0e7ff;
-        --twilight-500: #6366f1;
-        --aurora-success: #10b981;
-        --aurora-warning: #f59e0b;
-        --aurora-error: #ef4444;
-      }
-      
-      * { box-sizing: border-box; }
-      
-      body {
-        font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-      }
-      
-      /* Ensure buttons and links have pointer cursor */
-      a, button, [role="button"], [onclick] { cursor: pointer; }
-      
-      /* Custom scrollbar - frost themed */
-      ::-webkit-scrollbar { width: 8px; height: 8px; }
-      ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
-      ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-      ::-webkit-scrollbar-thumb:hover { background: #7dd3fc; }
-
-      /* Terminal keeps dark scrollbar */
-      .terminal-output::-webkit-scrollbar-track { background: #111827; }
-      .terminal-output::-webkit-scrollbar-thumb { background: #4b5563; }
-      .terminal-output::-webkit-scrollbar-thumb:hover { background: #6b7280; }
-
-      /* Smooth transitions */
-      .transition-all { transition: all 0.2s ease-in-out; }
-
-      /* Card hover effects - gentle like morning light */
-      .card-hover {
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-      }
-      .card-hover:hover {
-        transform: translateY(-2px);
-        box-shadow: 
-          0 10px 30px rgba(14, 165, 233, 0.08),
-          0 4px 12px rgba(0, 0, 0, 0.03);
-      }
-      
-      /* Elevated card style - soft like fresh snow */
-      .card-elevated {
-        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-        box-shadow: 
-          0 1px 2px rgba(148, 163, 184, 0.06),
-          0 2px 4px rgba(148, 163, 184, 0.04),
-          0 4px 8px rgba(148, 163, 184, 0.03);
-      }
-      
-      /* Frost glass effect - like breath on a cold window */
-      .glass {
-        background: rgba(255, 255, 255, 0.88);
-        backdrop-filter: blur(16px) saturate(180%);
-        -webkit-backdrop-filter: blur(16px) saturate(180%);
-      }
-      
-      /* Simple hover highlight - no shimmer */
-      .frost-hover {
-        position: relative;
-      }
-
-      /* Gradient border effect */
-      .gradient-border {
-        position: relative;
-      }
-      .gradient-border::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        border-radius: inherit;
-        padding: 1px;
-        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
-      }
-
-      /* Pulsing animation for running state */
-      @keyframes pulse-subtle {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.7; }
-      }
-      .animate-pulse-subtle { animation: pulse-subtle 2s infinite; }
-      
-      /* Spin animation for loading */
-      @keyframes spin-slow {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-      }
-      .animate-spin-slow { animation: spin-slow 3s linear infinite; }
-      
-      /* Subtle bounce for success */
-      @keyframes bounce-in {
-        0% { transform: scale(0.9); opacity: 0; }
-        50% { transform: scale(1.02); }
-        100% { transform: scale(1); opacity: 1; }
-      }
-      .animate-bounce-in { animation: bounce-in 0.3s ease-out; }
-      
-      /* Gentle glow for running status - like winter sunrise */
-      @keyframes glow {
-        0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.35); }
-        50% { box-shadow: 0 0 0 8px rgba(251, 191, 36, 0); }
-      }
-      .animate-glow { animation: glow 2.5s ease-in-out infinite; }
-      
-      /* Soft breathing animation for calm states */
-      @keyframes breathe {
-        0%, 100% { transform: scale(1); opacity: 0.9; }
-        50% { transform: scale(1.02); opacity: 1; }
-      }
-      .animate-breathe { animation: breathe 4s ease-in-out infinite; }
-      
-      /* Gentle fade in */
-      @keyframes fade-in {
-        from { opacity: 0; transform: translateY(4px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      .animate-fade-in { animation: fade-in 0.4s ease-out; }
-
-      /* Terminal-like output styling */
-      .terminal-output {
-        font-family: 'SF Mono', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-        font-size: 12px;
-        line-height: 1.5;
-        letter-spacing: -0.02em;
-      }
-      
-      /* ansi_up color classes - winter sun terminal theme */
-      .terminal-output .ansi-black-fg { color: #1e293b; }
-      .terminal-output .ansi-red-fg { color: #f87171; }
-      .terminal-output .ansi-green-fg { color: #4ade80; }
-      .terminal-output .ansi-yellow-fg { color: #facc15; }
-      .terminal-output .ansi-blue-fg { color: #60a5fa; }
-      .terminal-output .ansi-magenta-fg { color: #c084fc; }
-      .terminal-output .ansi-cyan-fg { color: #22d3ee; }
-      .terminal-output .ansi-white-fg { color: #f1f5f9; }
-      .terminal-output .ansi-bright-black-fg { color: #475569; }
-      .terminal-output .ansi-bright-red-fg { color: #fca5a5; }
-      .terminal-output .ansi-bright-green-fg { color: #86efac; }
-      .terminal-output .ansi-bright-yellow-fg { color: #fde047; }
-      .terminal-output .ansi-bright-blue-fg { color: #93c5fd; }
-      .terminal-output .ansi-bright-magenta-fg { color: #d8b4fe; }
-      .terminal-output .ansi-bright-cyan-fg { color: #67e8f9; }
-      .terminal-output .ansi-bright-white-fg { color: #ffffff; }
-      .terminal-output .ansi-black-bg { background-color: #1e293b; }
-      .terminal-output .ansi-red-bg { background-color: #dc2626; }
-      .terminal-output .ansi-green-bg { background-color: #16a34a; }
-      .terminal-output .ansi-yellow-bg { background-color: #ca8a04; }
-      .terminal-output .ansi-blue-bg { background-color: #2563eb; }
-      .terminal-output .ansi-magenta-bg { background-color: #9333ea; }
-      .terminal-output .ansi-cyan-bg { background-color: #0891b2; }
-      .terminal-output .ansi-white-bg { background-color: #f1f5f9; }
-      .terminal-output .ansi-bold { font-weight: bold; }
-      .terminal-output .ansi-italic { font-style: italic; }
-      .terminal-output .ansi-underline { text-decoration: underline; }
-      /* Default text color for stdout */
-      .terminal-output .stdout { color: #cbd5e1; }
-      .terminal-output .stderr { color: #fca5a5; }
-
-      /* DAG container - winter morning light */
-      #dag-container {
-        min-height: 180px;
-        padding: 32px 28px;
-        background: linear-gradient(165deg, #f0f9ff 0%, #ffffff 40%, #f8fafc 100%);
-        position: relative;
-      }
-      
-      /* Subtle aurora effect at the top */
-      #dag-container::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: 
-          radial-gradient(ellipse 80% 50% at 20% 0%, rgba(14, 165, 233, 0.04) 0%, transparent 50%),
-          radial-gradient(ellipse 60% 40% at 80% 0%, rgba(99, 102, 241, 0.03) 0%, transparent 40%);
-        border-radius: 16px;
-        pointer-events: none;
-      }
-
-      /* Mermaid SVG enhancements */
-      #dag-container svg {
-        max-width: 100%;
-        height: auto;
-      }
-
-      /* Style the nodes */
-      #dag-container .node rect,
-      #dag-container .node circle,
-      #dag-container .node ellipse,
-      #dag-container .node polygon,
-      #dag-container .node path {
-        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.06));
-        transition: filter 0.15s ease, transform 0.15s ease;
-      }
-
-      /* Force stadium nodes to be wider */
-      #dag-container .node rect {
-        rx: 20px !important;
-        ry: 20px !important;
-      }
-
-      /* Keyboard shortcuts help - frost glass panel */
-      .keyboard-shortcuts {
-        position: fixed;
-        bottom: 24px;
-        right: 24px;
-        background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        color: #e2e8f0;
-        padding: 18px 22px;
-        border-radius: 16px;
-        font-size: 13px;
-        z-index: 1000;
-        display: none;
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(148, 163, 184, 0.1);
-        min-width: 240px;
-      }
-      .keyboard-shortcuts.visible { 
-        display: block;
-        animation: slideIn 0.2s ease-out;
-      }
-      @keyframes slideIn {
-        from { opacity: 0; transform: translateY(12px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      .keyboard-shortcuts kbd {
-        background: rgba(148, 163, 184, 0.15);
-        padding: 4px 10px;
-        border-radius: 6px;
-        font-family: 'SF Mono', system-ui, -apple-system, sans-serif;
-        font-size: 11px;
-        font-weight: 500;
-        border: 1px solid rgba(148, 163, 184, 0.2);
-        color: #f1f5f9;
-      }
-
-      /* Sidebar collapse */
-      .job-sidebar.collapsed {
-        width: 56px;
-      }
-      .job-sidebar.collapsed .sidebar-content {
-        display: none;
-      }
-      
-      /* Responsive improvements */
-      @media (max-width: 768px) {
-        .job-sidebar {
-          width: 100%;
-          border-right: none;
-          border-bottom: 1px solid #e2e8f0;
-          padding-bottom: 1.5rem;
-          margin-bottom: 1.5rem;
-        }
-        .flex.gap-6 {
-          flex-direction: column;
-        }
-      }
-
-      /* Make node labels more spacious */
-      #dag-container .nodeLabel {
-        font-family: system-ui, -apple-system, sans-serif;
-        font-weight: 500;
-        font-size: 12px;
-      }
-
-      /* Hover effect on DAG nodes */
-      #dag-container .node:hover {
-        cursor: pointer;
-      }
-      
-      #dag-container .node:hover rect,
-      #dag-container .node:hover circle,
-      #dag-container .node:hover ellipse,
-      #dag-container .node:hover polygon {
-        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1)) brightness(1.02);
-      }
-
-      /* Edge/arrow styling - soft winter paths */
-      #dag-container .edgePath path {
-        stroke-width: 1.5px;
-        stroke: #cbd5e1;
-        transition: stroke 0.2s ease, stroke-width 0.2s ease;
-      }
-      
-      #dag-container .edgePath marker path {
-        fill: #cbd5e1;
-      }
-
-      #dag-container .edgePath:hover path {
-        stroke: #38bdf8;
-        stroke-width: 2px;
-      }
-      
-      /* Focus states for accessibility - sky blue focus rings */
-      a:focus-visible, button:focus-visible {
-        outline: 2px solid #38bdf8;
-        outline-offset: 2px;
-        border-radius: 8px;
-      }
-      
-      /* Step card focus ring */
-      .step-output-toggle:focus-visible {
-        box-shadow: inset 0 0 0 2px #38bdf8;
-      }
-      
-      /* Selection color */
-      ::selection {
-        background: rgba(14, 165, 233, 0.15);
-        color: inherit;
-      }
-
-    </style>
+    <link rel="stylesheet" href="/assets/style.css">
   </head>
 
-  <body class="min-h-screen flex flex-col" style="background: linear-gradient(170deg, #f0f9ff 0%, #f8fafc 25%, #ffffff 50%, #f1f5f9 100%);">
-    <header class="glass border-b border-slate-200/50 sticky top-0 z-50" style="box-shadow: 0 1px 3px rgba(148, 163, 184, 0.08);">
-      <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-        <a href="/" class="flex items-center space-x-3 group">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-sky-500/20 group-hover:shadow-sky-500/35 group-hover:scale-105 transition-all duration-300 ease-out">
-            <i class="fas fa-snowflake text-white text-sm"></i>
+  <body class="min-h-screen flex flex-col bg-slate-50">
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+      <div class="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
+        <a href="/" class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center shadow-sm">
+            <i class="fas fa-sun text-white text-sm"></i>
           </div>
-          <h1 class="text-xl font-semibold tracking-tight" style="background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-            Apricity CI
-          </h1>
+          <span class="text-lg font-semibold text-slate-800">Apricity</span>
         </a>
-        <nav class="flex items-center space-x-2 text-sm">
-          <a href="/" class="text-slate-600 hover:text-sky-600 transition-colors duration-200 px-4 py-2 rounded-xl hover:bg-sky-50/60 font-medium">
-            <i class="fas fa-home mr-2 text-sky-400"></i> Dashboard
+        <nav class="flex items-center text-sm">
+          <a href="/" class="text-slate-600 hover:text-sky-600 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-100">
+            Dashboard
           </a>
         </nav>
       </div>
     </header>
 
-    <main class="flex-grow max-w-7xl mx-auto w-full px-6 py-10">
+    <main class="flex-grow max-w-6xl mx-auto w-full px-6 py-8">
       <%= yield %>
     </main>
 
-    <footer class="glass border-t border-slate-200/40 text-center py-5 text-xs text-slate-500">
-      <p>&copy; <script>document.write(new Date().getFullYear())</script> Oddball Inc &middot; <span class="text-slate-400">Apricity CI</span> <span class="text-slate-200 mx-2">·</span> Press <kbd class="bg-white px-2 py-1 rounded-md text-slate-500 font-mono text-[10px] shadow-sm border border-slate-200/60">?</kbd> for shortcuts</p>
+    <footer class="border-t border-slate-200 bg-white text-center py-4 text-xs text-slate-500">
+      <p>Apricity CI · Press <kbd class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-mono text-[10px]">?</kbd> for keyboard shortcuts</p>
     </footer>
 
     <script src="/assets/keyboard.js"></script>
@@ -392,7 +55,7 @@
         startOnLoad: false,
         theme: 'base',
         themeVariables: {
-          primaryColor: '#f0f9ff',
+          primaryColor: '#f8fafc',
           primaryTextColor: '#334155',
           primaryBorderColor: '#7dd3fc',
           lineColor: '#e2e8f0',

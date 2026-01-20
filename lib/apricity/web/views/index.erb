@@ -1,47 +1,36 @@
-<section class="space-y-10">
+<section class="space-y-8">
   <!-- Pipelines Section -->
-  <div class="card-elevated rounded-2xl border border-slate-200/50 p-8">
-    <div class="flex items-center justify-between mb-8">
-      <h2 class="text-lg font-semibold text-slate-800 flex items-center">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center mr-3 shadow-md shadow-sky-500/15">
-          <i class="fas fa-sitemap text-white text-xs"></i>
-        </div>
+  <div class="bg-white rounded-xl border border-slate-200 p-6">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+        <i class="fas fa-diagram-project text-sky-500"></i>
         Pipelines
       </h2>
-      <span class="text-xs text-slate-500 bg-slate-100/80 px-3 py-1.5 rounded-full font-medium"><%= @pipelines.size %> configured</span>
+      <span class="text-xs text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full font-medium"><%= @pipelines.size %> configured</span>
     </div>
 
-    <div class="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <% @pipelines.each do |pipeline| %>
-        <div class="group relative bg-white rounded-2xl border border-slate-200/60 p-6 card-hover transition-all duration-200 hover:border-sky-300">
-          <div class="flex items-start justify-between mb-5">
-            <div>
-              <h3 class="font-semibold text-slate-800 group-hover:text-sky-700 transition-colors duration-200"><%= pipeline.name %></h3>
-              <p class="text-xs text-slate-500 mt-2 flex items-center gap-3">
-                <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-100/80 text-slate-600">
-                  <i class="fas fa-layer-group mr-1.5 text-slate-400 text-[10px]"></i>
-                  <%= pipeline.actions.size %>
-                </span>
-                <span class="text-slate-400">·</span>
-                <span class="text-slate-500"><%= pipeline.total_steps %> steps</span>
+        <div class="group relative bg-slate-50/50 hover:bg-white rounded-lg border border-slate-200 hover:border-sky-300 p-5 transition-all duration-200">
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex-1 min-w-0">
+              <h3 class="font-medium text-slate-800 group-hover:text-sky-700 transition-colors truncate"><%= pipeline.name %></h3>
+              <p class="text-xs text-slate-500 mt-1.5">
+                <%= pipeline.actions.size %> action<%= pipeline.actions.size != 1 ? 's' : '' %> · <%= pipeline.total_steps %> steps
               </p>
             </div>
-            <form action="/pipelines/<%= pipeline.slug %>/run" method="post" class="inline">
+            <form action="/pipelines/<%= pipeline.slug %>/run" method="post" class="inline run-form">
               <button 
                 type="submit" 
-                class="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 hover:from-emerald-500 hover:to-teal-600 text-white flex items-center justify-center transition-all duration-200 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/35 hover:scale-105 active:scale-95 cursor-pointer"
+                class="run-button w-9 h-9 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center transition-colors shadow-sm cursor-pointer"
                 title="Run pipeline"
               >
-                <i class="fas fa-play text-xs ml-0.5"></i>
+                <i class="fas fa-play text-xs"></i>
               </button>
             </form>
           </div>
-          <a
-            href="/pipelines/<%= pipeline.slug %>"
-            class="text-sm text-sky-600 hover:text-sky-700 font-medium transition-colors duration-200 inline-flex items-center group/link cursor-pointer"
-          >
-            View details 
-            <i class="fas fa-arrow-right ml-2 text-xs group-hover/link:translate-x-1 transition-transform duration-200"></i>
+          <a href="/pipelines/<%= pipeline.slug %>" class="text-sm text-sky-600 hover:text-sky-700 font-medium transition-colors">
+            View details →
           </a>
         </div>
       <% end %>
@@ -49,22 +38,18 @@
   </div>
 
   <!-- Recent Runs Section -->
-  <div class="card-elevated rounded-2xl border border-slate-200/50 p-8">
-    <div class="flex items-center justify-between mb-8">
-      <h2 class="text-lg font-semibold text-slate-800 flex items-center">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center mr-3 shadow-md shadow-indigo-500/15">
-          <i class="fas fa-history text-white text-xs"></i>
-        </div>
+  <div class="bg-white rounded-xl border border-slate-200 p-6">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+        <i class="fas fa-clock-rotate-left text-slate-400"></i>
         Recent Runs
       </h2>
-      <div class="flex items-center space-x-3">
-        <select id="status-filter" class="text-sm border border-slate-200 rounded-xl px-4 py-2.5 bg-white shadow-sm focus:ring-2 focus:ring-sky-500/20 focus:border-sky-400 transition-all duration-200 text-slate-600">
-          <option value="all">All Status</option>
-          <option value="running">Running</option>
-          <option value="success">Passed</option>
-          <option value="failure">Failed</option>
-        </select>
-      </div>
+      <select id="status-filter" class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-sky-500/20 focus:border-sky-400 transition-all text-slate-600">
+        <option value="all">All Status</option>
+        <option value="running">Running</option>
+        <option value="success">Passed</option>
+        <option value="failure">Failed</option>
+      </select>
     </div>
 
     <div
@@ -75,28 +60,11 @@
     ></div>
 
     <div id="job-list">
-      <div class="space-y-4">
-        <div class="h-20 bg-gradient-to-r from-slate-100/80 to-slate-50/50 rounded-2xl animate-pulse flex items-center px-6">
-          <div class="w-12 h-12 bg-slate-200/60 rounded-full"></div>
-          <div class="ml-5 space-y-3 flex-1">
-            <div class="h-4 bg-slate-200/60 rounded-lg w-1/3"></div>
-            <div class="h-3 bg-slate-200/40 rounded-lg w-1/4"></div>
-          </div>
-        </div>
-        <div class="h-20 bg-gradient-to-r from-slate-100/80 to-slate-50/50 rounded-2xl animate-pulse flex items-center px-6">
-          <div class="w-12 h-12 bg-slate-200/60 rounded-full"></div>
-          <div class="ml-5 space-y-3 flex-1">
-            <div class="h-4 bg-slate-200/60 rounded-lg w-2/5"></div>
-            <div class="h-3 bg-slate-200/40 rounded-lg w-1/5"></div>
-          </div>
-        </div>
-        <div class="h-20 bg-gradient-to-r from-slate-100/80 to-slate-50/50 rounded-2xl animate-pulse flex items-center px-6">
-          <div class="w-12 h-12 bg-slate-200/60 rounded-full"></div>
-          <div class="ml-5 space-y-3 flex-1">
-            <div class="h-4 bg-slate-200/60 rounded-lg w-1/4"></div>
-            <div class="h-3 bg-slate-200/40 rounded-lg w-1/6"></div>
-          </div>
-        </div>
+      <!-- Loading skeleton -->
+      <div class="space-y-2">
+        <div class="h-16 bg-slate-100 rounded-xl animate-pulse"></div>
+        <div class="h-16 bg-slate-100 rounded-xl animate-pulse"></div>
+        <div class="h-16 bg-slate-100 rounded-xl animate-pulse"></div>
       </div>
     </div>
   </div>

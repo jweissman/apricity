@@ -9,6 +9,7 @@ require "nokogiri"
 require "timeout"
 
 require_relative "../run_store"
+require_relative "../job_execution"
 
 module Apricity
   # In-memory store for runs
@@ -220,12 +221,15 @@ module Apricity
       def serve_interactive_artifact_route
         requested_path = params[:splat].first
         full_path = safe_artifact_path(requested_path)
+        warn "Serving interactive artifact: #{full_path} (for requested path: #{requested_path})"
         serve_interactive_artifact(full_path, requested_path)
       end
 
       def serve_artifact_download_route
         artifact_path = params[:splat].first
-        full_path = File.join(Dir.pwd, ".apricity", artifact_path)
+        full_path = safe_artifact_path(artifact_path)
+        warn "Serving artifact download: #{full_path} (for artifact path: #{artifact_path})"
+        # File.join(Dir.pwd, ".apricity", artifact_path)
         halt 404, "Artifact not found" unless File.exist?(full_path)
 
         serve_artifact_file_or_directory(full_path)
@@ -276,20 +280,46 @@ module Apricity
       end
 
       def safe_artifact_path(requested_path)
-        # Normalize and validate path stays within .apricity
-        artifact_root = File.join(Dir.pwd, ".apricity")
-        full_path = File.expand_path(File.join(artifact_root, requested_path))
+        root = File.expand_path(artifact_root)
+        rp = requested_path.to_s.sub(%r{\A/+}, "") # drop leading "/"
 
-        # Security: ensure path is within artifact_root and doesn't escape
-        halt 403, "Access denied" unless full_path.start_with?(artifact_root)
+        # If someone passed "data/artifacts/..." or "/data/artifacts/...", strip it
+        root_no_slash = root.sub(%r{/\z}, "")
+        rp = rp.sub(%r{\A#{Regexp.escape(root_no_slash)}/?}, "")
+        rp = rp.sub(%r{\Adata/artifacts/}, "") if root.end_with?("/data/artifacts")
 
+        full_path = File.expand_path(File.join(root, rp))
+
+        warn "Resolved artifact path: #{full_path} (requested: #{requested_path}, normalized: #{rp})"
+
+        halt 403, "Access denied" unless full_path.start_with?(root + "/")
         halt 404, "Not found" unless File.exist?(full_path)
+
         full_path
       end
+
+      # def safe_artifact_path(requested_path)
+      #   root = "#{artifact_root}/"
+      #   full_path = File.expand_path(File.join(root, requested_path))
+
+      #   warn "Resolved artifact path: #{full_path} (requested: #{requested_path})"
+
+      #   halt 403, "Access denied" unless full_path.start_with?(root)
+      #   halt 404, "Not found" unless File.exist?(full_path)
+
+      #   full_path
+      # end
 
       def mime_type_for(path)
         ext = File.extname(path).downcase
         MimeTypes::MIME_TYPES.fetch(ext, "application/octet-stream")
+      end
+
+      # def artifact_root = Apricity::JobExecution::ArtifactStore::DEFAULT_ROOT
+      def artifact_root
+        root = File.expand_path(ENV.fetch("APRICITY_ARTIFACT_ROOT") { File.join(Dir.pwd, ".apricity") })
+        warn "Using artifact root: #{root}"
+        root
       end
 
       # rubocop:disable Metrics/CyclomaticComplexity

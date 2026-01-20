@@ -10,6 +10,10 @@ actions:
               with:
                 junit_report: rspec.xml
                 artifact_key: test-results
+            - uses: apricity/simplecov-reporter
+              with:
+                coverage_report: .resultset.json
+                artifact_key: coverage
           mounts:
             # Use DinD to allow apricity to test itself
             - source: /var/run/docker.sock
@@ -34,4 +38,4 @@ actions:
                   --fail-fast \
                   --format progress \
                   --format RspecJunitFormatter \
-                  --out $APRICITY_ARTIFACTS/test-outputs/rspec.xml
+                  --out $APRICITY_ARTIFACTS/test-results/rspec.xml

@@ -44,7 +44,6 @@ module Apricity
     Plan = Data.define(:binds, :artifact_outputs, :working_dir, :env, :prelude)
 
     # Internal class for planning job execution
-    # rubocop:disable Metrics/ClassLength
     class Planner
       attr_reader :binds, :artifact_outputs, :working_dir, :env
 
@@ -83,7 +82,7 @@ module Apricity
         @env["APRICITY_ARTIFACTS"] = File.join(APRICITY_DIR, "artifacts")
       end
 
-      def artifact_root = paths.resolve(store.host_visible_artifact_root)
+      # def artifact_root = paths.resolve(store.host_visible_artifact_root)
       def input_artifacts = node.inputs.select { |i| i.type == :artifact }
       def output_artifacts = node.outputs.select { |o| o.type == :artifact }
 
@@ -93,9 +92,6 @@ module Apricity
       end
 
       # rubocop:disable Metrics/MethodLength
-      # rubocop:disable Metrics/AbcSize
-      # rubocop:disable Metrics/CyclomaticComplexity
-      # rubocop:disable Metrics/PerceivedComplexity
       def setup_input_artifact(input)
         key = input.key
         host_dir = artifact_inputs[key] || artifact_inputs[key.to_s]
@@ -107,58 +103,56 @@ module Apricity
         host_dir = host_dir.values.first if host_dir.is_a?(Hash) && host_dir.size == 1
 
         if host_dir.is_a?(Hash)
-          if DockerHelpers.dind?
-            @prelude += "\nmkdir -p #{APRICITY_DIR}/artifacts/#{key}"
-            return nil
-          end
+          # if DockerHelpers.dind?
+          @prelude += "\nmkdir -p #{APRICITY_DIR}/artifacts/#{key}"
+          return nil
+          # end
 
-          artifact_dirs  = host_dir.values.map { |p| File.dirname(p) }
-          artifact_roots = artifact_dirs.map { |d| File.dirname(d) }.uniq
+          # artifact_dirs  = host_dir.values.map { |p| File.dirname(p) }
+          # artifact_roots = artifact_dirs.map { |d| File.dirname(d) }.uniq
 
-          unless artifact_roots.size == 1
-            raise "Artifact producers do not share artifact root: #{artifact_roots.inspect}"
-          end
+          # unless artifact_roots.size == 1
+          #   raise "Artifact producers do not share artifact root: #{artifact_roots.inspect}"
+          # end
 
-          # Fan-in, non-DinD: bind each producer's artifact dir
-          return host_dir.map do |producer_id, dir|
-            raise "Artifact input dir does not exist: #{dir}" unless Dir.exist?(dir)
+          # # Fan-in, non-DinD: bind each producer's artifact dir
+          # return host_dir.map do |producer_id, dir|
+          #   raise "Artifact input dir does not exist: #{dir}" unless Dir.exist?(dir)
 
-            bind_source = paths.resolve(dir)
-            bind_target = "#{APRICITY_DIR}/artifacts/#{key}/#{DockerHelpers.safe_id(producer_id)}"
+          #   bind_source = paths.resolve(dir)
+          #   bind_target = "#{APRICITY_DIR}/artifacts/#{key}/#{DockerHelpers.safe_id(producer_id)}"
 
-            "#{bind_source}:#{bind_target}:ro"
-          end
+          #   "#{bind_source}:#{bind_target}:ro"
+          # end
         end
         # Single producer
         raise "Artifact input dir does not exist: #{host_dir}" unless Dir.exist?(host_dir)
 
-        if DockerHelpers.dind?
-          @prelude += "\nmkdir -p #{APRICITY_DIR}/artifacts/#{key}"
-          return nil
-        end
+        # if DockerHelpers.dind?
+        @prelude += "\nmkdir -p #{APRICITY_DIR}/artifacts/#{key}"
 
-        bind_source = paths.resolve(host_dir)
-        ["#{bind_source}:#{APRICITY_DIR}/artifacts/#{key}:ro"]
+        nil
+        # end
+
+        # bind_source = paths.resolve(host_dir)
+        # ["#{bind_source}:#{APRICITY_DIR}/artifacts/#{key}:ro"]
       end
-      # rubocop:enable Metrics/PerceivedComplexity
-      # rubocop:enable Metrics/CyclomaticComplexity
-      # rubocop:enable Metrics/AbcSize
       # rubocop:enable Metrics/MethodLength
 
       def setup_output_artifact(output)
         key = output.key
 
-        if DockerHelpers.dind?
-          # Container-local artifacts; step owns the subdir
-          @prelude += "\nmkdir -p #{APRICITY_DIR}/artifacts/#{key}"
-          @artifact_outputs[key] = "#{APRICITY_DIR}/artifacts/#{key}"
-          return nil
-        end
+        # if DockerHelpers.dind?
+        # Container-local artifacts; step owns the subdir
+        @prelude += "\nmkdir -p #{APRICITY_DIR}/artifacts/#{key}"
+        @artifact_outputs[key] = "#{APRICITY_DIR}/artifacts/#{key}"
+        nil
+        # end
 
-        output_dir = artifact_store.output_dir(key)
-        FileUtils.mkdir_p(output_dir)
-        bind_source = @artifact_outputs[key] = output_dir
-        "#{bind_source}:#{APRICITY_DIR}/artifacts/#{key}"
+        # output_dir = artifact_store.output_dir(key)
+        # FileUtils.mkdir_p(output_dir)
+        # bind_source = @artifact_outputs[key] = output_dir
+        # "#{bind_source}:#{APRICITY_DIR}/artifacts/#{key}"
       end
 
       def compute_binding(mount, workspace)
@@ -175,7 +169,7 @@ module Apricity
       end
 
       def compute_bind_mounts(artifact_binds:)
-        return @binds = artifact_binds.flatten.compact if DockerHelpers.dind?
+        # @binds = artifact_binds.flatten.compact # if DockerHelpers.dind?
 
         mounts = [*normalized_mounts, *config.bind_mounts].select { |m| m.type == :bind }
 
@@ -184,7 +178,7 @@ module Apricity
 
         bind_mounts = mounts.map { |m| compute_binding(m, workspace) }
 
-        @binds = [*artifact_binds.flatten, *bind_mounts]
+        @binds = [*artifact_binds.flatten, *bind_mounts].compact
       end
 
       # def normalized_mounts
@@ -228,8 +222,6 @@ module Apricity
         end
       end
     end
-    # rubocop:enable Metrics/ClassLength
-
     StepMetadata = Data.define(:working_dir, :binds, :container)
     # Executes a single step inside a Docker container
     class StepExecutor
@@ -305,7 +297,7 @@ module Apricity
 
       def collect
         values = read_values
-        pull_artifacts if DockerHelpers.dind?
+        pull_artifacts # if DockerHelpers.dind?
         merged = values.merge(@artifact_outputs)
         validate!(values: merged)
         merged
@@ -613,7 +605,7 @@ module Apricity
       def execute
         # start_container
         container.start
-        copy_input_artifacts if DockerHelpers.dind?
+        copy_input_artifacts # if DockerHelpers.dind?
         node.steps.map do |step|
           @last_step_executed = step
           started_at = Time.now
@@ -666,14 +658,14 @@ module Apricity
       # rubocop:enable Metrics/MethodLength
 
       def copy_dir_contents_into_container(src, dest)
-        return copy_dir_into_container_dind(src, dest) if DockerHelpers.dind?
+        copy_dir_into_container_dind(src, dest) # if DockerHelpers.dind?
 
-        container.exec(["/bin/sh", "-lc", "mkdir -p #{dest}"])
+        # container.exec(["/bin/sh", "-lc", "mkdir -p #{dest}"])
 
-        container.exec([
-                         "/bin/sh", "-lc",
-                         %(cd "#{src}" && tar -cf - . | tar -xf - -C "#{dest}")
-                       ])
+        # container.exec([
+        #                  "/bin/sh", "-lc",
+        #                  %(cd "#{src}" && tar -cf - . | tar -xf - -C "#{dest}")
+        #                ])
       end
 
       def copy_dir_into_container_dind(src, dest)
