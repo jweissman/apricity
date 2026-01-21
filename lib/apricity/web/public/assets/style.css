@@ -1,4 +1,105 @@
-/* Apricity CI - Clean Design System */
+/* Apricity CI - Winter Sun Design System */
+
+/* ═══════════════════════════════════════════════════════════════
+   TAILWIND v4 THEME - Custom Colors
+   ═══════════════════════════════════════════════════════════════ */
+
+@theme {
+  /* Sun (Gold) palette */
+  --color-sun-50: #fefcf5;
+  --color-sun-100: #fdf8eb;
+  --color-sun-200: #f9edcc;
+  --color-sun-300: #f2dc9a;
+  --color-sun-400: #e8c75e;
+  --color-sun-500: #c9a227;
+  --color-sun-600: #b08d1f;
+  --color-sun-700: #8a6d14;
+  --color-sun-800: #6b5410;
+  --color-sun-900: #4d3c0b;
+  
+  /* Frost (Cool Gray) palette */
+  --color-frost-50: #f8f9fb;
+  --color-frost-100: #f1f4f8;
+  --color-frost-200: #e2e7ef;
+  --color-frost-300: #cdd5e0;
+  --color-frost-400: #a8b3c0;
+  --color-frost-500: #7a8898;
+  --color-frost-600: #5d6b7e;
+  --color-frost-700: #3d4a5c;
+  --color-frost-800: #1c2536;
+  --color-frost-900: #0f1419;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DESIGN TOKENS - Winter Sun Theme
+   
+   Philosophy: The warmth of winter sunlight on a crisp, clear day.
+   - Cool, clean slate foundations (winter clarity)
+   - Warm amber/honey accents (low winter sun)
+   - Muted, calming status colors (professional, not alarming)
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ─── SURFACE COLORS ─── */
+  --color-surface-base: #f8f9fb;
+  --color-surface-elevated: #ffffff;
+  --color-surface-inset: #f1f4f8;
+  --color-surface-hover: #f4f6f9;
+  --color-surface-active: #fef9f3;
+  
+  /* ─── BORDER COLORS ─── */
+  --color-border-default: #e2e7ef;
+  --color-border-subtle: #ebeef3;
+  --color-border-emphasis: #cdd5e0;
+  --color-border-focus: #c9a227;
+
+  /* ─── TEXT HIERARCHY ─── */
+  --color-text-primary: #1c2536;
+  --color-text-secondary: #3d4a5c;
+  --color-text-tertiary: #5d6b7e;
+  --color-text-muted: #8b96a5;
+  --color-text-faint: #b4bcc8;
+  
+  /* ─── ACCENT: WINTER SUN ─── */
+  --color-accent: #c9a227;
+  --color-accent-hover: #b08d1f;
+  --color-accent-soft: #fdf8eb;
+  --color-accent-muted: #e8d48a;
+  --color-accent-text: #8a6d14;
+  
+  /* ─── SECONDARY: COOL BLUE ─── */
+  --color-secondary: #4a8ec9;
+  --color-secondary-soft: #f0f6fc;
+  --color-secondary-text: #2b5a8a;
+
+  /* ─── STATUS: SUCCESS ─── */
+  --color-success: #3a8a5c;
+  --color-success-soft: #f0f8f4;
+  --color-success-border: #c4dfce;
+  --color-success-text: #276644;
+  
+  /* ─── STATUS: RUNNING/WARNING ─── */
+  --color-warning: #c98a1d;
+  --color-warning-soft: #fef8eb;
+  --color-warning-border: #f0d9a8;
+  --color-warning-text: #8a5d12;
+  
+  /* ─── STATUS: ERROR ─── */
+  --color-error: #c45c5c;
+  --color-error-soft: #fef5f5;
+  --color-error-border: #f0c4c4;
+  --color-error-text: #8a3232;
+  
+  /* ─── STATUS: PENDING ─── */
+  --color-pending: #7a8898;
+  --color-pending-soft: #f5f7f9;
+  --color-pending-border: #dde3ea;
+  --color-pending-text: #5a6774;
+  
+  /* ─── TERMINAL ─── */
+  --color-terminal-bg: #0f1419;
+  --color-terminal-text: #c9d1d9;
+}
 
 * {
   box-sizing: border-box;
@@ -180,18 +281,18 @@ button,
 #dag-container {
   min-height: 180px;
   padding: 32px 28px;
-  background: linear-gradient(165deg, #f0f9ff 0%, #ffffff 40%, #f8fafc 100%);
+  background: linear-gradient(170deg, #f9fbfd 0%, #fffcf9 50%, #f8f9fb 100%);
   position: relative;
 }
 
-/* Subtle aurora effect at the top */
+/* Subtle sun ray effect at the top */
 #dag-container::before {
   content: '';
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 80% 50% at 20% 0%, rgba(14, 165, 233, 0.04) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 40% at 80% 0%, rgba(99, 102, 241, 0.03) 0%, transparent 40%);
+    radial-gradient(ellipse 60% 40% at 50% 0%, rgba(201, 162, 39, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse 40% 30% at 70% 0%, rgba(201, 162, 39, 0.03) 0%, transparent 40%);
   border-radius: 16px;
   pointer-events: none;
 }
@@ -312,12 +413,12 @@ button,
 /* Focus states for accessibility */
 a:focus-visible,
 button:focus-visible {
-  outline: 2px solid #0ea5e9;
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
 /* Selection color */
 ::selection {
-  background: rgba(14, 165, 233, 0.2);
+  background: rgba(201, 162, 39, 0.2);
   color: inherit;
 }

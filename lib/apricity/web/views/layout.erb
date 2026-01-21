@@ -8,9 +8,34 @@
     <title>Apricity CI</title>
 
     <!-- Dynamic favicon - updated by JS based on build status -->
-    <link id="favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%230ea5e9'/></svg>">
+    <link id="favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%23c9a227'/></svg>">
 
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+      @theme {
+        --color-sun-50: #fefcf5;
+        --color-sun-100: #fdf8eb;
+        --color-sun-200: #f9edcc;
+        --color-sun-300: #f2dc9a;
+        --color-sun-400: #e8c75e;
+        --color-sun-500: #c9a227;
+        --color-sun-600: #b08d1f;
+        --color-sun-700: #8a6d14;
+        --color-sun-800: #6b5410;
+        --color-sun-900: #4d3c0b;
+        
+        --color-frost-50: #f8f9fb;
+        --color-frost-100: #f1f4f8;
+        --color-frost-200: #e2e7ef;
+        --color-frost-300: #cdd5e0;
+        --color-frost-400: #a8b3c0;
+        --color-frost-500: #7a8898;
+        --color-frost-600: #5d6b7e;
+        --color-frost-700: #3d4a5c;
+        --color-frost-800: #1c2536;
+        --color-frost-900: #0f1419;
+      }
+    </style>
 
     <link
       rel="stylesheet"
@@ -22,21 +47,21 @@
     <link rel="stylesheet" href="/assets/style.css">
   </head>
 
-  <body class="min-h-screen flex flex-col bg-slate-50">
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+  <body class="min-h-screen flex flex-col bg-frost-50">
+    <header class="bg-white border-b border-frost-200 sticky top-0 z-50">
       <div class="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
         <a href="/" class="flex items-center space-x-2.5">
-          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center shadow-sm">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-sun-400 to-sun-600 flex items-center justify-center shadow-sm">
             <i class="fas fa-sun text-white text-sm"></i>
           </div>
-          <span class="text-lg font-semibold text-slate-800">Apricity</span>
+          <span class="text-lg font-semibold text-frost-800">Apricity</span>
         </a>
         <nav class="flex items-center text-sm">
-          <a href="/workers" class="text-slate-600 hover:text-sky-600 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-100">
+          <a href="/workers" class="text-frost-600 hover:text-sun-600 transition-colors px-3 py-1.5 rounded-lg hover:bg-frost-100">
             <i class="fas fa-server mr-1 text-xs"></i>
             Workers
           </a>
-          <a href="/" class="text-slate-600 hover:text-sky-600 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-100">
+          <a href="/" class="text-frost-600 hover:text-sun-600 transition-colors px-3 py-1.5 rounded-lg hover:bg-frost-100">
             <i class="fas fa-tachometer-alt mr-1 text-xs"></i>
             Dashboard
           </a>
@@ -49,8 +74,8 @@
       <%= yield %>
     </main>
 
-    <footer class="border-t border-slate-200 bg-white text-center py-4 text-xs text-slate-500">
-      <p>Apricity CI · Press <kbd class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-mono text-[10px]">?</kbd> for keyboard shortcuts</p>
+    <footer class="border-t border-frost-200 bg-white text-center py-4 text-xs text-frost-500">
+      <p>Apricity CI · Press <kbd class="bg-frost-100 px-1.5 py-0.5 rounded text-frost-600 font-mono text-[10px]">?</kbd> for keyboard shortcuts</p>
     </footer>
 
     <script src="/assets/keyboard.js"></script>
@@ -61,11 +86,11 @@
         startOnLoad: false,
         theme: 'base',
         themeVariables: {
-          primaryColor: '#f8fafc',
-          primaryTextColor: '#334155',
-          primaryBorderColor: '#7dd3fc',
-          lineColor: '#e2e8f0',
-          secondaryColor: '#f8fafc',
+          primaryColor: '#f8f9fb',
+          primaryTextColor: '#3d4a5c',
+          primaryBorderColor: '#e8c75e',
+          lineColor: '#e2e7ef',
+          secondaryColor: '#f8f9fb',
           tertiaryColor: '#ffffff',
           fontSize: '12px',
           fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif'

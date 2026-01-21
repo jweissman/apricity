@@ -1,23 +1,23 @@
 <!-- Breadcrumb -->
-<nav class="mb-6 flex items-center text-sm text-slate-500">
-  <a href="/" class="hover:text-sky-600 transition-colors">Dashboard</a>
-  <i class="fas fa-chevron-right mx-2 text-slate-300 text-xs"></i>
-  <span class="text-slate-700 font-medium"><%= @pipeline.name %></span>
+<nav class="mb-6 flex items-center text-sm text-frost-500">
+  <a href="/" class="hover:text-sun-600 transition-colors">Dashboard</a>
+  <i class="fas fa-chevron-right mx-2 text-frost-300 text-xs"></i>
+  <span class="text-frost-700 font-medium"><%= @pipeline.name %></span>
 </nav>
 
 <!-- Pipeline Header -->
-<div class="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+<div class="bg-white rounded-xl border border-frost-200 p-6 mb-6">
   <div class="flex items-center justify-between">
     <div>
-      <h1 class="text-xl font-semibold text-slate-800"><%= @pipeline.name %></h1>
-      <p class="text-sm text-slate-500 mt-1.5">
+      <h1 class="text-xl font-semibold text-frost-800"><%= @pipeline.name %></h1>
+      <p class="text-sm text-frost-500 mt-1.5">
         <%= @pipeline.actions.size %> action<%= @pipeline.actions.size != 1 ? 's' : '' %> · <%= @pipeline.total_steps %> steps
       </p>
     </div>
     <form action="/pipelines/<%= @pipeline.slug %>/run" method="post" class="run-form">
       <button
         type="submit"
-        class="run-button inline-flex items-center px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors shadow-sm"
+        class="run-button inline-flex items-center px-4 py-2 bg-sun-500 hover:bg-sun-600 text-white font-medium rounded-lg transition-colors shadow-sm"
       >
         <i class="fas fa-play mr-2 text-xs"></i>
         Start Run
@@ -27,14 +27,14 @@
 </div>
 
 <!-- Pipeline DAG Structure -->
-<div class="mb-6 bg-white rounded-xl border border-slate-200 overflow-hidden">
-  <div class="px-5 py-3 border-b border-slate-100 bg-slate-50/50">
-    <h2 class="text-xs font-medium text-slate-500 uppercase tracking-wide flex items-center gap-2">
-      <i class="fas fa-sitemap text-slate-400"></i>
+<div class="mb-6 bg-white rounded-xl border border-frost-200 overflow-hidden">
+  <div class="px-5 py-3 border-b border-frost-100 bg-frost-50/50">
+    <h2 class="text-xs font-medium text-frost-500 uppercase tracking-wide flex items-center gap-2">
+      <i class="fas fa-sitemap text-frost-400"></i>
       Pipeline Structure
     </h2>
   </div>
-  <div id="dag-container" class="flex justify-center p-4 bg-gradient-to-b from-slate-50/50 to-white"></div>
+  <div id="dag-container" class="flex justify-center p-4 bg-gradient-to-b from-frost-50/50 to-white"></div>
 </div>
 
 <script>
@@ -51,7 +51,7 @@
       const safe = node.id.replace(/::/g, "_").replace(/[\[\]=,\s]+/g, "_");
       const label = node.label.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
       lines.push(`  ${safe}([${label}])`);
-      lines.push(`  style ${safe} fill:#f8fafc,stroke:#e2e8f0,stroke-width:1.5px`);
+      lines.push(`  style ${safe} fill:#f8f9fb,stroke:#e2e7ef,stroke-width:1.5px`);
     });
     dag.edges.forEach(edge => {
       const from = edge.from.replace(/::/g, "_").replace(/[\[\]=,\s]+/g, "_");
@@ -65,16 +65,16 @@
       container.innerHTML = svg;
     } catch (e) {
       console.error("Mermaid render error:", e);
-      container.innerHTML = `<p class="text-slate-400 text-sm">Unable to render diagram</p>`;
+      container.innerHTML = `<p class="text-frost-400 text-sm">Unable to render diagram</p>`;
     }
   });
 </script>
 
 <!-- Run History -->
-<div class="bg-white rounded-xl border border-slate-200 p-6">
+<div class="bg-white rounded-xl border border-frost-200 p-6">
   <div class="flex items-center justify-between mb-6">
-    <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
-      <i class="fas fa-clock-rotate-left text-slate-400"></i>
+    <h2 class="text-base font-semibold text-frost-800 flex items-center gap-2">
+      <i class="fas fa-clock-rotate-left text-frost-400"></i>
       Run History
     </h2>
   </div>
@@ -86,9 +86,9 @@
   ></div>
   <div id="job-list">
     <div class="space-y-2">
-      <div class="h-16 bg-slate-100 rounded-lg animate-pulse"></div>
-      <div class="h-16 bg-slate-100 rounded-lg animate-pulse"></div>
-      <div class="h-16 bg-slate-100 rounded-lg animate-pulse"></div>
+      <div class="h-16 bg-frost-100 rounded-lg animate-pulse"></div>
+      <div class="h-16 bg-frost-100 rounded-lg animate-pulse"></div>
+      <div class="h-16 bg-frost-100 rounded-lg animate-pulse"></div>
     </div>
   </div>
 </div>
