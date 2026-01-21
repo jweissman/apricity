@@ -10,6 +10,7 @@ require "timeout"
 
 require_relative "../run_store"
 require_relative "../job_execution"
+require_relative "../worker"
 
 module Apricity
   # In-memory store for runs
@@ -141,6 +142,7 @@ module Apricity
         events.size
       end
 
+      # rubocop:disable Metrics/MethodLength
       def stream_events(run, out)
         current_id = replay_stored_events(run, out)
 
@@ -165,10 +167,14 @@ module Apricity
       ensure
         Apricity::Run::Subscriptions.remove_subscriber(run.id, subscriber) if subscriber
       end
+      # rubocop:enable Metrics/MethodLength
 
+      # rubocop:disable Metrics/MethodLength
+      # rubocop:disable Metrics/CyclomaticComplexity
+      # rubocop:disable Metrics/PerceivedComplexity
+      # rubocop:disable Metrics/AbcSize
       def streaming_loop(out, queue, start_id)
         current_id = start_id
-
         loop do
           event = begin
             Timeout.timeout(1) { queue.pop }
@@ -186,13 +192,13 @@ module Apricity
             next
           end
 
-          current_id += 1
+          # current_id += 1
           type = event_type_from_json(event)
           next unless type
 
           begin
             Timeout.timeout(5) do
-              out << format_sse_json(type, event, current_id)
+              out << format_sse_json(type, event, current_id += 1)
               out.flush if out.respond_to?(:flush)
             end
           rescue IOError, Errno::EPIPE, Errno::ECONNRESET, Timeout::Error
@@ -202,6 +208,10 @@ module Apricity
           break send_close_and_finish(out) if type == "pipeline_finished"
         end
       end
+      # rubocop:enable Metrics/AbcSize
+      # rubocop:enable Metrics/PerceivedComplexity
+      # rubocop:enable Metrics/CyclomaticComplexity
+      # rubocop:enable Metrics/MethodLength
 
       def send_close_and_finish(out)
         out << "event: close\ndata: {}\n\n"
@@ -279,24 +289,26 @@ module Apricity
         end
       end
 
+      # rubocop:disable Metrics/AbcSize
       def safe_artifact_path(requested_path)
         root = File.expand_path(artifact_root)
         rp = requested_path.to_s.sub(%r{\A/+}, "") # drop leading "/"
 
         # If someone passed "data/artifacts/..." or "/data/artifacts/...", strip it
-        root_no_slash = root.sub(%r{/\z}, "")
+        root_no_slash = root.delete_suffix("/")
         rp = rp.sub(%r{\A#{Regexp.escape(root_no_slash)}/?}, "")
-        rp = rp.sub(%r{\Adata/artifacts/}, "") if root.end_with?("/data/artifacts")
+        rp = rp.delete_prefix("data/artifacts/") if root.end_with?("/data/artifacts")
 
         full_path = File.expand_path(File.join(root, rp))
 
         warn "Resolved artifact path: #{full_path} (requested: #{requested_path}, normalized: #{rp})"
 
-        halt 403, "Access denied" unless full_path.start_with?(root + "/")
+        halt 403, "Access denied" unless full_path.start_with?("#{root}/")
         halt 404, "Not found" unless File.exist?(full_path)
 
         full_path
       end
+      # rubocop:enable Metrics/AbcSize
 
       # def safe_artifact_path(requested_path)
       #   root = "#{artifact_root}/"
@@ -478,6 +490,11 @@ module Apricity
       get "/runs/:id" do
         run_id = params[:id]
         @run = Apricity::RunStore.instance.get_run(run_id)
+        @lease = begin
+          Apricity::Worker::Registry.instance.lease_for_run(run_id)
+        rescue StandardError
+          nil
+        end
         halt 404, "Run #{run_id} not found" unless @run
 
         pipeline_slug = @run.pipeline_slug
@@ -527,6 +544,13 @@ module Apricity
 
       # Download artifact file or directory as tar.gz
       get("/artifacts/*") { serve_artifact_download_route }
+
+      get "/workers" do
+        @workers = Apricity::Worker::Registry.list_workers
+        @leases = Apricity::Worker::Registry.list_leases
+
+        erb :workers
+      end
     end
   end
 end

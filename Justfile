@@ -25,6 +25,9 @@ dev-server:
 dev-worker:
   bundle exec bin/worker
 
+dev-reaper:
+  bundle exec bin/reaper
+
 dev:
   bundle exec foreman start
 

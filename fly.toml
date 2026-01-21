@@ -3,7 +3,7 @@
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'apricity-little-sun-6030'
+app = 'apricity-ci'
 primary_region = 'iad'
 
 [build]
@@ -11,7 +11,7 @@ primary_region = 'iad'
 [env]
   APRICITY_ARTIFACT_ROOT = '/data/artifacts'
   APRICITY_CACHE_ROOT = '/data/cache'
-  APRICITY_DOCKER_READ_TIMEOUT = 1200
+  APRICITY_DOCKER_READ_TIMEOUT = 3600
   APRICITY_WORKER_CONCURRENCY = 2
   DOCKER_API_VERSION = '1.43'
   DOCKER_VERSION = '1.43'

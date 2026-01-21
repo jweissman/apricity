@@ -22,7 +22,7 @@ module Apricity
         @host_visible_artifact_root = host_visible_artifact_root
       end
 
-      def output_dir(artifact_key) = self.class.path_for(run:, node:, artifact_key:, host_visible_artifact_root:)
+      # def output_dir(artifact_key) = self.class.path_for(run:, node:, artifact_key:, host_visible_artifact_root:)
 
       # Given run_id, job_id, artifact_key return a host directory path guaranteed to exist and be docker-safe
       def self.path_for(run:, node:, artifact_key:, host_visible_artifact_root: DEFAULT_ROOT)
@@ -424,13 +424,23 @@ module Apricity
 
         service_map[service.image] = Docker::Container.create(
           "Image" => service.image, "Env" => service.env_vars.map { |k, v| "#{k}=#{v}" },
-          "HostConfig" => { "NetworkMode" => network.id },
+          "HostConfig" => { "NetworkMode" => network.id }, "Labels" => service_labels(service),
           "NetworkingConfig" => {
             "EndpointsConfig" => {
               network.id => { "Aliases" => [service.name] }
             }
           }
         ).tap(&:start)
+      end
+
+      def service_labels(service)
+        {
+          "apricity.managed" => "true",
+          "apricity.run_id" => @run.id,
+          "apricity.node_id" => node.id,
+          "apricity.kind" => "service",
+          "apricity.service" => service.name
+        }
       end
 
       def service_environment_variables(node)
@@ -484,13 +494,22 @@ module Apricity
 
     # Represents a Docker container session
     class ContainerSession
-      def initialize(image:, binds:, env:, working_dir:, network:)
+      # rubocop:disable Metrics/ParameterLists
+      def initialize(image:, binds:, env:, working_dir:, network:, run_id:, node_id:, pipeline_name:)
         @image = image
         @binds = binds
         @env = env
         @working_dir = working_dir
         @network = network
+        @run_id = run_id
+        @node_id = node_id
+        # @step_name = step_name
+        @step_name = "not-set"
+        @pipeline_name = pipeline_name
       end
+      # rubocop:enable Metrics/ParameterLists
+
+      # def with_step_name(step_name) = @step_name = step_name
 
       def start
         container.start
@@ -514,10 +533,22 @@ module Apricity
           "Image" => @image,
           "AttachStdout" => true, "AttachStderr" => true,
           "Cmd" => ["/bin/sh", "-lc", "tail -f /dev/null"],
+          "Labels" => container_labels,
           "HostConfig" => { "Binds" => @binds }
             .merge(@network ? { "NetworkMode" => @network.id } : {}),
           **container_options
         )
+      end
+
+      def container_labels
+        {
+          "apricity.managed" => "true",
+          "apricity.run_id" => @run_id,
+          "apricity.node_id" => @node_id,
+          "apricity.step_name" => @step_name,
+          "apricity.pipeline_name" => @pipeline_name,
+          "apricity.kind" => "job"
+        }
       end
 
       def container_options
@@ -549,7 +580,8 @@ module Apricity
       def perform
         emit(JobExecution::Events::JobStarted[node:, started_at: Time.now])
         run_job
-      rescue JobExecutionError => e
+      # rescue JobExecutionError => e
+      rescue StandardError => e
         handle_failure(e)
       ensure
         services&.each_value { |container| container.delete(force: true) }
@@ -691,7 +723,19 @@ module Apricity
       def network
         return nil if node.services.to_a.empty?
 
-        @network ||= Docker::Network.create("apricity-#{node.id}")
+        @network ||= Docker::Network.create(
+          "apricity-#{node.id}-#{@run.id}",
+          "Labels" => network_labels
+        )
+      end
+
+      def network_labels
+        {
+          "apricity.managed" => "true",
+          "apricity.run_id" => @run.id,
+          "apricity.node_id" => node.id,
+          "apricity.kind" => "network"
+        }
       end
 
       def construct_image = Docker::Image.create("fromImage" => image)
@@ -708,7 +752,9 @@ module Apricity
       end
 
       def container
-        @container ||= ContainerSession.new(image:, binds: @binds, env: merged_env, working_dir: @working_dir, network:)
+        @container ||= ContainerSession.new(image:, binds: @binds, env: merged_env, working_dir: @working_dir,
+                                            network:, run_id: @run.id, node_id: node.id, # step_name: step&.name || "job",
+                                            pipeline_name: @run.pipeline&.name || "unknown")
       end
 
       def failure_outcome(exception:) = Model::StepOutcome.failure(node, step, stdout: "", stderr: "", exception:)

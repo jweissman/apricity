@@ -15,10 +15,10 @@
 # To-do
 - [~] Deployment
 - [~] Persistence
-- [ ] Repo/ref cold start endpoint
 - [ ] Stabilization
   - [ ] Heartbeats
-  - [ ] Step timeouts
+  - [ ] Step timeouts?
+- [ ] Repo/ref cold start endpoint
 - [ ] JUnit + coverage verification on a smaller repo first
 - [ ] Minio/s3 for artifact store
 - [ ] Secrets (env injection from fly secrets?)

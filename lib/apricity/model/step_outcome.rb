@@ -18,10 +18,10 @@ module Apricity
 
       def self.from_location(location, status:, streams:, message: nil)
         new(
-          action: location.node.action_name, job: location.node.job_name, step: location.step.name,
+          action: location.node.action_name, job: location.node.job_name, step: location.step&.name,
           status:, message:,
           container: location.node.runs_on,
-          script: location.step.run.source,
+          script: location.step&.run&.source,
           stdout: streams.stdout, stderr: streams.stderr
           # outputs:
         )

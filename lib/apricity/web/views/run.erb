@@ -32,6 +32,10 @@
         <span id="run-duration" class="text-slate-600 font-medium hidden">
           <!-- Duration will be populated by JS -->
         </span>
+        <span id="run-worker-id" class="text-slate-600 font-medium">
+          <i class="fas fa-server mr-1 text-xs"></i>
+          <%= @lease&.fetch(:worker_id, '--') || 'not leased' %>
+        </span>
       </div>
     </div>
     

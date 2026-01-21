@@ -34,26 +34,22 @@ module Apricity
           @in_memory = InMemoryBackend.new
           @mutex = Mutex.new
           @started = false
-
-          @threads = {} # [run_id, subscriber.object_id] => Thread
-
-          # @pub = Redis.new(url: redis_url)
+          @threads = {}
           @publish_queue = Queue.new
-
           @publisher = self.class.publisher_thread(redis_url, queue: @publish_queue)
         end
 
         def self.publisher_thread(redis_url, queue:)
           Thread.new { publisher_loop(redis_url, queue:) }.tap do |t|
             t.name = "apricity-redis-publisher"
-            t.abort_on_exception = true
+            # t.abort_on_exception = true
             t.report_on_exception = true
           end
         end
 
+        # rubocop:disable Metrics/MethodLength
         def self.publisher_loop(redis_url, queue:)
           pub = Redis.new(url: redis_url)
-
           loop do
             msg = queue.pop
             break if msg == :__stop__
@@ -69,26 +65,29 @@ module Apricity
             warn "publisher error: #{e.class}: #{e.message}"
           end
         end
+        # rubocop:enable Metrics/MethodLength
 
         def ensure_started!
           return if @started
 
           @started = true
 
-          Thread.new do
-            Thread.current.name = "apricity-redis-psub" if Thread.current.respond_to?(:name=)
-
-            loop do
-              pattern_subscribe("apricity:events_live:*") # blocks
-            rescue RedisClient::ConnectionError, EOFError, SystemCallError => e
-              warn "psub reconnecting after #{e.class}: #{e.message}"
-              sleep 1
-            rescue StandardError => e
-              warn "psub unexpected error #{e.class}: #{e.message}"
-              sleep 2
-            end
-          end.tap do |t|
+          Thread.new { start_pattern_subscriber_loop }.tap do |t|
             t.report_on_exception = true
+          end
+        end
+
+        def start_pattern_subscriber_loop
+          Thread.current.name = "apricity-redis-psub" if Thread.current.respond_to?(:name=)
+
+          loop do
+            pattern_subscribe("apricity:events_live:*") # blocks
+          rescue RedisClient::ConnectionError, EOFError, SystemCallError => e
+            warn "psub reconnecting after #{e.class}: #{e.message}"
+            sleep 1
+          rescue StandardError => e
+            warn "psub unexpected error #{e.class}: #{e.message}"
+            sleep 2
           end
         end
 
@@ -234,9 +233,11 @@ module Apricity
       end
 
       def perform(&)
+        # puts "!!! Run #{id} starting for pipeline '#{pipeline.slug}'"
         t0 = Time.now
         events = []
         step_states = runner.run do |event|
+          # puts "* Run #{id} event: #{event.pretty}"
           events << event
           yield(event) if block_given?
           EventStore.append_event(id, event)
@@ -278,20 +279,24 @@ module Apricity
 
         # store minimal run metadata (web needs it)
         RunStore.instance.add_run_record(
-          RunStore::RunRecord.new(
-            id: run_id,
-            git_sha: "unknown",
-            pipeline_slug: pipeline.slug,
-            pipeline_name: pipeline.name,
-            created_at: Time.now,
-            status: "pending"
-          )
+          run_record_for(run_id:, pipeline:)
         )
 
         # enqueue job for a worker process to pick up
         RunQueue.instance.push(run_id:, pipeline_slug: pipeline.slug)
 
         run_id
+      end
+
+      def self.run_record_for(run_id:, pipeline:)
+        RunStore::RunRecord.new(
+          id: run_id,
+          git_sha: "unknown",
+          pipeline_slug: pipeline.slug,
+          pipeline_name: pipeline.name,
+          created_at: Time.now,
+          status: "pending"
+        )
       end
 
       def self.inline(pipeline)

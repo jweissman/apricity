@@ -18,6 +18,19 @@ module Apricity
       :env,
       :services
     ) do
+      # purely for synthetic events where we don't necessarily have full node info
+      def self.minimal(node_id, job_name:, action_name:)
+        new(
+          id: node_id, runs_on: nil,
+          job_name:, action_name:,
+          steps: [], inputs: [], outputs: [],
+          conditions: [], needs: [],
+          mounts: [], plugins: [],
+          matrix: {}, env: {},
+          services: []
+        )
+      end
+
       def self.from_model(node_id, action:, job:)
         new(
           id: node_id, runs_on: job.runs_on,

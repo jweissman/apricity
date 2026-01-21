@@ -1,0 +1,9 @@
+#!/usr/bin/env ruby
+# bin/worker
+$stdout.sync = true
+$stderr.sync = true
+
+require "redis"
+require_relative "../lib/apricity"
+require_relative "../lib/apricity/reaper"
+Apricity::Reaper.new.start.join
