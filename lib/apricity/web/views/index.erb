@@ -44,16 +44,21 @@
         <i class="fas fa-clock-rotate-left text-frost-400"></i>
         Recent Runs
       </h2>
-      <select id="status-filter" class="text-sm border border-frost-200 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-sun-500/20 focus:border-sun-400 transition-all text-frost-600">
-        <option value="all">All Status</option>
-        <option value="running">Running</option>
-        <option value="success">Passed</option>
-        <option value="failure">Failed</option>
-      </select>
+      <div class="flex items-center gap-3">
+        <select id="status-filter" class="text-sm border border-frost-200 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-sun-500/20 focus:border-sun-400 transition-all text-frost-600">
+          <option value="all">All Status</option>
+          <option value="running">Running</option>
+          <option value="success">Passed</option>
+          <option value="failure">Failed</option>
+        </select>
+        <a href="/runs" class="text-xs font-medium text-sun-600 hover:text-sun-700 hover:underline">
+          View All History →
+        </a>
+      </div>
     </div>
 
     <div
-      hx-get="/runs"
+      hx-get="/runs?limit=10&partial=true"
       hx-trigger="load"
       hx-target="#job-list"
       hx-swap="innerHTML"

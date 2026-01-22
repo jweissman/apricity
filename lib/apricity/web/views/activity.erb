@@ -1,0 +1,17 @@
+<!-- Breadcrumb -->
+<nav class="mb-6 flex items-center text-sm text-frost-500">
+  <a href="/" class="hover:text-sun-600 transition-colors">Dashboard</a>
+  <i class="fas fa-chevron-right mx-2 text-frost-300 text-xs"></i>
+  <span class="text-frost-700 font-medium">Activity</span>
+</nav>
+
+<div class="bg-white rounded-xl border border-frost-200 p-6">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-xl font-semibold text-frost-800 flex items-center gap-2">
+      <i class="fas fa-clock-rotate-left text-frost-400"></i>
+      Activity History
+    </h1>
+  </div>
+  
+  <%= erb :runs, layout: false %>
+</div>

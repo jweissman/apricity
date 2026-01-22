@@ -29,7 +29,8 @@ module Apricity
       def initialize = @runs = {}
       def add_run(run) = @runs[run.id] = run
       def get_run(run_id) = @runs[run_id]
-      def list_runs = @runs.values
+      # Return runs in reverse order (newest first) to match Redis backend behavior
+      def list_runs = @runs.values.reverse
       def set_run_status(run_id, status) = @runs[run_id]&.status = status
     end
 

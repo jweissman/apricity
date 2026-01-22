@@ -9,15 +9,27 @@
 <div class="bg-white rounded-xl border border-frost-200 p-6 mb-6">
   <div class="flex items-center justify-between">
     <div>
-      <h1 class="text-xl font-semibold text-frost-800"><%= @pipeline.name %></h1>
-      <p class="text-sm text-frost-500 mt-1.5">
-        <%= @pipeline.actions.size %> action<%= @pipeline.actions.size != 1 ? 's' : '' %> · <%= @pipeline.total_steps %> steps
-      </p>
+      <h1 class="text-xl font-semibold text-frost-800 flex items-center gap-2">
+        <i class="fas fa-diagram-project text-sun-500"></i>
+        <%= @pipeline.name %>
+      </h1>
+      <div class="flex items-center gap-4 mt-3">
+        <div class="flex items-center gap-1.5 text-sm text-frost-600 bg-frost-50 px-2.5 py-1 rounded-md border border-frost-100">
+          <i class="fas fa-bolt text-frost-400 text-xs"></i>
+          <span class="font-medium"><%= @pipeline.actions.size %></span>
+          <span class="text-frost-400">actions</span>
+        </div>
+        <div class="flex items-center gap-1.5 text-sm text-frost-600 bg-frost-50 px-2.5 py-1 rounded-md border border-frost-100">
+          <i class="fas fa-layer-group text-frost-400 text-xs"></i>
+          <span class="font-medium"><%= @pipeline.total_steps %></span>
+          <span class="text-frost-400">steps</span>
+        </div>
+      </div>
     </div>
     <form action="/pipelines/<%= @pipeline.slug %>/run" method="post" class="run-form">
       <button
         type="submit"
-        class="run-button inline-flex items-center px-4 py-2 bg-sun-500 hover:bg-sun-600 text-white font-medium rounded-lg transition-colors shadow-sm"
+        class="run-button inline-flex items-center px-4 py-2 bg-sun-500 hover:bg-sun-600 text-white font-medium rounded-lg transition-colors shadow-sm shadow-sun-500/20"
       >
         <i class="fas fa-play mr-2 text-xs"></i>
         Start Run

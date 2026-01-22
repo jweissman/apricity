@@ -1,6 +1,6 @@
 <% if @runs.any? %>
-  <div class="space-y-2">
-    <% @runs.first(10).each do |run| %>
+  <div class="space-y-3">
+    <% @runs.each do |run| %>
       <a href="/runs/<%= run.id %>" class="block group" data-status="<%= run.status %>">
         <div class="flex items-center justify-between p-4 bg-white rounded-xl border border-frost-200/60 hover:border-sun-300 hover:bg-sun-50/30 transition-all duration-200">
           <div class="flex items-center space-x-4">
@@ -43,9 +43,5 @@
     </div>
     <h3 class="text-lg font-semibold text-frost-700 mb-2">No Pipeline Runs Yet</h3>
     <p class="text-frost-500 text-sm mb-5">Get started by running a pipeline from the dashboard</p>
-    <a href="/" class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-sun-400 to-sun-500 hover:from-sun-500 hover:to-sun-600 text-white text-sm font-medium rounded-xl transition-all duration-200 shadow-lg shadow-sun-500/20">
-      <i class="fas fa-arrow-left mr-2"></i>
-      Back to Dashboard
-    </a>
   </div>
 <% end %>

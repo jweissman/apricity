@@ -32,12 +32,12 @@ module Apricity
 
     # Helper methods for pipeline management
     module Pipelines
-      DEFAULT_PIPELINES = [
-        # Apricity::Model::Pipeline.from_file("apricity.yaml"),
-        # Apricity::Model::Pipeline.from_file(".apricity-parallel.yaml"),
-        *Dir.glob(File.join(__dir__, "../../../example/**/apricity.yaml"))
-        #     .map { |f| Apricity::Model::Pipeline.from_file(f) }
-      ].map { |path| Apricity::Model::Pipeline.from_file(path) }.freeze
+      DEFAULT_PIPELINES = %w[echo sleep vets-api-sbom vets-api-test].map do |example_name|
+        path = File.expand_path(File.join(__dir__, "../../../example/#{example_name}/apricity.yaml"))
+        Apricity::Model::Pipeline.from_file(path)
+      end.freeze
+      # ]
+      # .map { |path| Apricity::Model::Pipeline.from_file(path) }.freeze
 
       def load_pipeline(slug)
         pipeline = settings.pipelines.find { |p| p.slug == slug }
@@ -545,8 +545,16 @@ module Apricity
 
       get "/runs" do
         @runs = Apricity::RunStore.instance.list_runs
-        @runs.map { |run| { id: run.id, status: run.status, started_at: run.created_at } }
-        erb :runs, layout: false
+
+        # Simple limit for dashboard
+        @runs = @runs.first(params[:limit].to_i) if params[:limit]
+
+        # Explicit partial request (from dashboard) or standard XHR
+        if params[:partial] == "true" || request.xhr?
+          erb :runs, layout: false
+        else
+          erb :activity
+        end
       end
 
       get "/runs/:id" do
