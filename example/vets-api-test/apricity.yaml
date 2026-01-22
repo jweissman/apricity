@@ -27,9 +27,9 @@ actions:
             - uses: apricity/junit-reporter
               with:
                 junit_report: rspec.xml
-                artifact_key: test-outputs
+                artifact_key: junit
           outputs:
-            - key: test-outputs
+            - key: junit
               type: artifact
           steps:
             - name: Checkout Vets API
@@ -94,7 +94,7 @@ actions:
                 bundle exec rspec --fail-fast spec/models/user_spec.rb \
                   --format progress \
                   --format RspecJunitFormatter \
-                  --out $APRICITY_ARTIFACTS/test-outputs/rspec.xml
+                  --out $APRICITY_ARTIFACTS/junit/rspec.xml
                 
             # - name: Run lib specs
             #   run: |

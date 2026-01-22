@@ -89,6 +89,82 @@ module Apricity
       # rubocop:enable Metrics/PerceivedComplexity
     end
 
+    # Helper methods for JUnit XML test report handling
+    module JUnit
+      def generate_junit_html(junit_path)
+        file = File.open(junit_path)
+        doc = Nokogiri::XML(file)
+        file.close
+
+        @report = parse_junit_document(doc)
+
+        erb_template = File.read(File.join(__dir__, "views", "junit.erb"))
+        ERB.new(erb_template).result(binding)
+      end
+
+      # rubocop:disable Metrics/AbcSize
+      def parse_junit_document(doc)
+        suites = doc.xpath("//testsuite").map { |suite| parse_test_suite(suite) }
+
+        # Calculate totals across all suites
+        totals = {
+          tests: suites.sum { |s| s[:tests] },
+          failures: suites.sum { |s| s[:failures] },
+          errors: suites.sum { |s| s[:errors] },
+          skipped: suites.sum { |s| s[:skipped] },
+          time: suites.sum { |s| s[:time] }
+        }
+        totals[:passed] = totals[:tests] - totals[:failures] - totals[:errors] - totals[:skipped]
+
+        { suites:, totals: }
+      end
+      # rubocop:enable Metrics/AbcSize
+
+      def parse_test_suite(suite)
+        {
+          name: suite["name"] || "Unknown Suite",
+          tests: suite["tests"].to_i,
+          failures: suite["failures"].to_i,
+          errors: suite["errors"].to_i,
+          skipped: suite["skipped"].to_i,
+          time: suite["time"].to_f,
+          test_cases: suite.xpath("testcase").map { |tc| parse_test_case(tc) }
+        }
+      end
+
+      # rubocop:disable Metrics/AbcSize
+      # rubocop:disable Metrics/MethodLength
+      # rubocop:disable Metrics/CyclomaticComplexity
+      # rubocop:disable Metrics/PerceivedComplexity
+      def parse_test_case(testcase)
+        name = testcase["name"] || "Unknown Test"
+        classname = testcase["classname"] || ""
+        time = testcase["time"].to_f
+        file = testcase["file"]
+
+        # Determine status and extract failure/error message
+        failure = testcase.at_xpath("failure")
+        error = testcase.at_xpath("error")
+        skipped = testcase.at_xpath("skipped")
+
+        status, message = if failure
+                            [:failure, failure.text || failure["message"]]
+                          elsif error
+                            [:error, error.text || error["message"]]
+                          elsif skipped
+                            [:skipped, skipped["message"]]
+                          else
+                            [:passed, nil]
+                          end
+
+        { name:, classname:, time:, file:, status:, message: }
+      end
+      # rubocop:enable Metrics/AbcSize
+      # rubocop:enable Metrics/MethodLength
+      # rubocop:enable Metrics/CyclomaticComplexity
+      # rubocop:enable Metrics/PerceivedComplexity
+    end
+
     # Helper methods for Server-Sent Events (SSE) streaming
     module Streaming
       # def format_sse(event, event_id)
@@ -202,6 +278,7 @@ module Apricity
     end
 
     # Helper methods for the web interface
+    # rubocop:disable Metrics/ModuleLength
     module Support
       def serve_interactive_artifact_route
         requested_path = params[:splat].first
@@ -297,6 +374,7 @@ module Apricity
         root
       end
 
+      # rubocop:disable Metrics/AbcSize
       # rubocop:disable Metrics/CyclomaticComplexity
       # rubocop:disable Metrics/PerceivedComplexity
       # rubocop:disable Metrics/MethodLength
@@ -315,6 +393,13 @@ module Apricity
           return generate_sbom_html(sbom_path)
         end
 
+        # Check for JUnit report (artifact must be keyed as 'junit')
+        junit_path = detect_junit_path(full_path)
+        if junit_path
+          content_type "text/html"
+          return generate_junit_html(junit_path)
+        end
+
         if File.directory?(full_path)
           serve_interactive_index(full_path, requested_path)
         else
@@ -323,6 +408,25 @@ module Apricity
           send_file full_path
         end
       end
+
+      def detect_junit_path(full_path)
+        return nil unless full_path.include?("junit")
+
+        if full_path.end_with?(".xml") && File.exist?(full_path)
+          full_path
+        elsif File.directory?(full_path)
+          # Look for common JUnit filenames in the directory
+          %w[junit.xml rspec.xml results.xml].each do |filename|
+            candidate = File.join(full_path, filename)
+            return candidate if File.exist?(candidate)
+          end
+          # Fall back to first XML file
+          Dir.glob(File.join(full_path, "*.xml")).first
+        elsif File.exist?("#{full_path}.xml")
+          "#{full_path}.xml"
+        end
+      end
+      # rubocop:enable Metrics/AbcSize
       # rubocop:enable Metrics/CyclomaticComplexity
       # rubocop:enable Metrics/PerceivedComplexity
       # rubocop:enable Metrics/MethodLength
@@ -385,12 +489,14 @@ module Apricity
         end
       end
     end
+    # rubocop:enable Metrics/ModuleLength
 
     # Sinatra-based web interface for Apricity
     class April < Sinatra::Base
       include Pipelines
       include Streaming
       include SBOM
+      include JUnit
       include Support
 
       configure do

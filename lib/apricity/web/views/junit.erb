@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Test Results - Apricity</title>
+
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    >
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    >
+
+    <style>
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #f3f4f6; }
+    ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+    
+    .failure-message {
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+      font-size: 0.75rem;
+      line-height: 1.5;
+    }
+  </style>
+  </head>
+
+  <body class="bg-gray-50 min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 py-8">
+      <!-- Header -->
+      <div class="mb-8">
+        <div class="flex items-center space-x-3 mb-2">
+          <div
+            class="
+              w-10 h-10 rounded-lg bg-gradient-to-br from-blue-200
+              to-blue-500 flex items-center justify-center shadow-lg
+            "
+          >
+            <i class="fas fa-flask text-white"></i>
+          </div>
+
+          <div>
+            <h1 class="text-3xl font-bold text-gray-900">Test Results</h1>
+
+            <p class="text-sm text-gray-500 mt-1">
+              <%= Time.now.strftime("%B %d, %Y at %H:%M") %>
+              <span class="mx-2">·</span>
+              <i class="fas fa-stopwatch mr-1"></i>
+              <%= "%.2fs" % @report[:totals][:time] %>
+              total
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-500">Total Tests</p>
+
+              <p class="text-3xl font-bold text-gray-900 mt-1">
+                <%= @report[:totals][:tests] %>
+              </p>
+            </div>
+
+            <div
+              class="
+                w-12 h-12 rounded-full bg-blue-100 flex items-center
+                justify-center
+              "
+            >
+              <i class="fas fa-list-check text-blue-600 text-xl"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-500">Passed</p>
+
+              <p class="text-3xl font-bold text-green-600 mt-1">
+                <%= @report[:totals][:passed] %>
+              </p>
+            </div>
+
+            <div
+              class="
+                w-12 h-12 rounded-full bg-green-100 flex items-center
+                justify-center
+              "
+            >
+              <i class="fas fa-check text-green-600 text-xl"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-500">Failed</p>
+
+              <p class="text-3xl font-bold <%= @report[:totals][:failures] + @report[:totals][:errors] > 0 ? 'text-red-600' : 'text-gray-900' %> mt-1">
+                <%= @report[:totals][:failures] + @report[:totals][:errors] %>
+              </p>
+            </div>
+
+            <div class="w-12 h-12 rounded-full <%= @report[:totals][:failures] + @report[:totals][:errors] > 0 ? 'bg-red-100' : 'bg-gray-100' %> flex items-center justify-center">
+              <i class="fas fa-times <%= @report[:totals][:failures] + @report[:totals][:errors] > 0 ? 'text-red-600' : 'text-gray-400' %> text-xl"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-500">Skipped</p>
+
+              <p class="text-3xl font-bold text-gray-500 mt-1">
+                <%= @report[:totals][:skipped] %>
+              </p>
+            </div>
+
+            <div
+              class="
+                w-12 h-12 rounded-full bg-gray-100 flex items-center
+                justify-center
+              "
+            >
+              <i class="fas fa-forward text-gray-400 text-xl"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress Bar -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-medium text-gray-600">Test Results</span>
+
+          <span class="text-sm text-gray-500">
+            <%= "%.1f%%" % ((@report[:totals][:passed].to_f / [@report[:totals][:tests], 1].max) * 100) %>
+            passing
+          </span>
+        </div>
+
+        <div class="w-full h-3 bg-gray-200 rounded-full overflow-hidden flex">
+          <% total = [@report[:totals][:tests], 1].max %>
+
+          <div
+            class="bg-green-500 h-full"
+            style="width: <%= (@report[:totals][:passed].to_f / total * 100) %>%"
+          ></div>
+
+          <div
+            class="bg-red-500 h-full"
+            style="width: <%= ((@report[:totals][:failures] + @report[:totals][:errors]).to_f / total * 100) %>%"
+          ></div>
+
+          <div
+            class="bg-gray-400 h-full"
+            style="width: <%= (@report[:totals][:skipped].to_f / total * 100) %>%"
+          ></div>
+        </div>
+
+        <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
+          <span class="flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-green-500"></span>
+            Passed
+          </span>
+
+          <span class="flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-red-500"></span>
+            Failed
+          </span>
+
+          <span class="flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+            Skipped
+          </span>
+        </div>
+      </div>
+
+      <!-- Search and Filters -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
+        <div class="flex items-center space-x-4">
+          <div class="flex-1 relative">
+            <i
+              class="
+                fas fa-search absolute left-3 top-1/2 transform
+                -translate-y-1/2 text-gray-400
+              "
+            ></i>
+
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Search test names, classnames..."
+              autocomplete="off"
+              class="
+                w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg
+                focus:ring-2 focus:ring-green-500 focus:border-transparent
+              "
+            >
+          </div>
+
+          <select
+            id="statusFilter"
+            class="
+              px-4 py-2 border border-gray-300 rounded-lg focus:ring-2
+              focus:ring-green-500
+            "
+          >
+            <option value="">All Status</option>
+            <option value="passed">Passed</option>
+            <option value="failure">Failed</option>
+            <option value="error">Error</option>
+            <option value="skipped">Skipped</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Test Results -->
+      <% @report[:suites].each do |suite| %>
+        <div
+          class="
+            bg-white rounded-xl border border-gray-200 shadow-sm
+            overflow-hidden mb-6
+          "
+        >
+          <!-- Suite Header -->
+          <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <i class="fas fa-folder text-gray-400"></i>
+                <h2 class="font-semibold text-gray-800"><%= suite[:name] %></h2>
+              </div>
+
+              <div class="flex items-center gap-4 text-sm">
+                <span class="text-green-600">
+                  <i class="fas fa-check mr-1"></i>
+                  <%= suite[:tests] - suite[:failures] - suite[:errors] - suite[:skipped] %>
+                </span>
+
+                <span class="<%= suite[:failures] + suite[:errors] > 0 ? 'text-red-600' : 'text-gray-400' %>">
+                  <i class="fas fa-times mr-1"></i>
+                  <%= suite[:failures] + suite[:errors] %>
+                </span>
+
+                <span class="text-gray-400">
+                  <i class="fas fa-forward mr-1"></i>
+                  <%= suite[:skipped] %>
+                </span>
+
+                <span class="text-gray-500">
+                  <i class="fas fa-stopwatch mr-1"></i>
+                  <%= "%.2fs" % suite[:time] %>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Test Cases Table -->
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th
+                    class="
+                      px-6 py-3 text-left text-xs font-semibold
+                      text-gray-600 uppercase tracking-wider w-8
+                    "
+                  >
+                    Status
+                  </th>
+
+                  <th
+                    class="
+                      px-6 py-3 text-left text-xs font-semibold
+                      text-gray-600 uppercase tracking-wider
+                    "
+                  >
+                    Test Name
+                  </th>
+
+                  <th
+                    class="
+                      px-6 py-3 text-left text-xs font-semibold
+                      text-gray-600 uppercase tracking-wider
+                    "
+                  >
+                    Class
+                  </th>
+
+                  <th
+                    class="
+                      px-6 py-3 text-right text-xs font-semibold
+                      text-gray-600 uppercase tracking-wider w-24
+                    "
+                  >
+                    Duration
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody class="bg-white divide-y divide-gray-200">
+                <% suite[:test_cases].each_with_index do |tc, idx| %>
+                  <tr
+                    class="test-row hover:bg-gray-50 transition-colors <%= tc[:status] != :passed ? 'cursor-pointer' : '' %>"
+                    data-name="<%= tc[:name].downcase %>"
+                    data-classname="<%= tc[:classname].downcase %>"
+                    data-status="<%= tc[:status] %>"
+                    <% if tc[:message] %>
+                      onclick="toggleFailure('failure-<%= suite[:name].gsub(/[^a-zA-Z0-9]/, '_') %>-<%= idx %>')"
+                    <% end %>
+                  >
+                    <td class="px-6 py-3 whitespace-nowrap">
+                      <% if tc[:status] == :passed %>
+                        <span
+                          class="
+                            w-6 h-6 rounded-full bg-green-100 flex
+                            items-center justify-center
+                          "
+                        >
+                          <i class="fas fa-check text-green-600 text-xs"></i>
+                        </span>
+                      <% elsif tc[:status] == :failure %>
+                        <span
+                          class="
+                            w-6 h-6 rounded-full bg-red-100 flex
+                            items-center justify-center
+                          "
+                        >
+                          <i class="fas fa-times text-red-600 text-xs"></i>
+                        </span>
+                      <% elsif tc[:status] == :error %>
+                        <span
+                          class="
+                            w-6 h-6 rounded-full bg-red-100 flex
+                            items-center justify-center
+                          "
+                        >
+                          <i class="fas fa-exclamation text-red-600 text-xs"></i>
+                        </span>
+                      <% elsif tc[:status] == :skipped %>
+                        <span
+                          class="
+                            w-6 h-6 rounded-full bg-gray-100 flex
+                            items-center justify-center
+                          "
+                        >
+                          <i class="fas fa-forward text-gray-400 text-xs"></i>
+                        </span>
+                      <% end %>
+                    </td>
+
+                    <td class="px-6 py-3">
+                      <div class="text-sm text-gray-900"><%= tc[:name] %></div>
+
+                      <% if tc[:file] %>
+                        <div class="text-xs text-gray-400 font-mono">
+                          <%= tc[:file] %>
+                        </div>
+                      <% end %>
+                    </td>
+
+                    <td class="px-6 py-3 whitespace-nowrap">
+                      <span class="text-sm text-gray-500 font-mono">
+                        <%= tc[:classname].split('.').join('/') %>.rb
+                      </span>
+                    </td>
+
+                    <td class="px-6 py-3 whitespace-nowrap text-right">
+                      <span class="text-sm text-gray-500">
+                        <%= "%.3fs" % tc[:time] %>
+                      </span>
+                    </td>
+                  </tr>
+
+                  <% if tc[:message] %>
+                    <tr
+                      id="failure-<%= suite[:name].gsub(/[^a-zA-Z0-9]/, '_') %>-<%= idx %>"
+                      class="failure-details hidden"
+                    >
+                      <td
+                        colspan="4"
+                        class="px-6 py-4 bg-red-50 border-l-4 border-red-400"
+                      >
+                        <div class="failure-message text-red-800 max-h-64 overflow-y-auto">
+                          <%= tc[:message] %>
+                        </div>
+                      </td>
+                    </tr>
+                  <% end %>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <% end %>
+
+      <!-- Results Count -->
+      <div class="mt-4 text-center">
+        <p id="resultsCount" class="text-sm text-gray-500">
+          Showing
+          <span id="visibleCount"><%= @report[:suites].sum { |s| s[:test_cases].size } %></span>
+          of <%= @report[:suites].sum { |s| s[:test_cases].size } %> tests
+        </p>
+      </div>
+    </div>
+
+    <script>
+    const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('statusFilter');
+    const rows = document.querySelectorAll('.test-row');
+    const visibleCount = document.getElementById('visibleCount');
+
+    function filterTests() {
+      const searchTerm = searchInput.value.toLowerCase();
+      const selectedStatus = statusFilter.value;
+      let visible = 0;
+
+      rows.forEach(row => {
+        const name = row.dataset.name || '';
+        const classname = row.dataset.classname || '';
+        const status = row.dataset.status;
+
+        const matchesSearch = !searchTerm || 
+          name.includes(searchTerm) || 
+          classname.includes(searchTerm);
+        
+        const matchesStatus = !selectedStatus || status === selectedStatus;
+
+        if (matchesSearch && matchesStatus) {
+          row.style.display = '';
+          visible++;
+        } else {
+          row.style.display = 'none';
+          // Also hide any associated failure detail row
+          const failureRow = row.nextElementSibling;
+          if (failureRow && failureRow.classList.contains('failure-details')) {
+            failureRow.style.display = 'none';
+          }
+        }
+      });
+
+      visibleCount.textContent = visible;
+    }
+
+    function toggleFailure(id) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.classList.toggle('hidden');
+      }
+    }
+
+    searchInput.addEventListener('input', filterTests);
+    statusFilter.addEventListener('change', filterTests);
+    
+    // Expand all failures by default if there aren't too many
+    document.addEventListener('DOMContentLoaded', () => {
+      const failureCount = document.querySelectorAll('.failure-details').length;
+      if (failureCount > 0 && failureCount <= 10) {
+        document.querySelectorAll('.failure-details').forEach(el => el.classList.remove('hidden'));
+      }
+    });
+  </script>
+  </body>
+</html>

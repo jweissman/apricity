@@ -19,30 +19,26 @@ module Apricity
 
       def self.set_cache_key(key, checksum, group: "default")
         @cache_keys ||= {}
-        # @cache_keys[key] = checksum
         @cache_keys[group] ||= {}
         @cache_keys[group][key] = checksum
-
-        puts "Set cache key for group='#{group}', key='#{key}' to checksum='#{checksum}'"
       end
 
-      def self.cache_key?(key, group: "default") # = @cache_keys&.key?(key)
+      # = @cache_keys&.key?(key)
+      def self.cache_key?(key, group: "default")
         @cache_keys&.dig(group, key)
       end
 
       def self.get_cache_key(key, group: "default")
         # @cache_keys[key] if @cache_keys
-        val = @cache_keys&.dig(group, key)
-        puts "Get cache key for group='#{group}', key='#{key}' => checksum='#{val}'"
-        val
+        @cache_keys&.dig(group, key)
       end
 
       def before_execute(meta:)
-        log "Starting cache action with options: #{options.inspect}"
+        # log "Starting cache action with options: #{options.inspect}"
         checksum = digest(meta:, options:)
         cache_dir = File.join(CACHE_ROOT, options[:key], checksum)
         perform_cache_action(options:, cache_dir:, meta:)
-        log "Cache action completed."
+        # log "Cache action completed."
       rescue StandardError => e
         log "Cache action failed: #{e.class}: #{e.message}"
         log e.backtrace.join("\n")
