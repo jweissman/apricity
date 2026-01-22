@@ -36,8 +36,8 @@ module Apricity
         # Apricity::Model::Pipeline.from_file("apricity.yaml"),
         # Apricity::Model::Pipeline.from_file(".apricity-parallel.yaml"),
         *Dir.glob(File.join(__dir__, "../../../example/**/apricity.yaml"))
-            .map { |f| Apricity::Model::Pipeline.from_file(f) }
-      ].freeze
+        #     .map { |f| Apricity::Model::Pipeline.from_file(f) }
+      ].map { |path| Apricity::Model::Pipeline.from_file(path) }.freeze
 
       def load_pipeline(slug)
         pipeline = settings.pipelines.find { |p| p.slug == slug }

@@ -32,7 +32,7 @@ module Apricity
         @redis.sadd("apricity:workers", worker_id)
       end
 
-      def lease_ex = 30
+      def lease_ex = 300
 
       def heartbeat_worker(worker_id)
         @redis.hset("apricity:worker:#{worker_id}",
@@ -42,6 +42,8 @@ module Apricity
         return nil unless current_run_id
 
         @redis.set("apricity:lease:#{current_run_id}", worker_id, ex: lease_ex)
+
+        @redis.expire("apricity:run_lease:#{current_run_id}", lease_ex)
       end
 
       def unregister_worker(worker_id)
@@ -86,10 +88,14 @@ module Apricity
 
       def list_leases
         run_ids = @redis.smembers("apricity:leases")
-        run_ids.map do |run_id|
+        leases = run_ids.map do |run_id|
           h = @redis.hgetall("apricity:run_lease:#{run_id}")
+          next nil if h.empty?
+
           { run_id: run_id, worker_id: h["worker_id"], pipeline_slug: h["pipeline_slug"] }
         end
+        # puts "Current leases: #{leases.inspect}"
+        leases.compact
       end
 
       def self.list_leases = instance.list_leases
@@ -137,7 +143,7 @@ module Apricity
       def heartbeat(worker_ids)
         puts "💓  Starting heartbeat for worker ids #{worker_ids}..."
         loop do
-          sleep 10
+          sleep 15
           worker_ids.each do |worker_id|
             Registry.instance.heartbeat_worker(worker_id)
           end
@@ -176,6 +182,8 @@ module Apricity
       # rubocop:enable Metrics/MethodLength
 
       def generate_worker_id = SecureRandom.uuid
+
+      def worker_timeout_seconds = ENV.fetch("APRICITY_WORKER_TIMEOUT_SECONDS", 120).to_i.freeze
     end
   end
 end

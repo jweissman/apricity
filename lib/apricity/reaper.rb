@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require "time"
+require_relative "worker"
+
 module Apricity
   # Helper to introspect docker resources
   class DockerInspector
@@ -163,11 +165,23 @@ module Apricity
     def reaping
       puts "Reaper started, running every #{@interval_seconds} seconds"
       until @stop_requested
-        teardown_stale_docker_containers
-        teardown_orphaned_docker_containers
-        teardown_stale_docker_networks
-        # could clear inactive workers here too?
-        puts "Reaper sleeping for #{@interval_seconds} seconds..."
+        begin
+          puts "Reaper: Starting reaping cycle..."
+          teardown_stale_docker_containers
+          teardown_orphaned_docker_containers
+          teardown_stale_docker_networks
+          # could clear inactive workers here too?
+          cleanup_expired_run_leases
+          cleanup_dead_workers
+          puts "Reaper: Reaping cycle complete."
+        rescue StandardError => e
+          warn "Reaper: Error during reaping cycle: #{e.class}: #{e.message}"
+          warn e.backtrace.join("\n")
+        end
+        # rescue StandardError => e
+        #   warn "Reaper: Error during reaping cycle: #{e.class}: #{e.message}"
+        #   warn e.backtrace.join("\n")
+
         sleep @interval_seconds
       end
       puts "Reaper stopped"
@@ -230,6 +244,42 @@ module Apricity
       container.delete(force: true)
     rescue StandardError => e
       warn "Reaper: Error removing container #{container.id}: #{e.class}: #{e.message}"
+    end
+
+    def cleanup_expired_run_leases
+      Apricity::Worker::Registry.instance.list_leases.each do |lease|
+        run_id = lease[:run_id]
+        worker_id = lease[:worker_id]
+        pipeline_slug = lease[:pipeline_slug]
+        ttl = DockerInspector.redis.ttl("apricity:lease:#{run_id}")
+        if ttl.negative?
+          puts "Reaper: Cleaning up expired lease for run #{run_id} (worker: #{worker_id}, pipeline: #{pipeline_slug})"
+          Apricity::Worker::Registry.instance.release_run_lease(run_id)
+        end
+      end
+    rescue StandardError => e
+      warn "Reaper: Error cleaning up expired run leases: #{e.class}: #{e.message}"
+      warn e.backtrace.join("\n")
+    end
+
+    def cleanup_dead_workers
+      now = Time.now.to_i
+      Apricity::Worker::Registry.list_workers.each do |worker|
+        puts worker.inspect
+        # puts "Reaper: Checking worker #{worker["worker_id"] || "no-id"} last seen at #{Time.at(worker["last_seen_at"].to_i || 0)}"
+        worker_id = worker["worker_id"]
+        last_seen_at = worker["last_seen_at"].to_i
+        current_run_id = worker["current_run_id"]
+        # _current_pipeline_slug = worker[:current_pipeline_slug]
+        next unless (now - last_seen_at) > Apricity::Worker.worker_timeout_seconds
+
+        puts "Reaper: Cleaning up dead worker #{worker_id} (last seen at #{Time.at(last_seen_at)})"
+        Apricity::Worker::Registry.instance.unregister_worker(worker_id)
+        if current_run_id
+          puts "Reaper: Releasing run lease for run #{current_run_id} held by dead worker #{worker_id}"
+          Apricity::Worker::Registry.instance.release_run_lease(current_run_id)
+        end
+      end
     end
   end
 end

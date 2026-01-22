@@ -17,16 +17,25 @@ module Apricity
         super(org: "apricity", name: "cache", version: "v0", options:, job_id:, step_id:)
       end
 
-      # def self.set_cache_key(key, checksum)
-      #   @cache_keys ||= {}
-      #   @cache_keys[key] = checksum
-      # end
+      def self.set_cache_key(key, checksum, group: "default")
+        @cache_keys ||= {}
+        # @cache_keys[key] = checksum
+        @cache_keys[group] ||= {}
+        @cache_keys[group][key] = checksum
 
-      # def self.cache_key?(key) = @cache_keys&.key?(key)
+        puts "Set cache key for group='#{group}', key='#{key}' to checksum='#{checksum}'"
+      end
 
-      # def self.get_cache_key(key)
-      #   @cache_keys[key] if @cache_keys
-      # end
+      def self.cache_key?(key, group: "default") # = @cache_keys&.key?(key)
+        @cache_keys&.dig(group, key)
+      end
+
+      def self.get_cache_key(key, group: "default")
+        # @cache_keys[key] if @cache_keys
+        val = @cache_keys&.dig(group, key)
+        puts "Get cache key for group='#{group}', key='#{key}' => checksum='#{val}'"
+        val
+      end
 
       def before_execute(meta:)
         log "Starting cache action with options: #{options.inspect}"
@@ -34,6 +43,11 @@ module Apricity
         cache_dir = File.join(CACHE_ROOT, options[:key], checksum)
         perform_cache_action(options:, cache_dir:, meta:)
         log "Cache action completed."
+      rescue StandardError => e
+        log "Cache action failed: #{e.class}: #{e.message}"
+        log e.backtrace.join("\n")
+
+        raise e
       end
 
       private
@@ -41,15 +55,17 @@ module Apricity
       def log(message) = warn "[Cache Action] #{message}"
 
       def digest(meta:, options:)
-        # return self.class.get_cache_key(options[:key]) if self.class.cache_key?(options[:key])
+        return self.class.get_cache_key(options[:key], group: meta.run_id) if self.class.cache_key?(options[:key],
+                                                                                                    group: meta.run_id)
 
         checksum_file = options[:checksum_file]
         md5_command = <<~SH
           ruby -e 'require "digest"; puts Digest::SHA256.file("#{checksum_file}").hexdigest'
         SH
         stdout, _stderr, _code = meta.container.exec(["sh", "-c", md5_command])
-        stdout[0].strip
-        # self.class.set_cache_key(options[:key], checksum)
+        checksum = stdout[0].strip
+        self.class.set_cache_key(options[:key], checksum, group: meta.run_id)
+        checksum
       end
 
       def perform_cache_action(options:, cache_dir:, meta:)
@@ -65,10 +81,19 @@ module Apricity
       end
 
       def save_cache(container:, working_dir:, cache_dir:, paths:)
-        if Dir.exist?(cache_dir)
-          log "Cache hit -- directory #{cache_dir} already exists!"
+        # if Dir.exist?(cache_dir)
+        #   log "Cache hit -- directory #{cache_dir} already exists!"
+        #   return
+        # end
+        expected = paths.map { |p| File.join(cache_dir, "#{p}.tar") }
+
+        if expected.all? { |f| File.exist?(f) && File.size?(f) }
+          log "Cache hit -- cache already populated: #{cache_dir}"
           return
         end
+
+        log "Cache miss/incomplete cache: #{cache_dir}"
+        FileUtils.mkdir_p(cache_dir)
 
         FileUtils.mkdir_p(cache_dir)
         paths.each do |path|
@@ -101,6 +126,7 @@ module Apricity
         end
       end
 
+      # rubocop:disable Metrics/MethodLength
       def restore_cache_path(container:, working_dir:, cache_dir:, path:)
         tar_path = File.join(cache_dir, "#{path}.tar")
         return unless File.exist?(tar_path)
@@ -118,6 +144,7 @@ module Apricity
         )
         raise "cache restore tar failed for #{path}: #{err.join}" unless code.zero?
       end
+      # rubocop:enable Metrics/MethodLength
     end
   end
 end

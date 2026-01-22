@@ -30,11 +30,19 @@
 
               <div>
                 <div class="font-medium text-frost-800">
-                  Run ID: <%= lease[:run_id][0..7] %>
+                  <a href="/runs/<%= lease[:run_id] %>" class="text-sun-600 hover:text-sun-700 font-medium transition-colors">
+                    Run: <%= lease[:run_id][0..7] %>
+                  </a>
                 </div>
 
                 <div class="text-xs text-frost-400 font-mono mt-0.5">
                   Worker: <%= lease[:worker_id] %>
+                </div>
+
+                <div class="text-xs text-frost-500 mt-1">
+                  <a href="/pipelines/<%= lease[:pipeline_slug] %>" class="text-sun-600 hover:text-sun-700 font-medium transition-colors">
+                    View Pipeline →
+                  </a>
                 </div>
               </div>
             </div>

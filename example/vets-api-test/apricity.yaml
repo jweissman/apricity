@@ -22,11 +22,15 @@ actions:
             SETTINGS__TEST_DATABASE_URL: "postgis://postgres:password@postgres:5432/vets_api_test"
             SETTINGS__REDIS__APP_DATA__URL: "redis://redis:6379"
             SETTINGS__REDIS__SIDEKIQ__URL: "redis://redis:6379"
+            BUNDLE_ENTERPRISE__CONTRIBSYS__COM: <%= ENV['BUNDLE_ENTERPRISE__CONTRIBSYS__COM'] %>
           plugins:
             - uses: apricity/junit-reporter
               with:
                 junit_report: rspec.xml
                 artifact_key: test-outputs
+          outputs:
+            - key: test-outputs
+              type: artifact
           steps:
             - name: Checkout Vets API
               uses: apricity/checkout@v0
@@ -41,7 +45,7 @@ actions:
                 checksum_file: Gemfile.lock
                 perform_restore: true
                 paths:
-                  - vendor/cache
+                  - vendor/bundle
 
             - name: Install deps
               run: |
@@ -61,14 +65,16 @@ actions:
 
             - name: Bundle install
               run: |
-                bundle config set --local path 'vendor/bundle'
-                bundle config set --local cache_all true
-                bundle config set --local cache_path 'vendor/cache'
-                bundle install --local --verbose --jobs 2 --retry 3 || bundle install --verbose --jobs 2 --retry 3
+                bundle config set --local path vendor/bundle
+                bundle config set --local without development
+                bundle config set --local deployment true
+                bundle config set --local clean true
 
-            - name: Package gems for caching
-              run: |
-                bundle package --all --path vendor/cache
+                bundle install --jobs 4 --retry 3
+
+            # - name: Package gems for caching
+            #   run: |
+            #     bundle package --all --no-prune --path vendor/cache
 
             - name: Cache Bundled Gems
               uses: apricity/cache@v0
@@ -77,7 +83,7 @@ actions:
                 checksum_file: Gemfile.lock
                 perform_save: true
                 paths:
-                  - vendor/cache
+                  - vendor/bundle
 
             - name: Prepare Test Database
               run: |

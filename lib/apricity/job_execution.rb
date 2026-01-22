@@ -222,7 +222,7 @@ module Apricity
         end
       end
     end
-    StepMetadata = Data.define(:working_dir, :binds, :container)
+    StepMetadata = Data.define(:working_dir, :binds, :container, :run_id)
     # Executes a single step inside a Docker container
     class StepExecutor
       attr_reader :step, :env, :sink, :node
@@ -650,7 +650,7 @@ module Apricity
 
       def execute_step(step)
         emit(JobExecution::Events::StepStarted[node:, step:, started_at: Time.now])
-        meta = StepMetadata[working_dir: @working_dir, binds: @binds, container:]
+        meta = StepMetadata[working_dir: @working_dir, binds: @binds, container:, run_id: @run.id]
         step_executor = JobExecution::StepExecutor.new(step:, env:, sink:, node:, meta:)
         stdout, stderr = step_executor.perform(prelude: @prelude, container:, emit: -> { emit it })
         success_outcome(stdout:, stderr:)
