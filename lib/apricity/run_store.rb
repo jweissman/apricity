@@ -40,7 +40,7 @@ module Apricity
       end
 
       def add_run(record)
-        puts "Adding run with id=#{record.id} to Redis store (pipeline: #{record.pipeline_slug}) -- #{record}"
+        # puts "Adding run with id=#{record.id} to Redis store (pipeline: #{record.pipeline_slug}) -- #{record}"
         redis.hset(key(record.id),
                    "id", record.id,
                    "pipeline_slug", record.pipeline_slug,

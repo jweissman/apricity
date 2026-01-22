@@ -1,0 +1,302 @@
+<%# filepath: /Users/joe/Work/apricity/lib/apricity/web/views/docs.erb %>
+<!-- Hero Section -->
+<div class="bg-gradient-to-br from-sun-50 via-white to-frost-50 rounded-xl border border-frost-200 p-8 mb-8">
+  <div class="max-w-4xl">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-sun-400 to-sun-600 flex items-center justify-center shadow-lg">
+        <i class="fas fa-sun text-white text-xl"></i>
+      </div>
+      <h1 class="text-3xl font-bold text-frost-800">Apricity</h1>
+    </div>
+    <p class="text-lg text-frost-600 mb-2">A lightweight CI/CD pipeline runner for Ruby that executes jobs inside isolated Docker containers.</p>
+    <p class="text-sm text-frost-500 italic">
+      <strong>Apricity</strong> (noun): <em>the warmth of the sun in winter</em> — bringing warmth and clarity to your CI/CD pipelines.
+    </p>
+  </div>
+</div>
+
+<!-- Features Grid -->
+<div class="bg-white rounded-xl border border-frost-200 p-6 mb-8">
+  <h2 class="text-xl font-semibold text-frost-800 mb-6 flex items-center gap-2">
+    <i class="fas fa-star text-sun-500"></i>
+    Features
+  </h2>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="flex items-start gap-3 p-4 bg-frost-50/50 rounded-lg border border-frost-100">
+      <i class="fas fa-rocket text-sun-600 mt-1"></i>
+      <div>
+        <h3 class="font-medium text-frost-800 mb-1">Docker-native execution</h3>
+        <p class="text-sm text-frost-600">Jobs run in isolated containers with configurable images</p>
+      </div>
+    </div>
+    <div class="flex items-start gap-3 p-4 bg-frost-50/50 rounded-lg border border-frost-100">
+      <i class="fas fa-diagram-project text-sun-600 mt-1"></i>
+      <div>
+        <h3 class="font-medium text-frost-800 mb-1">DAG-based scheduling</h3>
+        <p class="text-sm text-frost-600">Automatic dependency resolution with parallel execution</p>
+      </div>
+    </div>
+    <div class="flex items-start gap-3 p-4 bg-frost-50/50 rounded-lg border border-frost-100">
+      <i class="fas fa-puzzle-piece text-sun-600 mt-1"></i>
+      <div>
+        <h3 class="font-medium text-frost-800 mb-1">Plugin system</h3>
+        <p class="text-sm text-frost-600">Extensible architecture for JUnit reports, SBOM generation, code coverage</p>
+      </div>
+    </div>
+    <div class="flex items-start gap-3 p-4 bg-frost-50/50 rounded-lg border border-frost-100">
+      <i class="fas fa-globe text-sun-600 mt-1"></i>
+      <div>
+        <h3 class="font-medium text-frost-800 mb-1">Web dashboard</h3>
+        <p class="text-sm text-frost-600">Real-time pipeline visualization with SSE-powered live updates</p>
+      </div>
+    </div>
+    <div class="flex items-start gap-3 p-4 bg-frost-50/50 rounded-lg border border-frost-100">
+      <i class="fas fa-terminal text-sun-600 mt-1"></i>
+      <div>
+        <h3 class="font-medium text-frost-800 mb-1">CLI runner</h3>
+        <p class="text-sm text-frost-600">Terminal UI for local development with live status</p>
+      </div>
+    </div>
+    <div class="flex items-start gap-3 p-4 bg-frost-50/50 rounded-lg border border-frost-100">
+      <i class="fas fa-box text-sun-600 mt-1"></i>
+      <div>
+        <h3 class="font-medium text-frost-800 mb-1">Artifact passing</h3>
+        <p class="text-sm text-frost-600">Share files between jobs via artifact inputs/outputs</p>
+      </div>
+    </div>
+    <div class="flex items-start gap-3 p-4 bg-frost-50/50 rounded-lg border border-frost-100">
+      <i class="fas fa-th text-sun-600 mt-1"></i>
+      <div>
+        <h3 class="font-medium text-frost-800 mb-1">Matrix builds</h3>
+        <p class="text-sm text-frost-600">Fan-out jobs with strategy matrices</p>
+      </div>
+    </div>
+    <div class="flex items-start gap-3 p-4 bg-frost-50/50 rounded-lg border border-frost-100">
+      <i class="fas fa-bolt text-sun-600 mt-1"></i>
+      <div>
+        <h3 class="font-medium text-frost-800 mb-1">Concurrent execution</h3>
+        <p class="text-sm text-frost-600">Run independent jobs in parallel</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Start -->
+<div class="bg-white rounded-xl border border-frost-200 p-6 mb-8">
+  <h2 class="text-xl font-semibold text-frost-800 mb-6 flex items-center gap-2">
+    <i class="fas fa-rocket text-sun-500"></i>
+    Quick Start
+  </h2>
+  
+  <div class="space-y-6">
+    <div>
+      <h3 class="text-sm font-semibold text-frost-700 mb-3">1. Installation</h3>
+      <div class="bg-frost-900 rounded-lg p-4 text-frost-100 font-mono text-sm overflow-x-auto">
+        <div class="mb-2"><span class="text-frost-500"># Install via RubyGems</span></div>
+        <div>gem install apricity</div>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="text-sm font-semibold text-frost-700 mb-3">2. Create a pipeline file</h3>
+      <p class="text-sm text-frost-600 mb-3">Create <code class="px-2 py-1 bg-frost-100 text-frost-800 rounded text-xs font-mono">apricity.yaml</code> in your project root:</p>
+      <div class="bg-frost-900 rounded-lg p-4 text-frost-100 font-mono text-sm overflow-x-auto">
+        <pre class="text-xs leading-relaxed">name: My Pipeline
+actions:
+  build:
+    jobs:
+      - test:
+          runs-on: ruby:3.4
+          name: Run Tests
+          mounts:
+            - source: .
+              target: /work
+              type: bind
+          steps:
+            - name: Install dependencies
+              run: bundle install
+            - name: Run tests
+              run: bundle exec rspec</pre>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="text-sm font-semibold text-frost-700 mb-3">3. Run the pipeline</h3>
+      <div class="bg-frost-900 rounded-lg p-4 text-frost-100 font-mono text-sm overflow-x-auto">
+        <div class="mb-2"><span class="text-frost-500"># Using the CLI</span></div>
+        <div class="mb-3">apricot apricity.yaml</div>
+        <div class="mb-2"><span class="text-frost-500"># Or start the web dashboard</span></div>
+        <div>bin/server</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Pipeline Configuration -->
+<div class="bg-white rounded-xl border border-frost-200 p-6 mb-8">
+  <h2 class="text-xl font-semibold text-frost-800 mb-6 flex items-center gap-2">
+    <i class="fas fa-cog text-sun-500"></i>
+    Pipeline Configuration
+  </h2>
+
+  <div class="space-y-6">
+    <div>
+      <h3 class="text-base font-semibold text-frost-700 mb-3">Basic Structure</h3>
+      <div class="bg-frost-900 rounded-lg p-4 text-frost-100 font-mono text-xs overflow-x-auto">
+        <pre class="leading-relaxed">name: Pipeline Name
+actions:
+  action_name:
+    jobs:
+      - job_name:
+          runs-on: image:tag      <span class="text-frost-500"># Docker image</span>
+          name: Human-readable name
+          needs: [other_job]      <span class="text-frost-500"># Dependencies</span>
+          mounts: [...]           <span class="text-frost-500"># Bind mounts</span>
+          steps: [...]            <span class="text-frost-500"># Execution steps</span>
+          inputs: [...]           <span class="text-frost-500"># Input artifacts/values</span>
+          outputs: [...]          <span class="text-frost-500"># Output artifacts/values</span>
+          conditions: [...]       <span class="text-frost-500"># Conditional execution</span>
+          plugins: [...]          <span class="text-frost-500"># Plugin hooks</span>
+          strategy:               <span class="text-frost-500"># Matrix builds</span>
+            matrix:
+              key: [val1, val2]</pre>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="text-base font-semibold text-frost-700 mb-3">Artifacts</h3>
+      <p class="text-sm text-frost-600 mb-3">Pass files between jobs:</p>
+      <div class="bg-frost-900 rounded-lg p-4 text-frost-100 font-mono text-xs overflow-x-auto">
+        <pre class="leading-relaxed"><span class="text-frost-500"># Producer job</span>
+outputs:
+  - key: test-results
+    type: artifact
+
+<span class="text-frost-500"># Consumer job</span>
+inputs:
+  - key: test-results
+    type: artifact
+needs: [producer_job]</pre>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="text-base font-semibold text-frost-700 mb-3">Matrix Builds</h3>
+      <p class="text-sm text-frost-600 mb-3">Fan out jobs across multiple configurations:</p>
+      <div class="bg-frost-900 rounded-lg p-4 text-frost-100 font-mono text-xs overflow-x-auto">
+        <pre class="leading-relaxed">strategy:
+  matrix:
+    ruby: ["3.2", "3.3", "3.4"]
+    os: [ubuntu, alpine]</pre>
+      </div>
+      <p class="text-sm text-frost-500 mt-2 italic">This creates 6 jobs (3 × 2), each with MATRIX_RUBY and MATRIX_OS environment variables.</p>
+    </div>
+
+    <div>
+      <h3 class="text-base font-semibold text-frost-700 mb-3">Plugins</h3>
+      <p class="text-sm text-frost-600 mb-3">Attach plugins to jobs for reporting and analysis:</p>
+      <div class="bg-frost-900 rounded-lg p-4 text-frost-100 font-mono text-xs overflow-x-auto">
+        <pre class="leading-relaxed">plugins:
+  - uses: apricity/junit-reporter
+    with:
+      junit_report: rspec.xml
+      artifact_key: test-outputs
+  - uses: apricity/simplecov-reporter
+    with:
+      artifact_key: coverage
+  - uses: apricity/sbom-reporter
+    with:
+      artifact_key: sbom</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Built-in Plugins -->
+<div class="bg-white rounded-xl border border-frost-200 p-6 mb-8">
+  <h2 class="text-xl font-semibold text-frost-800 mb-6 flex items-center gap-2">
+    <i class="fas fa-plug text-sun-500"></i>
+    Built-in Plugins
+  </h2>
+  <div class="overflow-x-auto">
+    <table class="min-w-full">
+      <thead>
+        <tr class="border-b border-frost-200">
+          <th class="text-left py-3 px-4 text-sm font-semibold text-frost-700">Plugin</th>
+          <th class="text-left py-3 px-4 text-sm font-semibold text-frost-700">Description</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-frost-100">
+        <tr>
+          <td class="py-3 px-4">
+            <code class="px-2 py-1 bg-frost-100 text-frost-800 rounded text-xs font-mono">apricity/junit-reporter</code>
+          </td>
+          <td class="py-3 px-4 text-sm text-frost-600">Parses JUnit XML reports and annotates jobs with test results</td>
+        </tr>
+        <tr>
+          <td class="py-3 px-4">
+            <code class="px-2 py-1 bg-frost-100 text-frost-800 rounded text-xs font-mono">apricity/simplecov-reporter</code>
+          </td>
+          <td class="py-3 px-4 text-sm text-frost-600">Extracts Ruby code coverage metrics</td>
+        </tr>
+        <tr>
+          <td class="py-3 px-4">
+            <code class="px-2 py-1 bg-frost-100 text-frost-800 rounded text-xs font-mono">apricity/sbom-reporter</code>
+          </td>
+          <td class="py-3 px-4 text-sm text-frost-600">Parses CycloneDX SBOM files for dependency analysis</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Architecture -->
+<div class="bg-white rounded-xl border border-frost-200 p-6 mb-8">
+  <h2 class="text-xl font-semibold text-frost-800 mb-6 flex items-center gap-2">
+    <i class="fas fa-sitemap text-sun-500"></i>
+    Architecture
+  </h2>
+  <div class="bg-frost-900 rounded-lg p-6 text-frost-100 font-mono text-xs overflow-x-auto">
+    <pre class="leading-relaxed">┌─────────────────────────────────────────────────────────────┐
+│                        Apricity                              │
+├─────────────────────────────────────────────────────────────┤
+│  CLI (Apricot)          │  Web UI (April)                   │
+│  └─ TUI Renderer        │  └─ Sinatra + HTMX + SSE          │
+├─────────────────────────────────────────────────────────────┤
+│                     Run / EventStore                         │
+│              (Event-sourced state management)                │
+├─────────────────────────────────────────────────────────────┤
+│  Pipeline               │  JobExecution                      │
+│  ├─ Parser (YAML)       │  ├─ Orchestrator                   │
+│  ├─ Reducer (→ Nodes)   │  ├─ Planner                        │
+│  ├─ Graph (DAG)         │  ├─ StepExecutor                   │
+│  └─ Runner (Scheduler)  │  └─ Collector                      │
+├─────────────────────────────────────────────────────────────┤
+│                      Plugin System                           │
+│               (Event-driven hooks)                           │
+├─────────────────────────────────────────────────────────────┤
+│                     Model Layer                              │
+│  (Pipeline, Action, Job, Step, Input, Output, etc.)         │
+├─────────────────────────────────────────────────────────────┤
+│                     Docker API                               │
+└─────────────────────────────────────────────────────────────┘</pre>
+  </div>
+</div>
+
+<!-- Requirements -->
+<div class="bg-white rounded-xl border border-frost-200 p-6">
+  <h2 class="text-xl font-semibold text-frost-800 mb-6 flex items-center gap-2">
+    <i class="fas fa-check-circle text-sun-500"></i>
+    Requirements
+  </h2>
+  <ul class="space-y-2">
+    <li class="flex items-center gap-2 text-frost-700">
+      <i class="fas fa-gem text-sun-600 text-sm"></i>
+      <span>Ruby 3.2+</span>
+    </li>
+    <li class="flex items-center gap-2 text-frost-700">
+      <i class="fas fa-docker text-sun-600 text-sm"></i>
+      <span>Docker</span>
+    </li>
+  </ul>
+</div>

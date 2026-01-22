@@ -1,0 +1,112 @@
+<%# filepath: /Users/joe/Work/apricity/lib/apricity/web/views/about.erb %>
+<div class="max-w-4xl mx-auto">
+  <div class="bg-white rounded-xl border border-frost-200 shadow-sm overflow-hidden">
+    <!-- Header -->
+    <div class="bg-gradient-to-br from-sun-50 to-frost-50 border-b border-frost-200 px-8 py-10">
+      <div class="flex items-center space-x-4 mb-4">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-sun-400 to-sun-600 flex items-center justify-center shadow-lg">
+          <i class="fas fa-sun text-white text-2xl"></i>
+        </div>
+        <div>
+          <h1 class="text-3xl font-bold text-frost-800">Apricity</h1>
+          <p class="text-sm text-frost-600 mt-1">Lightweight CI/CD Pipeline Runner</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Version Information -->
+    <div class="px-8 py-6 border-b border-frost-200">
+      <h2 class="text-base font-semibold text-frost-800 mb-4 flex items-center gap-2">
+        <i class="fas fa-info-circle text-sun-500"></i>
+        Version Information
+      </h2>
+      <div class="grid gap-3">
+        <div class="flex items-center justify-between py-3 px-4 bg-frost-50 rounded-lg">
+          <span class="text-sm font-medium text-frost-700">Apricity Version</span>
+          <span class="text-sm font-mono bg-white px-3 py-1 rounded border border-frost-200 text-frost-800"><%= @apricity_version %></span>
+        </div>
+        <div class="flex items-center justify-between py-3 px-4 bg-frost-50 rounded-lg">
+          <span class="text-sm font-medium text-frost-700">Docker Version</span>
+          <span class="text-sm font-mono bg-white px-3 py-1 rounded border border-frost-200 text-frost-800"><%= @docker_version %></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Features -->
+    <div class="px-8 py-6 border-b border-frost-200">
+      <h2 class="text-base font-semibold text-frost-800 mb-4 flex items-center gap-2">
+        <i class="fas fa-star text-sun-500"></i>
+        Features
+      </h2>
+      <div class="grid gap-3 md:grid-cols-2">
+        <div class="flex items-start gap-3 p-4 bg-frost-50 rounded-lg">
+          <div class="w-8 h-8 rounded-lg bg-sun-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <i class="fas fa-diagram-project text-sun-600 text-sm"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-frost-800">Pipeline Management</h3>
+            <p class="text-xs text-frost-600 mt-1">Define and orchestrate complex CI/CD workflows</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3 p-4 bg-frost-50 rounded-lg">
+          <div class="w-8 h-8 rounded-lg bg-sun-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <i class="fas fa-rocket text-sun-600 text-sm"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-frost-800">Docker Integration</h3>
+            <p class="text-xs text-frost-600 mt-1">Run builds in isolated container environments</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3 p-4 bg-frost-50 rounded-lg">
+          <div class="w-8 h-8 rounded-lg bg-sun-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <i class="fas fa-server text-sun-600 text-sm"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-frost-800">Worker Pools</h3>
+            <p class="text-xs text-frost-600 mt-1">Distribute workload across multiple workers</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3 p-4 bg-frost-50 rounded-lg">
+          <div class="w-8 h-8 rounded-lg bg-sun-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <i class="fas fa-bolt text-sun-600 text-sm"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-frost-800">Real-time Updates</h3>
+            <p class="text-xs text-frost-600 mt-1">Live pipeline status and log streaming</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resources -->
+    <div class="px-8 py-6">
+      <h2 class="text-base font-semibold text-frost-800 mb-4 flex items-center gap-2">
+        <i class="fas fa-book text-sun-500"></i>
+        Resources
+      </h2>
+      <div class="space-y-2">
+        <a href="https://github.com/jweissman/apricity" target="_blank" class="flex items-center justify-between p-3 rounded-lg hover:bg-frost-50 transition-colors group">
+          <div class="flex items-center gap-3">
+            <i class="fab fa-github text-frost-400 group-hover:text-frost-600 transition-colors"></i>
+            <span class="text-sm text-frost-700 group-hover:text-frost-900">GitHub Repository</span>
+          </div>
+          <i class="fas fa-arrow-up-right-from-square text-xs text-frost-400 group-hover:text-sun-600 transition-colors"></i>
+        </a>
+        <a href="/docs" target="_blank" class="flex items-center justify-between p-3 rounded-lg hover:bg-frost-50 transition-colors group">
+          <div class="flex items-center gap-3">
+            <i class="fas fa-book-open text-frost-400 group-hover:text-frost-600 transition-colors"></i>
+            <span class="text-sm text-frost-700 group-hover:text-frost-900">Documentation</span>
+          </div>
+          <i class="fas fa-arrow-up-right-from-square text-xs text-frost-400 group-hover:text-sun-600 transition-colors"></i>
+        </a>
+        <a href="/sbom" class="flex items-center justify-between p-3 rounded-lg hover:bg-frost-50 transition-colors group">
+          <div class="flex items-center gap-3">
+            <i class="fas fa-cube text-frost-400 group-hover:text-frost-600 transition-colors"></i>
+            <span class="text-sm text-frost-700 group-hover:text-frost-900">Software Bill of Materials</span>
+          </div>
+          <i class="fas fa-arrow-right text-xs text-frost-400 group-hover:text-sun-600 transition-colors"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

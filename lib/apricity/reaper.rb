@@ -19,7 +19,7 @@ module Apricity
       end
     end
 
-    def self.orphaned_ttl_seconds = ENV.fetch("APRICITY_ORPHANED_CONTAINER_TTL_SECONDS", 30).to_i
+    def self.orphaned_ttl_seconds = ENV.fetch("APRICITY_ORPHANED_CONTAINER_TTL_SECONDS", 300).to_i
 
     # rubocop:disable Metrics/MethodLength
     # rubocop:disable Metrics/AbcSize
@@ -60,6 +60,78 @@ module Apricity
     end
   end
 
+  # Helper to finalize jobs
+  class JobFinalizer
+    def initialize(halted_job)
+      @halted_job = halted_job
+    end
+
+    def finalize_run_state
+      run_store = Apricity::RunStore.instance
+      run_id = halted_job.run_id
+      run = run_store.get_run(run_id)
+      return unless run && run.status == "running"
+
+      puts "Reaper: Finalizing run #{run_id} as 'failed' due to orphaned container cleanup"
+      run_store.set_run_status(run_id, "failed")
+      # puts "Reaper: Appending JobFinished event for run #{run_id}"
+      append_events(halted_job)
+    rescue StandardError => e
+      warn "Reaper: Error finalizing run #{run_id}: #{e.class}: #{e.message}"
+      warn e.backtrace.join("\n")
+    end
+
+    private
+
+    attr_reader :halted_job
+
+    # append a synthetic event to the run's event log
+    def append_events
+      puts "!!! Reaper: Appending synthetic events for halted job run #{halted_job.run_id}"
+      event_store = Apricity::Run::EventStore.instance
+      # event_store.append_event(halted_job.run_id, step_finished_event(halted_job))
+      event_store.append_event(halted_job.run_id, job_finished_event(halted_job))
+      event_store.append_event(halted_job.run_id, pipeline_finished_event(halted_job))
+    end
+
+    # will need some way to track current step in redis for this!
+    # def step_finished_event
+    #   # puts " * Reaper: Creating StepFinished event for halted job run #{halted_job.run_id}"
+    #   Apricity::JobExecution::Events::StepFinished.new(
+    #     node: Apricity::JobExecution::Node.minimal(
+    #       halted_job.node_id, job_name: "unknown", action_name: "unknown"
+    #     ),
+    #     step: Apricity::Model::Step.new(name: halted_job.step_name),
+    #     status: "failure",
+    #     started_at: Time.now,
+    #     finished_at: Time.now
+    #     # duration_seconds: 0.0
+    #   )
+    #   # puts " * Reaper: StepFinished event created: #{evt.pretty}"
+    # end
+
+    def job_finished_event
+      puts " * Reaper: Creating JobFinished event for halted job run #{halted_job.run_id}"
+      Apricity::JobExecution::Events::JobFinished.new(
+        node: Apricity::JobExecution::Node.minimal(halted_job.node_id, job_name: "unknown", action_name: "unknown"),
+        status: "failure",
+        finished_at: Time.now,
+        exception: StandardError.new("Job run finalized as 'failed' by Reaper due to orphaned container cleanup"),
+        outputs: {}
+      )
+    end
+
+    def pipeline_finished_event
+      puts " * Reaper: Creating PipelineFinished event for halted job run #{halted_job.run_id}"
+      Apricity::JobExecution::Events::PipelineFinished.new(
+        pipeline_name: halted_job.pipeline_name,
+        status: "failure",
+        finished_at: Time.now,
+        outputs_by_node: {}
+      )
+    end
+  end
+
   # Background reaper to clean up stale docker resources
   class Reaper
     HaltedJob = Data.define(:pipeline_name, :run_id, :node_id, :step_name, :reason) do
@@ -78,7 +150,7 @@ module Apricity
       def eql?(other) = other.is_a?(HaltedJob) && run_id == other.run_id
     end
 
-    def initialize(interval_seconds: ENV.fetch("APRICITY_REAPER_INTERVAL_SECONDS", 30).to_i)
+    def initialize(interval_seconds: ENV.fetch("APRICITY_REAPER_INTERVAL_SECONDS", 600).to_i)
       @interval_seconds = interval_seconds
       @stop_requested = false
     end
@@ -114,24 +186,30 @@ module Apricity
 
     def teardown_orphaned_docker_containers
       puts "Reaper: Checking for orphaned containers..."
-      halted_jobs = DockerInspector.list_orphaned_containers.map do |container|
-        # finalize_job_run_id = container.info["Labels"]["apricity.run_id"]
-        container_kind = container.info["Labels"]["apricity.kind"]
-        # finalize_run_state(finalize_job_run_id)
-        halted_job = HaltedJob.from_orphaned_container(container) if container_kind == "job"
-        destroy_container(container)
-        puts "Reaper: Cleaned orphaned container #{container.id} for run #{halted_job&.run_id}"
-        halted_job
-      rescue StandardError => e
-        warn "Reaper: Error inspecting/removing orphaned container #{container.id}: #{e.class}: #{e.message}"
-      end
 
       halted_jobs.compact.uniq.each do |halted|
-        finalize_run_state(halted)
+        # finalize_run_state(halted)
+        JobFinalizer.new(halted).finalize_run_state
+      end
+
+      DockerInspector.list_orphaned_containers.map do |container|
+        destroy_container(container)
       end
     rescue StandardError => e
       warn "Reaper: Error finalizing orphaned runs: #{e.class}: #{e.message}"
       warn e.backtrace.join("\n")
+    end
+
+    def halted_jobs
+      DockerInspector.list_orphaned_containers.map do |container|
+        container_kind = container.info["Labels"]["apricity.kind"]
+        halted_job = HaltedJob.from_orphaned_container(container) if container_kind == "job"
+        # destroy_container(container)
+        # puts "Reaper: Cleaned orphaned container #{container.id} for run #{halted_job&.run_id}"
+        halted_job
+      rescue StandardError => e
+        warn "Reaper: Error inspecting/removing orphaned container #{container.id}: #{e.class}: #{e.message}"
+      end
     end
 
     def teardown_stale_docker_networks
@@ -152,68 +230,6 @@ module Apricity
       container.delete(force: true)
     rescue StandardError => e
       warn "Reaper: Error removing container #{container.id}: #{e.class}: #{e.message}"
-    end
-
-    def finalize_run_state(halted_job)
-      run_store = Apricity::RunStore.instance
-      run_id = halted_job.run_id
-      run = run_store.get_run(run_id)
-      return unless run && run.status == "running"
-
-      puts "Reaper: Finalizing run #{run_id} as 'failed' due to orphaned container cleanup"
-      run_store.set_run_status(run_id, "failed")
-      puts "Reaper: Appending JobFinished event for run #{run_id}"
-      append_events(halted_job)
-    rescue StandardError => e
-      warn "Reaper: Error finalizing run #{run_id}: #{e.class}: #{e.message}"
-      warn e.backtrace.join("\n")
-    end
-
-    # append a synthetic event to the run's event log
-    def append_events(halted_job)
-      puts "!!! Reaper: Appending synthetic events for halted job run #{halted_job.run_id}"
-      event_store = Apricity::Run::EventStore.instance
-      # event_store.append_event(halted_job.run_id, step_finished_event(halted_job))
-      event_store.append_event(halted_job.run_id, job_finished_event(halted_job))
-      event_store.append_event(halted_job.run_id, pipeline_finished_event(halted_job))
-    end
-
-    def step_finished_event(halted_job)
-      puts " * Reaper: Creating StepFinished event for halted job run #{halted_job.run_id}"
-      evt = Apricity::JobExecution::Events::StepFinished.new(
-        node: Apricity::JobExecution::Node.minimal(
-          halted_job.node_id, job_name: "unknown", action_name: "unknown"
-        ),
-        step: Apricity::Model::Step.new(name: halted_job.step_name),
-        status: "failure",
-        started_at: Time.now,
-        finished_at: Time.now
-        # duration_seconds: 0.0
-      )
-      puts " * Reaper: StepFinished event created: #{evt.pretty}"
-      evt
-    end
-
-    def job_finished_event(halted_job)
-      puts " * Reaper: Creating JobFinished event for halted job run #{halted_job.run_id}"
-      Apricity::JobExecution::Events::JobFinished.new(
-        node: Apricity::JobExecution::Node.minimal(halted_job.node_id, job_name: "unknown", action_name: "unknown"),
-        status: "failure",
-        finished_at: Time.now,
-        exception: StandardError.new("Job run finalized as 'failed' by Reaper due to orphaned container cleanup"),
-        outputs: {}
-      )
-    end
-
-    def pipeline_finished_event(halted_job)
-      puts " * Reaper: Creating PipelineFinished event for halted job run #{halted_job.run_id}"
-      Apricity::JobExecution::Events::PipelineFinished.new(
-        pipeline_name: halted_job.pipeline_name,
-        status: "failure",
-        finished_at: Time.now,
-        # exception: StandardError.new("Pipeline run finalized as 'failed' by Reaper due to orphaned container cleanup")
-        outputs_by_node: {}
-      )
     end
   end
 end

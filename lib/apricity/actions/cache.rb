@@ -17,16 +17,16 @@ module Apricity
         super(org: "apricity", name: "cache", version: "v0", options:, job_id:, step_id:)
       end
 
-      def self.set_cache_key(key, checksum)
-        @cache_keys ||= {}
-        @cache_keys[key] = checksum
-      end
+      # def self.set_cache_key(key, checksum)
+      #   @cache_keys ||= {}
+      #   @cache_keys[key] = checksum
+      # end
 
-      def self.cache_key?(key) = @cache_keys&.key?(key)
+      # def self.cache_key?(key) = @cache_keys&.key?(key)
 
-      def self.get_cache_key(key)
-        @cache_keys[key] if @cache_keys
-      end
+      # def self.get_cache_key(key)
+      #   @cache_keys[key] if @cache_keys
+      # end
 
       def before_execute(meta:)
         log "Starting cache action with options: #{options.inspect}"
@@ -41,16 +41,15 @@ module Apricity
       def log(message) = warn "[Cache Action] #{message}"
 
       def digest(meta:, options:)
-        return self.class.get_cache_key(options[:key]) if self.class.cache_key?(options[:key])
+        # return self.class.get_cache_key(options[:key]) if self.class.cache_key?(options[:key])
 
         checksum_file = options[:checksum_file]
         md5_command = <<~SH
           ruby -e 'require "digest"; puts Digest::SHA256.file("#{checksum_file}").hexdigest'
         SH
         stdout, _stderr, _code = meta.container.exec(["sh", "-c", md5_command])
-        checksum = stdout[0].strip
-        self.class.set_cache_key(options[:key], checksum)
-        checksum
+        stdout[0].strip
+        # self.class.set_cache_key(options[:key], checksum)
       end
 
       def perform_cache_action(options:, cache_dir:, meta:)
@@ -108,6 +107,9 @@ module Apricity
 
         tar_name = File.basename(tar_path)          # "bundle.tar"
         tmp_tar  = File.join("/tmp", tar_name)      # "/tmp/bundle.tar"
+
+        file_size = File.size(tar_path)
+        log "Restoring cache path #{path} to #{working_dir}/#{path} (#{file_size} bytes)"
 
         container.archive_in([tar_path], "/tmp")
 

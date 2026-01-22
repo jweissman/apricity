@@ -15,11 +15,13 @@
 # To-do
 - [~] Deployment
 - [~] Persistence
-- [ ] Stabilization
-  - [ ] Heartbeats
+- [~] Stabilization
+  - [~] Worker run leases
+  - [~] Heartbeats
   - [ ] Step timeouts?
 - [ ] Repo/ref cold start endpoint
 - [ ] JUnit + coverage verification on a smaller repo first
+- [ ] Consume JUnit xml to nice report like sbom?
 - [ ] Minio/s3 for artifact store
 - [ ] Secrets (env injection from fly secrets?)
 - [ ] Tiny example app with services
@@ -40,5 +42,5 @@
 - [ ] Persist pipeline state so we don't _have_ to replay events if pipeline is finished?
 
 # Bugs
-- [ ] Address network accumulation somehow?
+- [x] Address network accumulation somehow? -- reaper _does_ seem to fix this!
 - [x] Try to repair step timestamps/durations on the f/e

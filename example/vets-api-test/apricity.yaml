@@ -22,7 +22,11 @@ actions:
             SETTINGS__TEST_DATABASE_URL: "postgis://postgres:password@postgres:5432/vets_api_test"
             SETTINGS__REDIS__APP_DATA__URL: "redis://redis:6379"
             SETTINGS__REDIS__SIDEKIQ__URL: "redis://redis:6379"
-
+          plugins:
+            - uses: apricity/junit-reporter
+              with:
+                junit_report: rspec.xml
+                artifact_key: test-outputs
           steps:
             - name: Checkout Vets API
               uses: apricity/checkout@v0
@@ -33,16 +37,20 @@ actions:
             - name: Load Bundled Gems from Cache
               uses: apricity/cache@v0
               with:
-                key: bundler-ruby-3.3
+                key: vets-api-bundler-ruby-3.3
                 checksum_file: Gemfile.lock
                 perform_restore: true
                 paths:
-                  - vendor/bundle
+                  - vendor/cache
 
             - name: Install deps
               run: |
                 apt-get update
                 apt-get install -y postgresql-client pdftk poppler-utils imagemagick ghostscript tesseract-ocr
+                apt-get install -y --no-install-recommends \
+                  build-essential pkg-config \
+                  git curl ca-certificates \
+                  libffi-dev libyaml-dev zlib1g-dev libgmp-dev
 
             - name: Wait for postgres
               run: |
@@ -54,25 +62,38 @@ actions:
             - name: Bundle install
               run: |
                 bundle config set --local path 'vendor/bundle'
-                bundle install
+                bundle config set --local cache_all true
+                bundle config set --local cache_path 'vendor/cache'
+                bundle install --local --verbose --jobs 2 --retry 3 || bundle install --verbose --jobs 2 --retry 3
+
+            - name: Package gems for caching
+              run: |
+                bundle package --all --path vendor/cache
 
             - name: Cache Bundled Gems
               uses: apricity/cache@v0
               with:
-                key: bundler-ruby-3.3
+                key: vets-api-bundler-ruby-3.3
                 checksum_file: Gemfile.lock
                 perform_save: true
                 paths:
-                  - vendor/bundle
+                  - vendor/cache
 
             - name: Prepare Test Database
               run: |
                 bundle exec rails db:test:prepare
 
-            - name: Run some spec files
+            - name: Run user spec
               run: |
-                bundle exec rspec --fail-fast spec/models spec/lib
+                bundle exec rspec --fail-fast spec/models/user_spec.rb \
+                  --format progress \
+                  --format RspecJunitFormatter \
+                  --out $APRICITY_ARTIFACTS/test-outputs/rspec.xml
+                
+            # - name: Run lib specs
+            #   run: |
+            #     bundle exec rspec --fail-fast spec/lib
       
-            - name: Run Linter
-              run: |
-                bundle exec rubocop app lib
+            # - name: Run Linter
+            #   run: |
+            #     bundle exec rubocop app lib

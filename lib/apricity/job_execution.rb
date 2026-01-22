@@ -753,7 +753,7 @@ module Apricity
 
       def container
         @container ||= ContainerSession.new(image:, binds: @binds, env: merged_env, working_dir: @working_dir,
-                                            network:, run_id: @run.id, node_id: node.id, # step_name: step&.name || "job",
+                                            network:, run_id: @run.id, node_id: node.id,
                                             pipeline_name: @run.pipeline&.name || "unknown")
       end
 

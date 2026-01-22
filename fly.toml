@@ -11,11 +11,11 @@ primary_region = 'iad'
 [env]
   APRICITY_ARTIFACT_ROOT = '/data/artifacts'
   APRICITY_CACHE_ROOT = '/data/cache'
-  APRICITY_DOCKER_READ_TIMEOUT = 3600
+  APRICITY_DOCKER_READ_TIMEOUT = 4800
   APRICITY_WORKER_CONCURRENCY = 2
   DOCKER_API_VERSION = '1.43'
   DOCKER_VERSION = '1.43'
-  DOCKER_HOST = 'tcp://[fdaa:38:ea0b:a7b:60d:230b:b25d:2]:2375'
+  DOCKER_HOST = 'tcp://docker-for-kurt-delicate-pine-8745.internal:2375'
   PORT = '8080'
   RACK_ENV = 'production'
   BUNDLE_DEPLOYMENT = "true"
@@ -37,7 +37,7 @@ primary_region = 'iad'
   min_machines_running = 1
 
 [[vm]]
-  memory = '2gb'
+  memory = '4gb'
   cpu_kind = 'shared'
   cpus = 2
 

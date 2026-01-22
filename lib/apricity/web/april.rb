@@ -13,31 +13,6 @@ require_relative "../job_execution"
 require_relative "../worker"
 
 module Apricity
-  # In-memory store for runs
-  # class RunStore
-  #   # In memory backend implementation
-  #   class InMemoryBackend
-  #     def initialize = @runs = {}
-  #     def add_run(run) = @runs[run.id] = run
-  #     def get_run(run_id) = @runs[run_id]
-  #     def list_runs = @runs.values
-  #   end
-
-  #   include Singleton
-
-  #   def initialize(backend: InMemoryBackend.new)
-  #     @backend = backend
-  #   end
-
-  #   def add_run(run) = backend.add_run(run)
-  #   def get_run(run_id) = backend.get_run(run_id)
-  #   def list_runs = backend.list_runs
-
-  #   private
-
-  #   attr_reader :backend
-  # end
-
   module Web
     module MimeTypes
       MIME_TYPES = {
@@ -310,18 +285,6 @@ module Apricity
       end
       # rubocop:enable Metrics/AbcSize
 
-      # def safe_artifact_path(requested_path)
-      #   root = "#{artifact_root}/"
-      #   full_path = File.expand_path(File.join(root, requested_path))
-
-      #   warn "Resolved artifact path: #{full_path} (requested: #{requested_path})"
-
-      #   halt 403, "Access denied" unless full_path.start_with?(root)
-      #   halt 404, "Not found" unless File.exist?(full_path)
-
-      #   full_path
-      # end
-
       def mime_type_for(path)
         ext = File.extname(path).downcase
         MimeTypes::MIME_TYPES.fetch(ext, "application/octet-stream")
@@ -447,13 +410,6 @@ module Apricity
           end
         end
 
-        # def mermaid_dag(pipeline)
-        #   nodes = Pipeline::Reducer.lower(pipeline)
-        #   graph = Pipeline::Graph.new(nodes)
-        #   graph.analyze
-        #   Diagrams.mermaid_dag!(nodes, graph)
-        # end
-
         def dag_data(pipeline)
           nodes = Pipeline::Reducer.lower(pipeline)
           graph = Pipeline::Graph.new(nodes)
@@ -550,6 +506,16 @@ module Apricity
         @leases = Apricity::Worker::Registry.list_leases
 
         erb :workers
+      end
+
+      get "/about" do
+        @docker_version = Docker.version
+        @apricity_version = Apricity::VERSION
+        erb :about
+      end
+
+      get "/docs" do
+        erb :docs
       end
     end
   end
