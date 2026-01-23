@@ -18,6 +18,8 @@ module Apricity
         end
       end
 
+      include DigestHelper
+
       module Constants
         CACHE_ROOT = ENV.fetch("APRICITY_CACHE_ROOT") do
           File.expand_path(File.join(Dir.home, ".apricity", "cache"))
@@ -67,7 +69,7 @@ module Apricity
         return self.class.get_cache_key(options[:key], group: meta.run_id) if self.class.cache_key?(options[:key],
                                                                                                     group: meta.run_id)
 
-        checksum = DigestHelper.digest!(checksum_file: options[:checksum_file], container: meta.container)
+        checksum = digest!(checksum_file: options[:checksum_file], container: meta.container)
         self.class.set_cache_key(options[:key], checksum, group: meta.run_id)
         checksum
       end
