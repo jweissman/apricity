@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "debug"
+# require "debug"
 require "simplecov"
 # require "simplecov_json_formatter"
 # SimpleCov.formatter = SimpleCov::Formatter::JSONFormatter

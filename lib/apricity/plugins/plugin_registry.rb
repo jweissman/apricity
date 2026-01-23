@@ -29,7 +29,6 @@ module Apricity
         plugin = @plugins[key]
         unless plugin
           Console.error(self, "plugin_not_found", plugin: key)
-          # debugger
           raise "Plugin not found: #{key}"
         end
         plugin

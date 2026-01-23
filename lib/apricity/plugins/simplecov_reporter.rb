@@ -82,8 +82,6 @@ module Apricity
       end
 
       def pipeline_finished(context:, emitter:, options: {}, event: nil)
-        # warn "Context: #{context.inspect}"
-        # debugger
         nodes_paths = analyze_nodes_paths(event.outputs_by_node, options)
         paths = nodes_paths.values.flatten.select { File.exist?(it) }
 
@@ -96,22 +94,7 @@ module Apricity
         annotate_pipeline(report: stats, context:, emitter:)
       end
 
-      # old job finished using last_run.json per job
-      # def job_finished(context:, emitter:, options: {}, event: nil)
-      #   coverage_report = options.fetch(:coverage_report, ".last_run.json")
-      #   artifact_key = options.fetch(:artifact_key, "coverage")
-      #   host_output_directory = context.artifact_outputs[artifact_key]
-      #   return unless assert_present(host_output_directory,
-      #                                "SimplecovReporter[#{event&.type}]: No coverage found \
-      #                                for job #{context.node.id}")
-
-      #   parse_and_annotate_job(File.join(host_output_directory, coverage_report), context:, emitter:)
-      # rescue StandardError => e
-      #   warn "SimplecovReporter[#{event&.type}]: Error in after_job for job #{context.node.id}: #{e.message}"
-      #   raise e
-      # end
-
-      # new job finished using resultset.json per job
+      # using resultset.json per job
       def job_finished(context:, emitter:, options: {}, event: nil)
         coverage_report = options.fetch(:coverage_report, ".resultset.json")
         artifact_key = options.fetch(:artifact_key, "coverage")
@@ -135,7 +118,6 @@ module Apricity
           return { coverage_percent: 0 }
         end
 
-        # debugger
         coverage_percent = collate_reports([path])[:coverage_percent]
         emitter[SimplecovReportModels::SimpleCovReportParsedEvent.new(coverage_percent:)]
         { coverage_percent: }
@@ -173,7 +155,6 @@ module Apricity
       end
 
       def annotate_job(report:, context:, emitter:)
-        # debugger
         coverage = report[:coverage_percent]
         emitter[JobExecution::Events::JobAnnotated[
           node: context.node,
