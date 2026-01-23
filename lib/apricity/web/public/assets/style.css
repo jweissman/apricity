@@ -22,6 +22,18 @@
   --palette-sun-800: #6b5410;
   --palette-sun-900: #4d3c0b;
 
+  /* ─── PALETTE: CHILL ─── */
+  --palette-chill-50: #f9fbfd;
+  --palette-chill-100: #f0f6fc;
+  --palette-chill-200: #e0ecf8;
+  --palette-chill-300: #c3d7f1;
+  --palette-chill-400: #9abbe6;
+  --palette-chill-500: #4a8ec9;
+  --palette-chill-600: #2b5a8a;
+  --palette-chill-700: #1c3d5c;
+  --palette-chill-800: #0f2536;
+  --palette-chill-900: #08141a;
+
   /* ─── PALETTE: FROST ─── */
   --palette-frost-50: #f8f9fb;
   --palette-frost-100: #f1f4f8;

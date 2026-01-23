@@ -5,7 +5,8 @@ module Apricity
   class RunStore
     RunRecord = Data.define(
       :id, :pipeline_slug, :pipeline_name,
-      :git_sha, :status, :created_at
+      :git_sha, :status, :created_at,
+      :cursor
     ) do
       def to_s = "Run #{id} (Pipeline: #{pipeline_slug}, Created at: #{created_at})"
 
@@ -16,7 +17,8 @@ module Apricity
           pipeline_name: run.pipeline.name,
           git_sha: run.git_sha || "unknown",
           status: "pending",
-          created_at: Time.now
+          created_at: Time.now,
+          cursor: nil
         )
       end
 
@@ -32,6 +34,7 @@ module Apricity
       # Return runs in reverse order (newest first) to match Redis backend behavior
       def list_runs = @runs.values.reverse
       def set_run_status(run_id, status) = @runs[run_id]&.status = status
+      def update_cursor(run_id, step_name); end
     end
 
     # Redis backend implementation
@@ -62,14 +65,34 @@ module Apricity
           id: h["id"],
           pipeline_slug: h["pipeline_slug"],
           pipeline_name: h["pipeline_name"],
-          git_sha: h["git_sha"],
-          status: h["status"] || "pending",
-          created_at: Time.at(h["created_at"].to_i)
+          git_sha: h["git_sha"], status: h["status"] || "pending",
+          created_at: Time.at(h["created_at"].to_i),
+          cursor: get_run_cursor(run_id)
         )
+      end
+
+      def get_run_cursor(run_id)
+        cursor = redis.hgetall(cursor_key(run_id))
+        if cursor.empty?
+          nil
+        else
+          {
+            # node_id
+            step_name: cursor["step_name"],
+            started_at: Time.at(cursor["started_at"].to_i)
+          }
+        end
       end
 
       def set_run_status(run_id, status)
         redis.hset(key(run_id), "status", status)
+      end
+
+      def update_cursor(run_id, step_name)
+        puts "Updating cursor for run #{run_id} to step '#{step_name}'"
+        redis.hset(cursor_key(run_id),
+                   "step_name", step_name,
+                   "started_at", Time.now.to_i)
       end
 
       def list_runs(limit: 50)
@@ -82,6 +105,7 @@ module Apricity
       attr_reader :redis
 
       def key(id) = "apricity:run:#{id}"
+      def cursor_key(id) = "apricity:cursor:#{id}"
     end
 
     include Singleton
@@ -98,12 +122,15 @@ module Apricity
     def get_run(run_id) = backend.get_run(run_id)
     def list_runs = backend.list_runs
     def set_run_status(run_id, status) = backend.set_run_status(run_id, status.to_s)
+    def set_cursor(run_id, step_name) = backend.update_cursor(run_id, step_name)
+    def get_run_cursor(run_id) = backend.get_run_cursor(run_id)
 
     def apply_event(run_id:, event:)
       record = get_run(run_id)
       return unless record
 
       case event.type
+      when :step_started then set_cursor(run_id, event.step.name)
       when :pipeline_started then set_run_status(run_id, "running")
       when :pipeline_finished
         set_run_status(run_id, event.status.to_s)

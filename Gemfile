@@ -39,7 +39,7 @@ gem "activerecord", "~> 8.1"
 gem "pg", "~> 1.6"
 
 # dev only gems
-# gem "debug", "~> 1.11"
+gem "debug", "~> 1.11", group: :test
 # gem "irb"
 
 gem "redis", "~> 5.4"

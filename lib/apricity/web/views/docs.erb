@@ -224,6 +224,7 @@ needs: [producer_job]</pre>
         <tr class="border-b border-frost-200">
           <th class="text-left py-3 px-4 text-sm font-semibold text-frost-700">Plugin</th>
           <th class="text-left py-3 px-4 text-sm font-semibold text-frost-700">Description</th>
+          <th class="text-left py-3 px-4 text-sm font-semibold text-frost-700">Usage</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-frost-100">
@@ -232,18 +233,45 @@ needs: [producer_job]</pre>
             <code class="px-2 py-1 bg-frost-100 text-frost-800 rounded text-xs font-mono">apricity/junit-reporter</code>
           </td>
           <td class="py-3 px-4 text-sm text-frost-600">Parses JUnit XML reports and annotates jobs with test results</td>
+          <td class="py-3 px-4 text-sm text-frost-600">
+            <pre>
+          plugins:
+            - uses: apricity/junit-reporter
+              with:
+                junit_report: rspec.xml
+                 # Hint UI that this file is junit report
+                artifact_key: junit
+            </pre>
+          </td>
         </tr>
         <tr>
           <td class="py-3 px-4">
             <code class="px-2 py-1 bg-frost-100 text-frost-800 rounded text-xs font-mono">apricity/simplecov-reporter</code>
           </td>
           <td class="py-3 px-4 text-sm text-frost-600">Extracts Ruby code coverage metrics</td>
+          <td class="py-3 px-4 text-sm text-frost-600">
+            <pre>
+          plugins:
+            - uses: apricity/simplecov-reporter
+              with:
+                coverage_report: .resultset.json
+                artifact_key: coverage
+            </pre>
+          </td>
         </tr>
         <tr>
           <td class="py-3 px-4">
             <code class="px-2 py-1 bg-frost-100 text-frost-800 rounded text-xs font-mono">apricity/sbom-reporter</code>
           </td>
           <td class="py-3 px-4 text-sm text-frost-600">Parses CycloneDX SBOM files for dependency analysis</td>
+          <td class="py-3 px-4 text-sm text-frost-600">
+            <pre>
+          plugins:
+            - uses: apricity/sbom-reporter
+              with:
+                artifact_key: sbom
+            </pre>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -258,27 +286,27 @@ needs: [producer_job]</pre>
   </h2>
   <div class="bg-frost-900 rounded-lg p-6 text-frost-100 font-mono text-xs overflow-x-auto">
     <pre class="leading-relaxed">┌─────────────────────────────────────────────────────────────┐
-│                        Apricity                              │
+│                        Apricity                             │
 ├─────────────────────────────────────────────────────────────┤
 │  CLI (Apricot)          │  Web UI (April)                   │
 │  └─ TUI Renderer        │  └─ Sinatra + HTMX + SSE          │
 ├─────────────────────────────────────────────────────────────┤
-│                     Run / EventStore                         │
-│              (Event-sourced state management)                │
+│                     Run / EventStore                        │
+│              (Event-sourced state management)               │
 ├─────────────────────────────────────────────────────────────┤
-│  Pipeline               │  JobExecution                      │
-│  ├─ Parser (YAML)       │  ├─ Orchestrator                   │
-│  ├─ Reducer (→ Nodes)   │  ├─ Planner                        │
-│  ├─ Graph (DAG)         │  ├─ StepExecutor                   │
-│  └─ Runner (Scheduler)  │  └─ Collector                      │
+│  Pipeline               │  JobExecution                     │
+│  ├─ Parser (YAML)       │  ├─ Orchestrator                  │
+│  ├─ Reducer (→ Nodes)   │  ├─ Planner                       │
+│  ├─ Graph (DAG)         │  ├─ StepExecutor                  │
+│  └─ Runner (Scheduler)  │  └─ Collector                     │
 ├─────────────────────────────────────────────────────────────┤
-│                      Plugin System                           │
-│               (Event-driven hooks)                           │
+│                      Plugin System                          │
+│               (Event-driven hooks)                          │
 ├─────────────────────────────────────────────────────────────┤
-│                     Model Layer                              │
+│                     Model Layer                             │
 │  (Pipeline, Action, Job, Step, Input, Output, etc.)         │
 ├─────────────────────────────────────────────────────────────┤
-│                     Docker API                               │
+│                     Docker API                              │
 └─────────────────────────────────────────────────────────────┘</pre>
   </div>
 </div>
@@ -295,7 +323,7 @@ needs: [producer_job]</pre>
       <span>Ruby 3.2+</span>
     </li>
     <li class="flex items-center gap-2 text-frost-700">
-      <i class="fas fa-docker text-sun-600 text-sm"></i>
+      <i class="fas fa-rocket text-sun-600 text-sm"></i>
       <span>Docker</span>
     </li>
   </ul>

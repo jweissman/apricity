@@ -9,10 +9,12 @@ module Apricity
   module Pipeline
     RSpec.describe Parser do
       subject(:parser) { described_class }
-      let(:pipeline) { Apricity::Model::Pipeline.from_yaml(file) }
+      let(:file) { File.read(fixture_path) }
+      let(:parsed_yaml) { YAML.safe_load(file, symbolize_names: true) }
+      let(:pipeline) { Apricity::Model::Pipeline.from_yaml(parsed_yaml) }
 
       describe "parses test fixture pipeline" do
-        let(:file) { File.read("spec/fixtures/test-fixture-pipeline.yaml") }
+        let(:fixture_path) { "spec/fixtures/test-fixture-pipeline.yaml" }
 
         it "parses action names" do
           expect(pipeline.actions.map(&:name)).to eq(%i[check])
@@ -86,8 +88,7 @@ module Apricity
       end
 
       describe "parses pipeline with matrix strategy" do
-        let(:file) { File.read("spec/fixtures/test-matrix-pipeline.yaml") }
-        let(:pipeline) { Apricity::Model::Pipeline.from_yaml(file) }
+        let(:fixture_path) { "spec/fixtures/test-matrix-pipeline.yaml" }
         let(:test_job) { pipeline.actions.first.jobs.find { |job| job.name == :test } }
 
         it "parses strategy matrix" do
@@ -98,9 +99,8 @@ module Apricity
       end
 
       describe "parses pipeline with services" do
-        let(:file) { File.read("spec/fixtures/test-services-pipeline.yaml") }
-        let(:pipeline) { Apricity::Model::Pipeline.from_yaml(file) }
         let(:test_job) { pipeline.actions.first.jobs.find { |job| job.name == :test } }
+        let(:fixture_path) { "spec/fixtures/test-services-pipeline.yaml" }
 
         let(:pg) do
           Model::Service[
@@ -124,9 +124,8 @@ module Apricity
       end
 
       describe "parses pipeline with action definitions" do
-        let(:file) { File.read("spec/fixtures/test-actions-pipeline.yaml") }
-        let(:pipeline) { Apricity::Model::Pipeline.from_yaml(file) }
         let(:test_job) { pipeline.actions.first.jobs.first }
+        let(:fixture_path) { "spec/fixtures/test-actions-pipeline.yaml" }
 
         it "parses action use in job" do
           expect(test_job.steps.first.uses).to eq("apricity/checkout@v0")
@@ -138,9 +137,8 @@ module Apricity
       end
 
       describe "parses pipelines with env variables" do
-        let(:file) { File.read("spec/fixtures/test-env-pipeline.yaml") }
-        let(:pipeline) { Apricity::Model::Pipeline.from_yaml(file) }
         let(:env_job) { pipeline.actions.first.jobs.first }
+        let(:fixture_path) { "spec/fixtures/test-env-pipeline.yaml" }
 
         it "parses job-level env variables" do
           expect(env_job.env_vars).to eq({

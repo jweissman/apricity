@@ -273,7 +273,7 @@ module Apricity
     end
 
     # Run performance worker (for background job exec)
-    class Worker
+    class Performer
       def self.enqueue(pipeline)
         run_id = SecureRandom.uuid
 
@@ -295,7 +295,8 @@ module Apricity
           pipeline_slug: pipeline.slug,
           pipeline_name: pipeline.name,
           created_at: Time.now,
-          status: "pending"
+          status: "pending",
+          cursor: nil
         )
       end
 
@@ -310,7 +311,7 @@ module Apricity
         run.id
       end
 
-      def self.perform(pipeline)
+      def self.pipeline(pipeline)
         return inline(pipeline) if inline_run?
 
         enqueue(pipeline)

@@ -9,6 +9,10 @@ module Apricity
 
         puts state.pipeline.name
         puts "-" * 40
+        state.metadata.each do |key, value|
+          puts "#{key.to_s.capitalize}: #{value}"
+          # render_meta(key, value)
+        end
         state.nodes.each_value do |node_state|
           render_node(node_state)
           render_node_steps(node_state) # if node_state.phase == :running
@@ -93,6 +97,11 @@ module Apricity
         pretty_value.each do |k, v|
           puts "    - #{k}: #{v}"
         end
+      end
+
+      def render_meta(key, value)
+        pretty_key = key.to_s.tr("_", " ").capitalize
+        puts " #{pretty_key}: #{value}"
       end
     end
 

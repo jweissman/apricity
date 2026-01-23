@@ -28,6 +28,14 @@ module Apricity
               --filter=blob:none \
               --branch #{branch} \
               #{url} #{target_dir}
+
+          # parse git sha
+          cd #{target_dir}
+          GIT_SHA=$(git rev-parse HEAD)
+          echo "Checked out branch '#{branch}' at commit $GIT_SHA"
+          echo "::set-run-meta git-sha=$GIT_SHA"
+
+          cd -
         SH
       end
 

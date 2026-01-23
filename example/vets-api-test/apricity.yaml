@@ -91,10 +91,17 @@ actions:
 
             - name: Run user spec
               run: |
+                export RUBY_GC_HEAP_GROWTH_FACTOR=1.1
+                export RUBY_GC_HEAP_INIT_SLOTS=2000000
+                export RUBY_YJIT_ENABLE=0
+
                 bundle exec rspec --fail-fast spec/models spec/lib \
                   --format progress \
-                  --format RspecJunitFormatter \
-                  --out $APRICITY_ARTIFACTS/junit/rspec.xml
+                  # --format RspecJunitFormatter \
+                  # --out $APRICITY_ARTIFACTS/junit/rspec.xml \
+                  --profile 0
+                echo "rspec exit=$?"
+
       
             - name: Run Linter
               run: |

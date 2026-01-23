@@ -32,7 +32,7 @@ module Apricity
         @redis.sadd("apricity:workers", worker_id)
       end
 
-      def lease_ex = 300
+      def lease_ex = ENV.fetch("APRICITY_WORKER_LEASE_TTL_SECONDS", 30).to_i.freeze
 
       def heartbeat_worker(worker_id)
         @redis.hset("apricity:worker:#{worker_id}",

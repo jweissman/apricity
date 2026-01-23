@@ -18,7 +18,7 @@ module Apricity
       def run(&)
         sink = mutex_sink(&)
 
-        nodes = Pipeline::Reducer.lower(@pipeline)
+        nodes = Pipeline::Lowerer.lower(@pipeline)
         graph = Pipeline::Graph.new(nodes)
         graph.analyze
 

@@ -82,6 +82,10 @@ module Apricity
         def type = :job_started
         def pretty = "started job #{node.job_name}"
       end
+      JobMetadataUpdated = Data.define(:node, :key, :value, :step) do
+        def type = :job_meta_updated
+        def pretty = "updated job metadata #{key}=#{value} during step #{step.name}"
+      end
       JobSkipped = Data.define(:node, :reason, :skipped_at) do
         def type = :job_skipped
         def pretty = "skipped #{node.job_name} due to #{reason}"
@@ -95,7 +99,8 @@ module Apricity
 
         def pretty
           if exception
-            "finished job with status #{status} due to exception: #{exception.message}"
+            short_backtrace = exception.backtrace ? exception.backtrace.first(3).join("; ") : "no backtrace"
+            "finished job with status #{status} due to exception: #{exception.message} (#{short_backtrace})"
           else
             "finished job with status #{status}"
           end

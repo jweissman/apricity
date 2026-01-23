@@ -14,15 +14,12 @@ module Apricity
   module JobExecution
     # Internal class for managing artifact storage paths
     class ArtifactStore
-      # DEFAULT_ROOT = File.join(Dir.pwd, ".apricity").freeze
       DEFAULT_ROOT = ENV.fetch("APRICITY_ARTIFACT_ROOT") { File.join(Dir.pwd, ".apricity") }.freeze
       def initialize(run:, node:, host_visible_artifact_root: DEFAULT_ROOT)
         @run = run
         @node = node
         @host_visible_artifact_root = host_visible_artifact_root
       end
-
-      # def output_dir(artifact_key) = self.class.path_for(run:, node:, artifact_key:, host_visible_artifact_root:)
 
       # Given run_id, job_id, artifact_key return a host directory path guaranteed to exist and be docker-safe
       def self.path_for(run:, node:, artifact_key:, host_visible_artifact_root: DEFAULT_ROOT)
@@ -31,7 +28,6 @@ module Apricity
         job_id = node.id.gsub(/[^a-zA-Z0-9_-]/, "_")
         base_dir = File.join(host_visible_artifact_root,
                              "pipelines", pipeline_name, "runs", run_id, "artifacts", job_id)
-        # warn "!!! Creating artifact directory #{base_dir.inspect} for artifact key #{artifact_key.inspect}"
         FileUtils.mkdir_p(base_dir)
         File.join(base_dir, artifact_key)
       end
@@ -635,30 +631,45 @@ module Apricity
 
       # Execute the steps inside a Docker container
       def execute
-        # start_container
         container.start
-        copy_input_artifacts # if DockerHelpers.dind?
-        node.steps.map do |step|
-          @last_step_executed = step
-          started_at = Time.now
-          step_outcome = execute_step(step)
-          emit(JobExecution::Events::StepFinished[node:, step:, status: step_outcome.status, started_at:,
-                                                  finished_at: Time.now])
-          step_outcome
-        end
+        copy_input_artifacts
+        node.steps.map { |step| execute_step(step) }
       end
 
       def execute_step(step)
-        emit(JobExecution::Events::StepStarted[node:, step:, started_at: Time.now])
-        meta = StepMetadata[working_dir: @working_dir, binds: @binds, container:, run_id: @run.id]
-        step_executor = JobExecution::StepExecutor.new(step:, env:, sink:, node:, meta:)
-        stdout, stderr = step_executor.perform(prelude: @prelude, container:, emit: -> { emit it })
-        success_outcome(stdout:, stderr:)
+        @last_step_executed = step
+        started_at = Time.now
+        emit(JobExecution::Events::StepStarted[node:, step:, started_at:])
+        step_outcome = execute_step!(step)
+        emit(JobExecution::Events::StepFinished[node:, step:, status: step_outcome.status, started_at:,
+                                                finished_at: Time.now])
+        step_outcome
       end
 
       DOTFILES = [".", ".."].freeze
 
       private
+
+      def execute_step!(step)
+        meta = StepMetadata[working_dir: @working_dir, binds: @binds, container:, run_id: @run.id]
+        step_executor = JobExecution::StepExecutor.new(step:, env:, sink:, node:, meta:)
+        stdout, stderr = step_executor.perform(prelude: @prelude, container:, emit: -> { emit it })
+        parse_metadata(stdout:, step:)
+        success_outcome(stdout:, stderr:)
+      end
+
+      def parse_metadata(stdout:, step:)
+        stdout.each_line do |line|
+          next unless line =~ /^::set-run-meta (\S+)=(.+)$/
+
+          key = Regexp.last_match(1)
+          value = Regexp.last_match(2)
+          # $stdout.puts "Parsed metadata from step #{step.name}: #{key}=#{value}"
+          job_meta_update = JobExecution::Events::JobMetadataUpdated[node:, key:, value:, step:]
+          # $stdout.puts "Emitting job meta update: #{job_meta_update.inspect}"
+          emit job_meta_update
+        end
+      end
 
       def copy_input_artifacts = artifact_inputs.each { |key, host_dir| copy_input_artifact(key, host_dir) }
 

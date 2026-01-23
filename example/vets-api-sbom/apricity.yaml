@@ -8,7 +8,6 @@ actions:
           plugins:
             - uses: apricity/sbom-reporter
               with:
-                output_file: sbom.json
                 artifact_key: sbom
           steps:
             - name: Checkout Vets API

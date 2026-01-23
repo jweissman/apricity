@@ -517,7 +517,7 @@ module Apricity
         end
 
         def dag_data(pipeline)
-          nodes = Pipeline::Reducer.lower(pipeline)
+          nodes = Pipeline::Lowerer.lower(pipeline)
           graph = Pipeline::Graph.new(nodes)
           graph.analyze
           JSON.generate(Diagrams.dag_json(nodes, graph))
@@ -605,7 +605,7 @@ module Apricity
 
       post "/pipelines/:slug/run" do
         pipeline = load_pipeline(params[:slug])
-        run_id = Run::Worker.perform(pipeline)
+        run_id = Run::Performer.pipeline(pipeline)
         redirect "/runs/#{run_id}"
       end
 

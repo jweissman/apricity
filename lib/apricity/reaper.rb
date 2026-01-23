@@ -21,7 +21,7 @@ module Apricity
       end
     end
 
-    def self.orphaned_ttl_seconds = ENV.fetch("APRICITY_ORPHANED_CONTAINER_TTL_SECONDS", 300).to_i
+    def self.orphaned_ttl_seconds = ENV.fetch("APRICITY_ORPHANED_CONTAINER_TTL_SECONDS", 30).to_i
 
     # rubocop:disable Metrics/MethodLength
     # rubocop:disable Metrics/AbcSize
@@ -77,7 +77,7 @@ module Apricity
       puts "Reaper: Finalizing run #{run_id} as 'failed' due to orphaned container cleanup"
       run_store.set_run_status(run_id, "failed")
       # puts "Reaper: Appending JobFinished event for run #{run_id}"
-      append_events(halted_job)
+      append_events
     rescue StandardError => e
       warn "Reaper: Error finalizing run #{run_id}: #{e.class}: #{e.message}"
       warn e.backtrace.join("\n")
@@ -91,26 +91,25 @@ module Apricity
     def append_events
       puts "!!! Reaper: Appending synthetic events for halted job run #{halted_job.run_id}"
       event_store = Apricity::Run::EventStore.instance
-      # event_store.append_event(halted_job.run_id, step_finished_event(halted_job))
-      event_store.append_event(halted_job.run_id, job_finished_event(halted_job))
-      event_store.append_event(halted_job.run_id, pipeline_finished_event(halted_job))
+      event_store.append_event(halted_job.run_id, step_finished_event)
+      event_store.append_event(halted_job.run_id, job_finished_event)
+      event_store.append_event(halted_job.run_id, pipeline_finished_event)
     end
 
     # will need some way to track current step in redis for this!
-    # def step_finished_event
-    #   # puts " * Reaper: Creating StepFinished event for halted job run #{halted_job.run_id}"
-    #   Apricity::JobExecution::Events::StepFinished.new(
-    #     node: Apricity::JobExecution::Node.minimal(
-    #       halted_job.node_id, job_name: "unknown", action_name: "unknown"
-    #     ),
-    #     step: Apricity::Model::Step.new(name: halted_job.step_name),
-    #     status: "failure",
-    #     started_at: Time.now,
-    #     finished_at: Time.now
-    #     # duration_seconds: 0.0
-    #   )
-    #   # puts " * Reaper: StepFinished event created: #{evt.pretty}"
-    # end
+    def step_finished_event
+      # puts " * Reaper: Creating StepFinished event for halted job run #{halted_job.run_id}"
+      Apricity::JobExecution::Events::StepFinished.new(
+        node: Apricity::JobExecution::Node.minimal(
+          halted_job.node_id, job_name: "unknown", action_name: "unknown"
+        ),
+        step: Apricity::Model::Step.new(name: halted_job.step_name),
+        status: "failure",
+        started_at: Time.now,
+        finished_at: Time.now
+      )
+      # puts " * Reaper: StepFinished event created: #{evt.pretty}"
+    end
 
     def job_finished_event
       puts " * Reaper: Creating JobFinished event for halted job run #{halted_job.run_id}"
@@ -134,25 +133,28 @@ module Apricity
     end
   end
 
-  # Background reaper to clean up stale docker resources
-  class Reaper
-    HaltedJob = Data.define(:pipeline_name, :run_id, :node_id, :step_name, :reason) do
-      def self.from_orphaned_container(container)
-        labels = container.info["Labels"] || {}
-        new(
-          pipeline_name: labels["apricity.pipeline_name"] || "unknown",
-          run_id: labels["apricity.run_id"],
-          node_id: labels["apricity.node_id"],
-          step_name: labels["apricity.step_name"] || "unknown",
-          reason: "orphaned container"
-        )
-      end
-
-      def hash = run_id.hash
-      def eql?(other) = other.is_a?(HaltedJob) && run_id == other.run_id
+  HaltedJob = Data.define(:pipeline_name, :run_id, :node_id, :step_name, :reason) do
+    def self.from_orphaned_container(container)
+      labels = container.info["Labels"] || {}
+      run_id = labels["apricity.run_id"]
+      cursor = Apricity::RunStore.instance.get_run_cursor(run_id)
+      puts "Got cursor for run #{run_id}: #{cursor.inspect}"
+      new(
+        pipeline_name: labels["apricity.pipeline_name"] || "unknown",
+        run_id:,
+        node_id: labels["apricity.node_id"],
+        step_name: cursor ? cursor[:step_name] : "unknown",
+        reason: "orphaned container"
+      )
     end
 
-    def initialize(interval_seconds: ENV.fetch("APRICITY_REAPER_INTERVAL_SECONDS", 600).to_i)
+    def hash = run_id.hash
+    def eql?(other) = other.is_a?(HaltedJob) && run_id == other.run_id
+  end
+
+  # Background reaper to clean up stale docker resources
+  class Reaper
+    def initialize(interval_seconds: ENV.fetch("APRICITY_REAPER_INTERVAL_SECONDS", 30).to_i)
       @interval_seconds = interval_seconds
       @stop_requested = false
     end
@@ -163,10 +165,8 @@ module Apricity
     private
 
     def reaping
-      puts "Reaper started, running every #{@interval_seconds} seconds"
       until @stop_requested
         begin
-          puts "Reaper: Starting reaping cycle..."
           reaping_cycle
           puts "Reaper: Reaping cycle complete."
         rescue StandardError => e
@@ -175,14 +175,12 @@ module Apricity
         end
         sleep @interval_seconds
       end
-      puts "Reaper stopped"
     end
 
     def reaping_cycle
       teardown_stale_docker_containers
       teardown_orphaned_docker_containers
       teardown_stale_docker_networks
-      # could clear inactive workers here too?
       cleanup_expired_run_leases
       cleanup_dead_workers
     end
@@ -202,7 +200,6 @@ module Apricity
       puts "Reaper: Checking for orphaned containers..."
 
       halted_jobs.compact.uniq.each do |halted|
-        # finalize_run_state(halted)
         JobFinalizer.new(halted).finalize_run_state
       end
 
@@ -249,13 +246,8 @@ module Apricity
     def cleanup_expired_run_leases
       Apricity::Worker::Registry.instance.list_leases.each do |lease|
         run_id = lease[:run_id]
-        # _worker_id = lease[:worker_id]
-        # _pipeline_slug = lease[:pipeline_slug]
         ttl = DockerInspector.redis.ttl("apricity:lease:#{run_id}")
-        if ttl.negative?
-          # puts "Reaper: Cleaning up expired lease for run #{run_id} (worker: #{worker_id}, pipeline: #{pipeline_slug})"
-          Apricity::Worker::Registry.instance.release_run_lease(run_id)
-        end
+        Apricity::Worker::Registry.instance.release_run_lease(run_id) if ttl.negative?
       end
     rescue StandardError => e
       warn "Reaper: Error cleaning up expired run leases: #{e.class}: #{e.message}"
