@@ -17,9 +17,10 @@
 - [~] Persistence
 - [~] Stabilization
   - [~] Worker run leases
-  - [~] Heartbeats
+  - [~] Heartbeats -- last_output_at
   - [ ] Step timeouts?
 - [ ] Repo/ref cold start endpoint
+- [ ] Inject git metadata into run + surface on ui
 - [ ] JUnit + coverage verification on a smaller repo first
 - [ ] Consume JUnit xml to nice report like sbom?
 - [ ] Minio/s3 for artifact store

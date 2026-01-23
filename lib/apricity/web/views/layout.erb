@@ -10,41 +10,9 @@
     <!-- Dynamic favicon - updated by JS based on build status -->
     <link id="favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%23c9a227'/></svg>">
 
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <style type="text/tailwindcss">
-      @theme {
-        --color-sun-50: #fefcf5;
-        --color-sun-100: #fdf8eb;
-        --color-sun-200: #f9edcc;
-        --color-sun-300: #f2dc9a;
-        --color-sun-400: #e8c75e;
-        --color-sun-500: #c9a227;
-        --color-sun-600: #b08d1f;
-        --color-sun-700: #8a6d14;
-        --color-sun-800: #6b5410;
-        --color-sun-900: #4d3c0b;
-        
-        --color-frost-50: #f8f9fb;
-        --color-frost-100: #f1f4f8;
-        --color-frost-200: #e2e7ef;
-        --color-frost-300: #cdd5e0;
-        --color-frost-400: #a8b3c0;
-        --color-frost-500: #7a8898;
-        --color-frost-600: #5d6b7e;
-        --color-frost-700: #3d4a5c;
-        --color-frost-800: #1c2536;
-        --color-frost-900: #0f1419;
-      }
-    </style>
-
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    >
+    <%= erb :head, layout: false %>
     <script src="https://unpkg.com/htmx.org@1.6.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/mermaid@11.12.2/dist/mermaid.min.js"></script>
-
-    <link rel="stylesheet" href="/assets/style.css">
   </head>
 
   <body class="min-h-screen flex flex-col bg-frost-50">

@@ -7,22 +7,9 @@
 
     <title>Test Results - Apricity</title>
 
-    <link
-      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
-      rel="stylesheet"
-    >
-
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    >
+    <%= erb :head, layout: false %>
 
     <style>
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: #f3f4f6; }
-    ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
-    
     .failure-message {
       white-space: pre-wrap;
       font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
@@ -32,24 +19,24 @@
   </style>
   </head>
 
-  <body class="bg-gray-50 min-h-screen">
+  <body class="bg-frost-50 min-h-screen text-frost-800">
     <div class="max-w-7xl mx-auto px-4 py-8">
       <!-- Header -->
       <div class="mb-8">
         <div class="flex items-center space-x-3 mb-2">
           <div
             class="
-              w-10 h-10 rounded-lg bg-gradient-to-br from-blue-200
-              to-blue-500 flex items-center justify-center shadow-lg
+              w-10 h-10 rounded-lg bg-gradient-to-br from-sun-400
+              to-sun-600 flex items-center justify-center shadow-lg
             "
           >
             <i class="fas fa-flask text-white"></i>
           </div>
 
           <div>
-            <h1 class="text-3xl font-bold text-gray-900">Test Results</h1>
+            <h1 class="text-3xl font-bold text-frost-800">Test Results</h1>
 
-            <p class="text-sm text-gray-500 mt-1">
+            <p class="text-sm text-frost-500 mt-1">
               <%= Time.now.strftime("%B %d, %Y at %H:%M") %>
               <span class="mx-2">·</span>
               <i class="fas fa-stopwatch mr-1"></i>
@@ -62,31 +49,31 @@
 
       <!-- Stats Cards -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <div class="bg-white rounded-xl border border-frost-200 shadow-sm p-6">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm font-medium text-gray-500">Total Tests</p>
+              <p class="text-sm font-medium text-frost-500">Total Tests</p>
 
-              <p class="text-3xl font-bold text-gray-900 mt-1">
+              <p class="text-3xl font-bold text-frost-800 mt-1">
                 <%= @report[:totals][:tests] %>
               </p>
             </div>
 
             <div
               class="
-                w-12 h-12 rounded-full bg-blue-100 flex items-center
+                w-12 h-12 rounded-full bg-sun-100 flex items-center
                 justify-center
               "
             >
-              <i class="fas fa-list-check text-blue-600 text-xl"></i>
+              <i class="fas fa-list-check text-sun-600 text-xl"></i>
             </div>
           </div>
         </div>
 
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <div class="bg-white rounded-xl border border-frost-200 shadow-sm p-6">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm font-medium text-gray-500">Passed</p>
+              <p class="text-sm font-medium text-frost-500">Passed</p>
 
               <p class="text-3xl font-bold text-green-600 mt-1">
                 <%= @report[:totals][:passed] %>
@@ -104,10 +91,10 @@
           </div>
         </div>
 
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <div class="bg-white rounded-xl border border-frost-200 shadow-sm p-6">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm font-medium text-gray-500">Failed</p>
+              <p class="text-sm font-medium text-frost-500">Failed</p>
 
               <p class="text-3xl font-bold <%= @report[:totals][:failures] + @report[:totals][:errors] > 0 ? 'text-red-600' : 'text-gray-900' %> mt-1">
                 <%= @report[:totals][:failures] + @report[:totals][:errors] %>
@@ -120,10 +107,10 @@
           </div>
         </div>
 
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <div class="bg-white rounded-xl border border-frost-200 shadow-sm p-6">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm font-medium text-gray-500">Skipped</p>
+              <p class="text-sm font-medium text-frost-500">Skipped</p>
 
               <p class="text-3xl font-bold text-gray-500 mt-1">
                 <%= @report[:totals][:skipped] %>
@@ -132,28 +119,28 @@
 
             <div
               class="
-                w-12 h-12 rounded-full bg-gray-100 flex items-center
+                w-12 h-12 rounded-full bg-frost-100 flex items-center
                 justify-center
               "
             >
-              <i class="fas fa-forward text-gray-400 text-xl"></i>
+              <i class="fas fa-forward text-frost-400 text-xl"></i>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Progress Bar -->
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
+      <div class="bg-white rounded-xl border border-frost-200 shadow-sm p-4 mb-6">
         <div class="flex items-center justify-between mb-2">
-          <span class="text-sm font-medium text-gray-600">Test Results</span>
+          <span class="text-sm font-medium text-frost-600">Test Results</span>
 
-          <span class="text-sm text-gray-500">
+          <span class="text-sm text-frost-500">
             <%= "%.1f%%" % ((@report[:totals][:passed].to_f / [@report[:totals][:tests], 1].max) * 100) %>
             passing
           </span>
         </div>
 
-        <div class="w-full h-3 bg-gray-200 rounded-full overflow-hidden flex">
+        <div class="w-full h-3 bg-frost-200 rounded-full overflow-hidden flex">
           <% total = [@report[:totals][:tests], 1].max %>
 
           <div
@@ -172,7 +159,7 @@
           ></div>
         </div>
 
-        <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
+        <div class="flex items-center gap-4 mt-2 text-xs text-frost-500">
           <span class="flex items-center gap-1">
             <span class="w-2 h-2 rounded-full bg-green-500"></span>
             Passed

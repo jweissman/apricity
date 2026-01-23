@@ -91,15 +91,11 @@ actions:
 
             - name: Run user spec
               run: |
-                bundle exec rspec --fail-fast spec/models/user_spec.rb \
+                bundle exec rspec --fail-fast spec/models spec/lib \
                   --format progress \
                   --format RspecJunitFormatter \
                   --out $APRICITY_ARTIFACTS/junit/rspec.xml
-                
-            # - name: Run lib specs
-            #   run: |
-            #     bundle exec rspec --fail-fast spec/lib
       
-            # - name: Run Linter
-            #   run: |
-            #     bundle exec rubocop app lib
+            - name: Run Linter
+              run: |
+                bundle exec rubocop app lib

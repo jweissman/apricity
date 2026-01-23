@@ -1,45 +1,39 @@
 /* Apricity CI - Winter Sun Design System */
 
 /* ═══════════════════════════════════════════════════════════════
-   TAILWIND v4 THEME - Custom Colors
-   ═══════════════════════════════════════════════════════════════ */
-
-@theme {
-  /* Sun (Gold) palette */
-  --color-sun-50: #fefcf5;
-  --color-sun-100: #fdf8eb;
-  --color-sun-200: #f9edcc;
-  --color-sun-300: #f2dc9a;
-  --color-sun-400: #e8c75e;
-  --color-sun-500: #c9a227;
-  --color-sun-600: #b08d1f;
-  --color-sun-700: #8a6d14;
-  --color-sun-800: #6b5410;
-  --color-sun-900: #4d3c0b;
-  
-  /* Frost (Cool Gray) palette */
-  --color-frost-50: #f8f9fb;
-  --color-frost-100: #f1f4f8;
-  --color-frost-200: #e2e7ef;
-  --color-frost-300: #cdd5e0;
-  --color-frost-400: #a8b3c0;
-  --color-frost-500: #7a8898;
-  --color-frost-600: #5d6b7e;
-  --color-frost-700: #3d4a5c;
-  --color-frost-800: #1c2536;
-  --color-frost-900: #0f1419;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   DESIGN TOKENS - Winter Sun Theme
+  DESIGN TOKENS - Winter Sun Theme
    
-   Philosophy: The warmth of winter sunlight on a crisp, clear day.
-   - Cool, clean slate foundations (winter clarity)
-   - Warm amber/honey accents (low winter sun)
-   - Muted, calming status colors (professional, not alarming)
-   ═══════════════════════════════════════════════════════════════ */
+  Philosophy: The warmth of winter sunlight on a crisp, clear day.
+  - Cool, clean slate foundations (winter clarity)
+  - Warm amber/honey accents (low winter sun)
+  - Muted, calming status colors (professional, not alarming)
+  ═══════════════════════════════════════════════════════════════ */
 
 :root {
+  /* ─── PALETTE: SUN ─── */
+  --palette-sun-50: #fefcf5;
+  --palette-sun-100: #fdf8eb;
+  --palette-sun-200: #f9edcc;
+  --palette-sun-300: #f2dc9a;
+  --palette-sun-400: #e8c75e;
+  --palette-sun-500: #c9a227;
+  --palette-sun-600: #b08d1f;
+  --palette-sun-700: #8a6d14;
+  --palette-sun-800: #6b5410;
+  --palette-sun-900: #4d3c0b;
+
+  /* ─── PALETTE: FROST ─── */
+  --palette-frost-50: #f8f9fb;
+  --palette-frost-100: #f1f4f8;
+  --palette-frost-200: #e2e7ef;
+  --palette-frost-300: #cdd5e0;
+  --palette-frost-400: #a8b3c0;
+  --palette-frost-500: #7a8898;
+  --palette-frost-600: #5d6b7e;
+  --palette-frost-700: #3d4a5c;
+  --palette-frost-800: #1c2536;
+  --palette-frost-900: #0f1419;
+
   /* ─── SURFACE COLORS ─── */
   --color-surface-base: #f8f9fb;
   --color-surface-elevated: #ffffff;
@@ -100,6 +94,7 @@
   --color-terminal-bg: #0f1419;
   --color-terminal-text: #c9d1d9;
 }
+
 
 * {
   box-sizing: border-box;

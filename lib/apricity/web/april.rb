@@ -628,9 +628,7 @@ module Apricity
         erb :about
       end
 
-      get "/docs" do
-        erb :docs
-      end
+      get("/docs") { erb :docs }
     end
   end
 end
