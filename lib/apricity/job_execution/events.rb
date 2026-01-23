@@ -42,14 +42,28 @@ module Apricity
 
       def self.payload_json(event)
         case event.type
+        # when :job_skipped then { reason: event.reason }
+        # when :job_started then job_started_payload(event)
+        # when :job_finished then job_finished_payload(event)
+        # when :job_annotated, :pipeline_annotated then annotations_payload(event)
+        # when :job_meta_updated then metadata_updated_payload(event)
+        when :job_skipped, :job_started, :job_finished, :job_annotated,
+             :job_meta_updated
+          job_event_payload(event)
+        when :step_finished then { status: event.status, duration: event.duration_seconds }
+        when :stdout_chunk, :stderr_chunk then { chunk: event.chunk }
+        else {}
+        end
+      end
+
+      def self.job_event_payload(event)
+        case event.type
         when :job_skipped then { reason: event.reason }
         when :job_started then job_started_payload(event)
         when :job_finished then job_finished_payload(event)
         when :job_annotated, :pipeline_annotated then annotations_payload(event)
         when :job_meta_updated then metadata_updated_payload(event)
-        when :step_finished then { status: event.status, duration: event.duration_seconds }
-        when :stdout_chunk, :stderr_chunk then { chunk: event.chunk }
-        else {}
+        else raise "Unknown job event type: #{event.type}"
         end
       end
 

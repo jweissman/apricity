@@ -49,13 +49,17 @@ module Apricity
     # Helper methods for SBOM (Software Bill of Materials) handling
     module SBOM
       def generate_sbom_html(sbom_path, run_context: nil)
-        require "nokogiri"
-
         file = File.open(sbom_path)
         doc = Nokogiri::XML(file)
         ns = { "cdx" => doc.root.namespace.href }
 
-        @components = parse_components(doc, ns)
+        render_sbom_html(doc, ns, run_context:)
+      ensure
+        file&.close
+      end
+
+      def render_sbom_html(doc, namespace, run_context: nil)
+        @components = parse_components(doc, namespace)
 
         # Add run context if available
         if run_context
@@ -63,8 +67,6 @@ module Apricity
           @pipeline_name = run_context[:pipeline_name]
           @pipeline_slug = run_context[:pipeline_slug]
         end
-
-        file.close
 
         # Generate HTML
         erb_template = File.read(File.join(__dir__, "views", "sbom.erb"))
@@ -102,8 +104,13 @@ module Apricity
       def generate_junit_html(junit_path, run_context: nil)
         file = File.open(junit_path)
         doc = Nokogiri::XML(file)
-        file.close
 
+        render_junit_html(doc, run_context:)
+      ensure
+        file&.close
+      end
+
+      def render_junit_html(doc, run_context: nil)
         @report = parse_junit_document(doc)
 
         # Add run context if available
@@ -285,7 +292,7 @@ module Apricity
 
     # Helper methods for the web interface
     # rubocop:disable Metrics/ModuleLength
-    module Support
+    module Artifacts
       def serve_interactive_artifact_route
         requested_path = params[:splat].first
         full_path = safe_artifact_path(requested_path)
@@ -535,13 +542,37 @@ module Apricity
     end
     # rubocop:enable Metrics/ModuleLength
 
+    # Common route handlers
+    module Routes
+      def home_route
+        @pipelines = settings.pipelines
+        @runs = Apricity::RunStore.instance.list_runs
+        erb :index
+      end
+    end
+
+    # Common support module to include all helpers
+    module Support
+      def self.included(base)
+        base.helpers Pipelines
+        base.helpers Streaming
+        base.helpers SBOM
+        base.helpers JUnit
+        base.helpers Artifacts
+        base.helpers Routes
+      end
+    end
+
     # Sinatra-based web interface for Apricity
     class April < Sinatra::Base
-      include Pipelines
-      include Streaming
-      include SBOM
-      include JUnit
       include Support
+
+      # include Pipelines
+      # include Streaming
+      # include SBOM
+      # include JUnit
+      # include Artifacts
+      # include Routes
 
       configure do
         set :quiet, true
@@ -569,9 +600,10 @@ module Apricity
       end
 
       get "/" do
-        @pipelines = settings.pipelines
-        @runs = Apricity::RunStore.instance.list_runs
-        erb :index
+        # @pipelines = settings.pipelines
+        # @runs = Apricity::RunStore.instance.list_runs
+        # erb :index
+        home_route
       end
 
       get "/pipelines/:slug" do

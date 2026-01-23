@@ -21,6 +21,7 @@
   - [~] Heartbeats -- last_output_at
   - [ ] Step timeouts?
   - [ ] Buffer stdout/stderr
+- [ ] Job control (stop/rerun/rerun failing jobs etc)
 - [ ] Repo/ref cold start endpoint
 - [ ] JUnit + coverage verification on a smaller repo first
 - [ ] Consume JUnit xml to nice report like sbom?

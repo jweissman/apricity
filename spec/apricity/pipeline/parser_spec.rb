@@ -37,9 +37,9 @@ module Apricity
           end
 
           it "parses next step command lines" do
-            expect(lint_jobs.steps[1].run.source_lines.map(&:chomp)).to eq([
-                                                                             "bundle exec rubocop"
-                                                                           ])
+            expect(lint_job.steps[1].run.source_lines.map(&:chomp)).to eq([
+                                                                            "bundle exec rubocop"
+                                                                          ])
           end
         end
 

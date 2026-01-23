@@ -141,8 +141,7 @@ module Apricity
       puts "Got cursor for run #{run_id}: #{cursor.inspect}"
       new(
         pipeline_name: labels["apricity.pipeline_name"] || "unknown",
-        run_id:,
-        node_id: labels["apricity.node_id"],
+        run_id:, node_id: labels["apricity.node_id"],
         step_name: cursor ? cursor[:step_name] : "unknown",
         reason: "orphaned container"
       )
