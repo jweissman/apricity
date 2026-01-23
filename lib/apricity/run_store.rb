@@ -34,7 +34,11 @@ module Apricity
       # Return runs in reverse order (newest first) to match Redis backend behavior
       def list_runs = @runs.values.reverse
       def set_run_status(run_id, status) = @runs[run_id]&.status = status
-      def update_cursor(run_id, step_name, node_id:); end
+
+      def update_cursor(run_id, step_name, node_id:)
+        warn "[InMemoryBackend] update_cursor for node_id: #{node_id}, step_name: #{step_name}, run_id: #{run_id}"
+        warn "[InMemoryBackend] -- update_cursor not implemented for in-memory b/e --"
+      end
     end
 
     # Redis backend implementation

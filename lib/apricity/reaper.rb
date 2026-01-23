@@ -42,12 +42,11 @@ module Apricity
 
       puts "Container started at #{started_at} (> #{orphaned_ttl_seconds}), checking lease status..."
 
-      orphaned = redis.get("apricity:lease:#{run_id}").nil?
+      orphaned = !redis.exists?("apricity:lease:#{run_id}")
       if orphaned
         puts "orphaned container detected: #{container.id} (run_id=#{run_id}) kind=#{labels["apricity.kind"]}"
       else
         puts "run lease found for run_id=#{run_id}, not orphaned"
-
       end
       orphaned
     rescue StandardError => e
