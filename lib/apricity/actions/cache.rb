@@ -53,15 +53,19 @@ module Apricity
         return self.class.get_cache_key(options[:key], group: meta.run_id) if self.class.cache_key?(options[:key],
                                                                                                     group: meta.run_id)
 
-        checksum_file = options[:checksum_file]
-        md5_command = <<~SH
-          ruby -e 'require "digest"; puts Digest::SHA256.file("#{checksum_file}").hexdigest'
-        SH
-        stdout, _stderr, _code = meta.container.exec(["sh", "-c", md5_command])
-        checksum = stdout[0].strip
+        checksum = digest!(checksum_file: options[:checksum_file], container: meta.container)
         self.class.set_cache_key(options[:key], checksum, group: meta.run_id)
         checksum
       end
+
+      def digest!(checksum_file:, container:)
+        stdout, _stderr, _code = container.exec(["sh", "-c", md5_command(checksum_file)])
+        stdout[0].strip
+      end
+
+      def md5_command(checksum_file) = <<~SH
+        ruby -e 'require "digest"; puts Digest::SHA256.file("#{checksum_file}").hexdigest'
+      SH
 
       def perform_cache_action(options:, cache_dir:, meta:)
         if options[:perform_restore]
