@@ -16,37 +16,37 @@
   </head>
 
   <body class="min-h-screen flex flex-col bg-frost-50">
-    <header class="bg-white border-b border-frost-200 sticky top-0 z-50">
-      <div class="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
-        <a href="/" class="flex items-center space-x-2.5">
-          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-sun-400 to-sun-600 flex items-center justify-center shadow-sm">
-            <i class="fas fa-sun text-white text-sm"></i>
+    <header class="bg-white border-b border-frost-200 sticky top-0 z-50 shadow-sm">
+      <div class="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between">
+        <a href="/" class="flex items-center space-x-3 group">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-sun-400 to-sun-600 flex items-center justify-center shadow-sm transition-transform group-hover:scale-105">
+            <i class="fas fa-sun text-white text-base"></i>
           </div>
-          <span class="text-lg font-semibold text-frost-800">Apricity</span>
+          <span class="text-lg font-semibold text-frost-800 group-hover:text-sun-700 transition-colors">Apricity</span>
         </a>
         <nav class="flex items-center text-sm space-x-1">
-          <a href="/" class="text-frost-600 hover:text-sun-600 transition-colors px-3 py-1.5 rounded-lg hover:bg-frost-100">
-            <i class="fas fa-tachometer-alt mr-1 text-xs"></i>
+          <a href="/" class="nav-link text-frost-600 hover:text-sun-600 hover:bg-sun-50/50 transition-all px-4 py-2 rounded-lg font-medium">
+            <i class="fas fa-tachometer-alt mr-2 text-xs"></i>
             Dashboard
           </a>
-          <a href="/runs" class="text-frost-600 hover:text-sun-600 transition-colors px-3 py-1.5 rounded-lg hover:bg-frost-100">
-            <i class="fas fa-clock-rotate-left mr-1 text-xs"></i>
+          <a href="/runs" class="nav-link text-frost-600 hover:text-sun-600 hover:bg-sun-50/50 transition-all px-4 py-2 rounded-lg font-medium">
+            <i class="fas fa-clock-rotate-left mr-2 text-xs"></i>
             Activity
           </a>
-          <a href="/workers" class="text-frost-600 hover:text-sun-600 transition-colors px-3 py-1.5 rounded-lg hover:bg-frost-100">
-            <i class="fas fa-server mr-1 text-xs"></i>
+          <a href="/workers" class="nav-link text-frost-600 hover:text-sun-600 hover:bg-sun-50/50 transition-all px-4 py-2 rounded-lg font-medium">
+            <i class="fas fa-server mr-2 text-xs"></i>
             Workers
           </a>
         </nav>
       </div>
     </header>
 
-    <main class="flex-grow max-w-6xl mx-auto w-full px-6 py-8">
+    <main class="flex-grow max-w-7xl mx-auto w-full px-6 py-8">
       <%= yield %>
     </main>
 
-    <footer class="border-t border-frost-200 bg-white text-center py-4 text-xs text-frost-500">
-      <p>Apricity CI · Press <kbd class="bg-frost-100 px-1.5 py-0.5 rounded text-frost-600 font-mono text-[10px]">?</kbd> for keyboard shortcuts</p>
+    <footer class="border-t border-frost-200 bg-white text-center py-5 text-xs text-frost-500">
+      <p>Apricity CI · Press <kbd class="bg-frost-100 px-2 py-1 rounded text-frost-600 font-mono text-[10px] border border-frost-200">?</kbd> for keyboard shortcuts</p>
     </footer>
 
     <script src="/assets/keyboard.js"></script>

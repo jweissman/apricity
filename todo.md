@@ -11,6 +11,7 @@
 - [x] Surface artifacts in UI
 - [x] Dis-aggregate artifacts for matrixed jobs so we can simplecov collate
 - [x] Normalize annotations for nonmatrixed jobs
+- [x] Inject git metadata into run + surface on ui
 
 # To-do
 - [~] Deployment
@@ -19,8 +20,8 @@
   - [~] Worker run leases
   - [~] Heartbeats -- last_output_at
   - [ ] Step timeouts?
+  - [ ] Buffer stdout/stderr
 - [ ] Repo/ref cold start endpoint
-- [ ] Inject git metadata into run + surface on ui
 - [ ] JUnit + coverage verification on a smaller repo first
 - [ ] Consume JUnit xml to nice report like sbom?
 - [ ] Minio/s3 for artifact store
@@ -45,3 +46,6 @@
 # Bugs
 - [x] Address network accumulation somehow? -- reaper _does_ seem to fix this!
 - [x] Try to repair step timestamps/durations on the f/e
+
+# Nice to have
+- [ ] Git mirroring?

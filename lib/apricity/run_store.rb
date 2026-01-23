@@ -34,7 +34,7 @@ module Apricity
       # Return runs in reverse order (newest first) to match Redis backend behavior
       def list_runs = @runs.values.reverse
       def set_run_status(run_id, status) = @runs[run_id]&.status = status
-      def update_cursor(run_id, step_name); end
+      def update_cursor(run_id, step_name, node_id:); end
     end
 
     # Redis backend implementation
@@ -88,11 +88,12 @@ module Apricity
         redis.hset(key(run_id), "status", status)
       end
 
-      def update_cursor(run_id, step_name)
+      def update_cursor(run_id, step_name, node_id:)
         puts "Updating cursor for run #{run_id} to step '#{step_name}'"
         redis.hset(cursor_key(run_id),
                    "step_name", step_name,
-                   "started_at", Time.now.to_i)
+                   "started_at", Time.now.to_i,
+                   "node_id", node_id)
       end
 
       def list_runs(limit: 50)
@@ -122,7 +123,7 @@ module Apricity
     def get_run(run_id) = backend.get_run(run_id)
     def list_runs = backend.list_runs
     def set_run_status(run_id, status) = backend.set_run_status(run_id, status.to_s)
-    def set_cursor(run_id, step_name) = backend.update_cursor(run_id, step_name)
+    def set_cursor(run_id, step_name, node_id:) = backend.update_cursor(run_id, step_name, node_id:)
     def get_run_cursor(run_id) = backend.get_run_cursor(run_id)
 
     def apply_event(run_id:, event:)
@@ -130,7 +131,7 @@ module Apricity
       return unless record
 
       case event.type
-      when :step_started then set_cursor(run_id, event.step.name)
+      when :step_started then set_cursor(run_id, event.step.name, node_id: event.node.id)
       when :pipeline_started then set_run_status(run_id, "running")
       when :pipeline_finished
         set_run_status(run_id, event.status.to_s)

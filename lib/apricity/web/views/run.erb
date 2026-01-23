@@ -8,38 +8,39 @@
 </nav>
 
 <!-- Run Header Card -->
-<div class="bg-white rounded-xl border border-frost-200 p-6 mb-6">
+<div class="bg-white rounded-xl border border-frost-200 shadow-sm p-6 mb-6">
   <div class="flex items-start justify-between">
-    <div class="space-y-3">
+    <div class="space-y-3 flex-1">
       <div class="flex items-center gap-3">
         <h1 class="text-xl font-semibold text-frost-800"><%= @pipeline.name %></h1>
         <div id="run-status">
-          <span class="inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full border font-medium bg-frost-50 text-frost-600 border-frost-200">
-            <span class="w-2 h-2 rounded-full bg-frost-300 animate-pulse"></span>
-            Loading
+          <span class="inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full font-medium bg-white text-frost-600 ring-1 ring-frost-200">
+            <span class="w-1.5 h-1.5 rounded-full bg-frost-400 animate-pulse"></span>
+            <span>Loading</span>
           </span>
         </div>
       </div>
       
       <div class="flex items-center gap-4 text-sm">
-        <span class="text-frost-500 font-mono text-xs bg-frost-100 px-2 py-1 rounded" title="Run ID">
+        <span class="text-frost-500 font-mono text-xs bg-frost-100 px-2.5 py-1 rounded-md border border-frost-200" title="Run ID">
           <%= @run.id[0..7] %>
         </span>
-        <span class="text-frost-400">·</span>
-        <span class="text-frost-600">
+        <span class="text-frost-300">·</span>
+        <span class="text-frost-600 flex items-center gap-2">
+          <i class="far fa-clock text-frost-400 text-xs"></i>
           <%= @run.start_time.strftime("%b %d, %Y at %H:%M") %>
         </span>
-        <span id="run-duration" class="text-frost-600 font-medium hidden">
+        <span id="run-duration" class="text-frost-600 font-medium font-mono hidden">
           <!-- Duration will be populated by JS -->
         </span>
-        <span id="run-worker-id" class="text-frost-600 font-medium">
-          <i class="fas fa-server mr-1 text-xs"></i>
+        <span id="run-worker-id" class="text-frost-600 flex items-center gap-2">
+          <i class="fas fa-server text-frost-400 text-xs"></i>
           <%= @lease&.fetch(:worker_id, '--') || 'not leased' %>
         </span>
       </div>
     </div>
     
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2 flex-shrink-0">
       <!-- Future: Add retry/cancel buttons here -->
     </div>
   </div>
@@ -49,18 +50,18 @@
 <div id="annotations-list" class="hidden mb-6"></div>
 
 <!-- Pipeline DAG -->
-<div class="mb-6 bg-white rounded-xl border border-frost-200 overflow-hidden">
-  <div class="px-5 py-3 border-b border-frost-100 bg-frost-50/50">
-    <h2 class="text-xs font-medium text-frost-500 uppercase tracking-wide flex items-center gap-2">
-      <i class="fas fa-sitemap text-frost-400"></i>
+<div class="mb-6 bg-white rounded-xl border border-frost-200 overflow-hidden shadow-sm">
+  <div class="px-5 py-3.5 border-b border-frost-100 bg-gradient-to-r from-frost-50/80 to-white">
+    <h2 class="text-xs font-semibold text-frost-600 uppercase tracking-wide flex items-center gap-2">
+      <i class="fas fa-sitemap text-frost-400 text-[10px]"></i>
       Pipeline Flow
     </h2>
   </div>
-  <div id="dag-container" class="flex justify-center p-4 bg-gradient-to-b from-frost-50/50 to-white"></div>
+  <div id="dag-container" class="flex justify-center"></div>
 </div>
 
 <!-- Jobs Section -->
-<div class="bg-white rounded-xl border border-frost-200 p-6">
+<div class="bg-white rounded-xl border border-frost-200 shadow-sm p-6">
   <div id="job-list"></div>
 </div>
 

@@ -660,6 +660,7 @@ module Apricity
 
       def parse_metadata(stdout:, step:)
         stdout.each_line do |line|
+          line = line.strip
           next unless line =~ /^::set-run-meta (\S+)=(.+)$/
 
           key = Regexp.last_match(1)

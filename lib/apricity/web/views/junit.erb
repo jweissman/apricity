@@ -21,9 +21,23 @@
 
   <body class="bg-frost-50 min-h-screen text-frost-800">
     <div class="max-w-7xl mx-auto px-4 py-8">
+      <!-- Breadcrumb -->
+      <% if @run_id && @pipeline_name %>
+        <nav class="mb-6 flex items-center text-sm text-frost-500">
+          <a href="/" class="hover:text-sun-600 transition-colors">Dashboard</a>
+          <i class="fas fa-chevron-right mx-2 text-frost-300 text-xs"></i>
+          <a href="/pipelines/<%= @pipeline_slug %>" class="hover:text-sun-600 transition-colors"><%= @pipeline_name %></a>
+          <i class="fas fa-chevron-right mx-2 text-frost-300 text-xs"></i>
+          <a href="/runs/<%= @run_id %>" class="hover:text-sun-600 transition-colors">Run <%= @run_id[0..7] %></a>
+          <i class="fas fa-chevron-right mx-2 text-frost-300 text-xs"></i>
+          <span class="text-frost-700 font-medium">Test Results</span>
+        </nav>
+      <% end %>
+      
       <!-- Header -->
       <div class="mb-8">
-        <div class="flex items-center space-x-3 mb-2">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center space-x-3">
           <div
             class="
               w-10 h-10 rounded-lg bg-gradient-to-br from-sun-400
@@ -35,8 +49,13 @@
 
           <div>
             <h1 class="text-3xl font-bold text-frost-800">Test Results</h1>
-
-            <p class="text-sm text-frost-500 mt-1">
+            <% if @pipeline_name %>
+              <p class="text-sm text-frost-600 mt-1 font-medium">
+                <i class="fas fa-diagram-project mr-1 text-frost-400"></i>
+                <%= @pipeline_name %>
+              </p>
+            <% end %>
+            <p class="text-sm text-frost-500 <%= @pipeline_name ? 'mt-0.5' : 'mt-1' %>">
               <%= Time.now.strftime("%B %d, %Y at %H:%M") %>
               <span class="mx-2">·</span>
               <i class="fas fa-stopwatch mr-1"></i>
@@ -45,7 +64,15 @@
             </p>
           </div>
         </div>
+          
+        <% if @run_id %>
+          <a href="/runs/<%= @run_id %>" class="inline-flex items-center px-4 py-2 bg-white hover:bg-frost-50 text-frost-700 text-sm font-medium rounded-lg transition-colors border border-frost-200 shadow-sm">
+            <i class="fas fa-arrow-left mr-2 text-xs"></i>
+            Back to Run
+          </a>
+        <% end %>
       </div>
+    </div>
 
       <!-- Stats Cards -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -301,15 +328,13 @@
 
               <tbody class="bg-white divide-y divide-gray-200">
                 <% suite[:test_cases].each_with_index do |tc, idx| %>
+                  <% failure_id = "failure-#{suite[:name].gsub(/[^a-zA-Z0-9]/, '_')}-#{idx}" %>
                   <tr
                     class="test-row hover:bg-gray-50 transition-colors <%= tc[:status] != :passed ? 'cursor-pointer' : '' %>"
-                    data-name="<%= tc[:name].downcase %>"
-                    data-classname="<%= tc[:classname].downcase %>"
+                    data-name="<%= ERB::Util.html_escape(tc[:name].downcase) %>"
+                    data-classname="<%= ERB::Util.html_escape(tc[:classname].downcase) %>"
                     data-status="<%= tc[:status] %>"
-                    <% if tc[:message] %>
-                      onclick="toggleFailure('failure-<%= suite[:name].gsub(/[^a-zA-Z0-9]/, '_') %>-<%= idx %>')"
-                    <% end %>
-                  >
+                    <% if tc[:message] %>onclick="toggleFailure('<%= failure_id %>')"<% end %>>
                     <td class="px-6 py-3 whitespace-nowrap">
                       <% if tc[:status] == :passed %>
                         <span

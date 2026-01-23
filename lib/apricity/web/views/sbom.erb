@@ -10,28 +10,79 @@
 
   <body class="bg-frost-50 min-h-screen text-frost-800">
     <div class="max-w-7xl mx-auto px-4 py-8">
+      <!-- Breadcrumb -->
+      <% if @run_id && @pipeline_name %>
+        <nav class="mb-6 flex items-center text-sm text-frost-500">
+          <a href="/" class="hover:text-sun-600 transition-colors">Dashboard</a>
+          <i class="fas fa-chevron-right mx-2 text-frost-300 text-xs"></i>
+
+          <a
+            href="/pipelines/<%= @pipeline_slug %>"
+            class="hover:text-sun-600 transition-colors"
+          >
+            <%= @pipeline_name %>
+          </a>
+
+          <i class="fas fa-chevron-right mx-2 text-frost-300 text-xs"></i>
+
+          <a
+            href="/runs/<%= @run_id %>"
+            class="hover:text-sun-600 transition-colors"
+          >
+            Run <%= @run_id[0..7] %>
+          </a>
+
+          <i class="fas fa-chevron-right mx-2 text-frost-300 text-xs"></i>
+          <span class="text-frost-700 font-medium">SBOM</span>
+        </nav>
+      <% end %>
+
       <!-- Header -->
       <div class="mb-8">
-        <div class="flex items-center space-x-3 mb-2">
-          <div
-            class="
-              w-10 h-10 rounded-lg bg-gradient-to-br from-sun-400 to-sun-600
-              flex items-center justify-center shadow-lg
-            "
-          >
-            <i class="fas fa-cube text-white"></i>
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center space-x-3">
+            <div
+              class="
+                w-10 h-10 rounded-lg bg-gradient-to-br from-sun-400 to-sun-600
+                flex items-center justify-center shadow-lg
+              "
+            >
+              <i class="fas fa-cube text-white"></i>
+            </div>
+
+            <div>
+              <h1 class="text-3xl font-bold text-frost-800">
+                Software Bill of Materials
+              </h1>
+
+              <% if @pipeline_name %>
+                <p class="text-sm text-frost-600 mt-1 font-medium">
+                  <i class="fas fa-diagram-project mr-1 text-frost-400"></i>
+                  <%= @pipeline_name %>
+                </p>
+              <% end %>
+
+              <p class="text-sm text-frost-500 <%= @pipeline_name ? 'mt-0.5' : 'mt-1' %>">
+                <i class="far fa-clock mr-1"></i>
+                <%= Time.now.strftime("%B %d, %Y at %H:%M") %>
+              </p>
+            </div>
           </div>
 
-          <div>
-            <h1 class="text-3xl font-bold text-frost-800">
-              Software Bill of Materials
-            </h1>
-
-            <p class="text-sm text-frost-500 mt-1">
-              <i class="far fa-clock mr-1"></i>
-              <%= Time.now.strftime("%B %d, %Y at %H:%M") %>
-            </p>
-          </div>
+          <% if @run_id %>
+            <a
+              href="/runs/<%= @run_id %>"
+              class="
+                inline-flex items-center px-4 py-2 bg-white
+                hover:bg-frost-50 text-frost-700 text-sm font-medium
+                rounded-lg transition-colors border border-frost-200
+                shadow-sm
+              "
+            >
+              <i class="fas fa-arrow-left mr-2 text-xs"></i>
+              Back to Run
+            </a>
+          <% end %>
         </div>
       </div>
 

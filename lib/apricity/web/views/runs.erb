@@ -37,11 +37,15 @@
     <% end %>
   </div>
 <% else %>
-  <div class="text-center py-16">
-    <div class="w-24 h-24 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-sun-100 to-sun-200 flex items-center justify-center shadow-inner">
-      <i class="fas fa-rocket text-4xl text-sun-500"></i>
+  <div class="flex flex-col items-center justify-center py-20 px-6">
+    <div class="w-20 h-20 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-sun-50 to-sun-100 flex items-center justify-center shadow-inner">
+      <i class="fas fa-rocket text-3xl text-sun-400"></i>
     </div>
-    <h3 class="text-lg font-semibold text-frost-700 mb-2">No Pipeline Runs Yet</h3>
-    <p class="text-frost-500 text-sm mb-5">Get started by running a pipeline from the dashboard</p>
+    <h3 class="text-lg font-semibold text-frost-800 mb-2">No Pipeline Runs Yet</h3>
+    <p class="text-frost-500 text-sm text-center max-w-md mb-6">Get started by running a pipeline from the dashboard</p>
+    <a href="/" class="inline-flex items-center px-5 py-2.5 bg-sun-500 hover:bg-sun-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
+      <i class="fas fa-arrow-left mr-2 text-xs"></i>
+      Go to Dashboard
+    </a>
   </div>
 <% end %>

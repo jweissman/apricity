@@ -34,6 +34,7 @@ module Apricity
           GIT_SHA=$(git rev-parse HEAD)
           echo "Checked out branch '#{branch}' at commit $GIT_SHA"
           echo "::set-run-meta git-sha=$GIT_SHA"
+          echo "::set-run-meta git-repo=#{url}"
 
           cd -
         SH

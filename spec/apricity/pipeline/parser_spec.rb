@@ -9,8 +9,8 @@ module Apricity
   module Pipeline
     RSpec.describe Parser do
       subject(:parser) { described_class }
-      let(:file) { File.read(fixture_path) }
-      let(:parsed_yaml) { YAML.safe_load(file, symbolize_names: true) }
+      # let(:file) { File.read(fixture_path) }
+      let(:parsed_yaml) { YAML.safe_load_file(fixture_path, symbolize_names: true) }
       let(:pipeline) { Apricity::Model::Pipeline.from_yaml(parsed_yaml) }
 
       describe "parses test fixture pipeline" do
@@ -27,7 +27,7 @@ module Apricity
         describe "parses lint step commands" do
           let(:lint_job) { pipeline.actions.first.jobs.find { |job| job.name == :lint } }
           let(:first_step) { lint_job.steps.first }
-          let(:next_step) { lint_job.steps[1] }
+          # let(:next_step) { lint_job.steps[1] }
 
           it "parses first step command lines" do
             expect(first_step.run.source_lines.map(&:chomp)).to eq([
@@ -37,9 +37,9 @@ module Apricity
           end
 
           it "parses next step command lines" do
-            expect(next_step.run.source_lines.map(&:chomp)).to eq([
-                                                                    "bundle exec rubocop"
-                                                                  ])
+            expect(lint_jobs.steps[1].run.source_lines.map(&:chomp)).to eq([
+                                                                             "bundle exec rubocop"
+                                                                           ])
           end
         end
 

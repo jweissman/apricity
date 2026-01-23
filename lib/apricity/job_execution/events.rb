@@ -45,12 +45,16 @@ module Apricity
         when :job_skipped then { reason: event.reason }
         when :job_started then job_started_payload(event)
         when :job_finished then job_finished_payload(event)
-        when :job_annotated, :pipeline_annotated then { annotations: event.annotations }
+        when :job_annotated, :pipeline_annotated then annotations_payload(event)
+        when :job_meta_updated then metadata_updated_payload(event)
         when :step_finished then { status: event.status, duration: event.duration_seconds }
         when :stdout_chunk, :stderr_chunk then { chunk: event.chunk }
         else {}
         end
       end
+
+      def self.annotations_payload(event) = { annotations: event.annotations }
+      def self.metadata_updated_payload(event) = { key: event.key, value: event.value, step: event.step.name }
 
       def self.job_started_payload(event)
         steps = event.node.steps.map { |step| { name: step.name } }

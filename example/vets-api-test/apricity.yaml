@@ -89,7 +89,11 @@ actions:
               run: |
                 bundle exec rails db:test:prepare
 
-            - name: Run user spec
+            - name: Run some specs (dev/null)
+              run: |
+                bundle exec rspec --fail-fast spec/models spec/lib > /dev/null || true
+
+            - name: Run some specs
               run: |
                 export RUBY_GC_HEAP_GROWTH_FACTOR=1.1
                 export RUBY_GC_HEAP_INIT_SLOTS=2000000
@@ -97,11 +101,12 @@ actions:
 
                 bundle exec rspec --fail-fast spec/models spec/lib \
                   --format progress \
-                  # --format RspecJunitFormatter \
-                  # --out $APRICITY_ARTIFACTS/junit/rspec.xml \
+                  --format RspecJunitFormatter \
+                  --out /tmp/rspec.xml \
                   --profile 0
-                echo "rspec exit=$?"
 
+                mkdir -p "$APRICITY_ARTIFACTS/junit"
+                cp /tmp/rspec.xml "$APRICITY_ARTIFACTS/junit/rspec.xml"
       
             - name: Run Linter
               run: |

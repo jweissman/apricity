@@ -6,7 +6,6 @@ module Apricity
   module Actions
     # Caching action definition
     class Cache < ActionDefinition
-      # CACHE_ROOT = File.expand_path(File.join(Dir.home, ".apricity", "cache")).freeze
       CACHE_ROOT = ENV.fetch("APRICITY_CACHE_ROOT") do
         File.expand_path(File.join(Dir.home, ".apricity", "cache"))
       end.freeze
@@ -88,7 +87,7 @@ module Apricity
           return
         end
 
-        log "Cache miss/incomplete cache: #{cache_dir}"
+        # log "Cache miss/incomplete cache: #{cache_dir}"
         FileUtils.mkdir_p(cache_dir)
 
         FileUtils.mkdir_p(cache_dir)

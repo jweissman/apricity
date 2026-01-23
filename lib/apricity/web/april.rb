@@ -48,7 +48,7 @@ module Apricity
 
     # Helper methods for SBOM (Software Bill of Materials) handling
     module SBOM
-      def generate_sbom_html(sbom_path)
+      def generate_sbom_html(sbom_path, run_context: nil)
         require "nokogiri"
 
         file = File.open(sbom_path)
@@ -56,6 +56,14 @@ module Apricity
         ns = { "cdx" => doc.root.namespace.href }
 
         @components = parse_components(doc, ns)
+
+        # Add run context if available
+        if run_context
+          @run_id = run_context[:run_id]
+          @pipeline_name = run_context[:pipeline_name]
+          @pipeline_slug = run_context[:pipeline_slug]
+        end
+
         file.close
 
         # Generate HTML
@@ -91,12 +99,19 @@ module Apricity
 
     # Helper methods for JUnit XML test report handling
     module JUnit
-      def generate_junit_html(junit_path)
+      def generate_junit_html(junit_path, run_context: nil)
         file = File.open(junit_path)
         doc = Nokogiri::XML(file)
         file.close
 
         @report = parse_junit_document(doc)
+
+        # Add run context if available
+        if run_context
+          @run_id = run_context[:run_id]
+          @pipeline_name = run_context[:pipeline_name]
+          @pipeline_slug = run_context[:pipeline_slug]
+        end
 
         erb_template = File.read(File.join(__dir__, "views", "junit.erb"))
         ERB.new(erb_template).result(binding)
@@ -167,11 +182,6 @@ module Apricity
 
     # Helper methods for Server-Sent Events (SSE) streaming
     module Streaming
-      # def format_sse(event, event_id)
-      #   payload = Apricity::JobExecution::EventSerializer.as_json(event)
-      #   "id: #{event_id}\nevent: #{event.type}\ndata: #{payload}\n\n"
-      # end
-
       def format_sse_json(event_type, json, event_id)
         raise "Invalid event" unless event_type && json
 
@@ -186,7 +196,6 @@ module Apricity
           event_id = idx + 1
           next unless event_id > last_event_id
 
-          # out << format_sse(event, event_id) if event_id > last_event_id
           out << format_sse_json(event_type_from_json(event), event, event_id) if event_id > last_event_id
         end
 
@@ -271,10 +280,7 @@ module Apricity
         # ignore
       end
 
-      # def event_type_from_json(json) = JSON.parse(json)["type"]
-      def event_type_from_json(json)
-        json && json[/"type":"([^"]+)"/, 1]
-      end
+      def event_type_from_json(json) = json && json[/"type":"([^"]+)"/, 1]
     end
 
     # Helper methods for the web interface
@@ -379,6 +385,9 @@ module Apricity
       # rubocop:disable Metrics/PerceivedComplexity
       # rubocop:disable Metrics/MethodLength
       def serve_interactive_artifact(full_path, requested_path)
+        # Extract run context from path (format: runs/<run_id>/artifacts/...)
+        run_context = extract_run_context_from_path(requested_path)
+
         # Check for SBOM first (could be sbom.xml file or directory containing sbom.xml)
         sbom_path = if full_path.end_with?("sbom.xml")
                       full_path
@@ -390,14 +399,14 @@ module Apricity
 
         if sbom_path
           content_type "text/html"
-          return generate_sbom_html(sbom_path)
+          return generate_sbom_html(sbom_path, run_context: run_context)
         end
 
         # Check for JUnit report (artifact must be keyed as 'junit')
         junit_path = detect_junit_path(full_path)
         if junit_path
           content_type "text/html"
-          return generate_junit_html(junit_path)
+          return generate_junit_html(junit_path, run_context: run_context)
         end
 
         if File.directory?(full_path)
@@ -425,6 +434,41 @@ module Apricity
         elsif File.exist?("#{full_path}.xml")
           "#{full_path}.xml"
         end
+      end
+
+      # Extract run ID and pipeline info from artifact path
+      def extract_run_context_from_path(path)
+        # Path could be:
+        # - "runs/<run_id>/artifacts/..." (URL style)
+        # - Or actual filesystem path ending in runs/<run_id>/artifacts/...
+
+        # Try to find the run ID pattern in the path
+        if path =~ %r{runs/([^/]+)/}
+          run_id = ::Regexp.last_match(1)
+        else
+          warn "Could not extract run_id from path: #{path}"
+          return nil
+        end
+
+        run = Apricity::RunStore.instance.get_run(run_id)
+        unless run
+          warn "Run not found for ID: #{run_id}"
+          return nil
+        end
+
+        pipeline = settings.pipelines.find { |p| p.slug == run.pipeline_slug }
+
+        context = {
+          run_id: run_id,
+          pipeline_slug: run.pipeline_slug,
+          pipeline_name: pipeline&.name || run.pipeline_slug
+        }
+
+        warn "Extracted context: #{context.inspect}"
+        context
+      rescue StandardError => e
+        warn "Failed to extract run context from path #{path}: #{e.message}"
+        nil
       end
       # rubocop:enable Metrics/AbcSize
       # rubocop:enable Metrics/CyclomaticComplexity
