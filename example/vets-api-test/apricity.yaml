@@ -89,9 +89,9 @@ actions:
               run: |
                 bundle exec rails db:test:prepare
 
-            - name: Run some specs (dev/null)
-              run: |
-                bundle exec rspec --fail-fast spec/models spec/lib > /dev/null || true
+            # - name: Run some specs (dev/null)
+            #   run: |
+            #     bundle exec rspec --fail-fast spec/models spec/lib > /dev/null || true
 
             - name: Run some specs
               run: |
@@ -99,7 +99,7 @@ actions:
                 export RUBY_GC_HEAP_INIT_SLOTS=2000000
                 export RUBY_YJIT_ENABLE=0
 
-                bundle exec rspec --fail-fast spec/models spec/lib \
+                bundle exec rspec spec/models spec/lib \
                   --format progress \
                   --format RspecJunitFormatter \
                   --out /tmp/rspec.xml \

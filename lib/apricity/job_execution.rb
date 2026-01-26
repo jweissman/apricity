@@ -218,15 +218,69 @@ module Apricity
         end
       end
     end
+
     StepMetadata = Data.define(:working_dir, :binds, :container, :run_id)
+
     # Executes a single step inside a Docker container
     class StepExecutor
+      # Wrapper around output sink that buffers data before sending to sink
+      class StreamingBuffer
+        def initialize(emit:, stream:, node:, step:)
+          @emit = emit
+          @stream = stream
+          @node = node
+          @step = step
+          @buffer = +""
+          @last_flush_monotonic = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        end
+
+        def append(data)
+          @buffer << data
+          maybe_flush
+        end
+
+        def flush(now = Process.clock_gettime(Process::CLOCK_MONOTONIC))
+          return if @buffer.empty?
+
+          emit_chunk(@buffer)
+          @buffer.clear
+          @last_flush_monotonic = now
+
+          # $stdout.puts "Flushed #{@stream} buffer for step #{@step.name} (node #{@node.id}): #{@buffer.bytesize} bytes"
+        end
+
+        private
+
+        def maybe_flush
+          now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+          # size backstop
+          if @buffer.bytesize >= buffer_size_limit
+            flush(now)
+            return
+          end
+
+          # time debounce
+          return unless (now - @last_flush_monotonic) >= time_limit
+
+          flush(now)
+        end
+
+        def emit_chunk(chunk)
+          klass = @stream == :stdout ? Events::StdoutChunk : Events::StderrChunk
+          @emit.call(klass[node: @node, step: @step, chunk: chunk.dup])
+        end
+
+        def buffer_size_limit = 64 * 1024 # 64 kb
+        def time_limit = 0.5 # 500 ms
+      end
+
       attr_reader :step, :env, :sink, :node
 
-      def initialize(node:, step:, env:, meta:, sink: NullOutputSink.new)
+      def initialize(node:, step:, env:, meta:) # , sink: NullOutputSink.new)
         @step = step
         @env  = env
-        @sink = sink
+        # @sink = sink
         @node = node
         @meta = meta
       end
@@ -240,31 +294,49 @@ module Apricity
         [stdout, stderr]
       end
 
+      MAX_CAPTURE = 512 * 1024 # 512kb
+
       private
 
       attr_reader :meta
 
+      def append_capped(stream, chunk)
+        stream << chunk.b
+        stream.replace(stream.byteslice(-MAX_CAPTURE, MAX_CAPTURE)) if stream.bytesize > MAX_CAPTURE
+      end
+
       def execute(command:, container:, emit:)
-        stdout = +""
-        stderr = +""
+        stdout = +"".b
+        stderr = +"".b
+
+        stdout_buffer = StreamingBuffer.new(emit:, stream: :stdout, node:, step:)
+        stderr_buffer = StreamingBuffer.new(emit:, stream: :stderr, node:, step:)
 
         result = container.exec(command) do |stream, chunk|
-          klass = stream == :stdout ? Events::StdoutChunk : Events::StderrChunk
-          event = klass[node:, step:, chunk:]
-          emit[event]
-          stream == :stdout ? stdout << chunk : stderr << chunk
+          # klass = stream == :stdout ? Events::StdoutChunk : Events::StderrChunk
+          # event = klass[node:, step:, chunk:]
+          # emit[event]
+          # stream == :stdout ? stdout << chunk : stderr << chunk
+          if stream == :stdout
+            stdout << chunk.b
+            # append_capped(stdout, chunk)
+            stdout_buffer.append(chunk)
+          else
+            stderr << chunk.b
+            # append_capped(stderr, chunk)
+            stderr_buffer.append(chunk)
+          end
         end
+        stdout_buffer.flush
+        stderr_buffer.flush
+
         [stdout, stderr, result[2]]
       end
 
       def script_for_step(prelude:, step:)
         if step.uses?
-          # action_def = Apricity::Actions::ActionRegistry.instance.resolve(step.uses)
-          # action = action_def.new(job_id: node.id, step_id: step.name,
-          #                         options: step.with || {})
           action = resolve_action(step)
           action.before_execute(meta:) if action.respond_to?(:before_execute)
-          # shell_cmd = action.to_shell
           shell_cmd = action.respond_to?(:to_shell) ? action.to_shell : ""
           [prelude, shell_cmd, "sync"].join("\n")
         else
@@ -372,11 +444,11 @@ module Apricity
       end
 
       def exec_stdout(cmd)
-        out = +"".b
+        out = +""
         err = +""
         result = container.exec(["/bin/sh", "-lc", cmd]) do |stream, chunk|
           if stream == :stdout
-            out << chunk.b
+            out << chunk
           else
             err << chunk
           end
@@ -652,7 +724,7 @@ module Apricity
 
       def execute_step!(step)
         meta = StepMetadata[working_dir: @working_dir, binds: @binds, container:, run_id: @run.id]
-        step_executor = JobExecution::StepExecutor.new(step:, env:, sink:, node:, meta:)
+        step_executor = JobExecution::StepExecutor.new(step:, env:, node:, meta:)
         stdout, stderr = step_executor.perform(prelude: @prelude, container:, emit: -> { emit it })
         parse_metadata(stdout:, step:)
         success_outcome(stdout:, stderr:)
@@ -702,17 +774,17 @@ module Apricity
       # rubocop:enable Metrics/MethodLength
 
       def copy_dir_contents_into_container(src, dest)
-        copy_dir_into_container_dind(src, dest) # if DockerHelpers.dind?
+      #   copy_dir_into_container_dind(src, dest) # if DockerHelpers.dind?
 
-        # container.exec(["/bin/sh", "-lc", "mkdir -p #{dest}"])
+      #   # container.exec(["/bin/sh", "-lc", "mkdir -p #{dest}"])
 
-        # container.exec([
-        #                  "/bin/sh", "-lc",
-        #                  %(cd "#{src}" && tar -cf - . | tar -xf - -C "#{dest}")
-        #                ])
-      end
+      #   # container.exec([
+      #   #                  "/bin/sh", "-lc",
+      #   #                  %(cd "#{src}" && tar -cf - . | tar -xf - -C "#{dest}")
+      #   #                ])
+      # end
 
-      def copy_dir_into_container_dind(src, dest)
+      # def copy_dir_into_container_dind(src, dest)
         container.exec(["/bin/sh", "-lc", "mkdir -p #{dest}"])
 
         entries = Dir.glob(File.join(src, "{*,.*}"), File::FNM_DOTMATCH)
@@ -725,6 +797,8 @@ module Apricity
 
       def emit(event)
         @sink&.call(event)
+        return if %i[stdout_chunk stderr_chunk].include?(event.type)
+
         node.plugins&.each { |plugin| plugin.handle(event, context: context_for(node), emitter: -> { emit it }) }
       end
 

@@ -35,12 +35,12 @@ module Apricity
         nil
       end
 
-      puts "Considering container for run_id=#{run_id} for orphaned status"
+      # puts "Considering container for run_id=#{run_id} for orphaned status"
 
       # consider orphaned if no lease and started more than 5 minutes ago
       return false unless started_at && (Time.now - started_at) > orphaned_ttl_seconds
 
-      puts "Container started at #{started_at} (> #{orphaned_ttl_seconds}), checking lease status..."
+      puts "Container for run id #{run_id} started at #{started_at} (> #{orphaned_ttl_seconds}), checking lease status..."
 
       orphaned = !redis.exists?("apricity:lease:#{run_id}")
       if orphaned

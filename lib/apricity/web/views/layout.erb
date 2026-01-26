@@ -25,17 +25,26 @@
           <span class="text-lg font-semibold text-frost-800 group-hover:text-sun-700 transition-colors">Apricity</span>
         </a>
         <nav class="flex items-center text-sm space-x-1">
-          <a href="/" class="nav-link text-frost-600 hover:text-sun-600 hover:bg-sun-50/50 transition-all px-4 py-2 rounded-lg font-medium">
+          <a href="/" class="nav-link <%= request.path_info == '/' ? 'active bg-sun-50 text-sun-700' : 'text-frost-600 hover:text-sun-600 hover:bg-sun-50/50' %> transition-all px-4 py-2 rounded-lg font-medium">
             <i class="fas fa-tachometer-alt mr-2 text-xs"></i>
             Dashboard
           </a>
-          <a href="/runs" class="nav-link text-frost-600 hover:text-sun-600 hover:bg-sun-50/50 transition-all px-4 py-2 rounded-lg font-medium">
+          <a href="/runs" class="nav-link <%= request.path_info.start_with?('/runs') ? 'active bg-sun-50 text-sun-700' : 'text-frost-600 hover:text-sun-600 hover:bg-sun-50/50' %> transition-all px-4 py-2 rounded-lg font-medium">
             <i class="fas fa-clock-rotate-left mr-2 text-xs"></i>
             Activity
           </a>
-          <a href="/workers" class="nav-link text-frost-600 hover:text-sun-600 hover:bg-sun-50/50 transition-all px-4 py-2 rounded-lg font-medium">
+          <a href="/workers" class="nav-link <%= request.path_info == '/workers' ? 'active bg-sun-50 text-sun-700' : 'text-frost-600 hover:text-sun-600 hover:bg-sun-50/50' %> transition-all px-4 py-2 rounded-lg font-medium">
             <i class="fas fa-server mr-2 text-xs"></i>
             Workers
+          </a>
+          <div class="w-px h-5 bg-frost-200 mx-1"></div>
+          <a href="/docs" class="nav-link <%= request.path_info == '/docs' ? 'active bg-sun-50 text-sun-700' : 'text-frost-600 hover:text-sun-600 hover:bg-sun-50/50' %> transition-all px-4 py-2 rounded-lg font-medium">
+            <i class="fas fa-book mr-2 text-xs"></i>
+            Docs
+          </a>
+          <a href="/about" class="nav-link <%= request.path_info == '/about' ? 'active bg-sun-50 text-sun-700' : 'text-frost-600 hover:text-sun-600 hover:bg-sun-50/50' %> transition-all px-4 py-2 rounded-lg font-medium">
+            <i class="fas fa-circle-info mr-2 text-xs"></i>
+            About
           </a>
         </nav>
       </div>

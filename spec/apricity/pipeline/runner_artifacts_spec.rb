@@ -20,12 +20,12 @@ module Apricity
               job.step("deploy", run: Script.new(
                 source: <<~SCRIPT
                   set -euo pipefail
-                  echo "Contents of artifact directory:"
-                  ls -la "$APRICITY_ARTIFACTS"
-                  echo "Contents of artifacts/dist directory:"
-                  ls -la $APRICITY_ARTIFACTS/dist
+                  # echo "Contents of artifact directory:"
+                  # ls -la "$APRICITY_ARTIFACTS"
+                  # echo "Contents of artifacts/dist directory:"
+                  # ls -la $APRICITY_ARTIFACTS/dist
 
-                  echo "Reading artifact file:"
+                  # echo "Reading artifact file:"
                   cat "$APRICITY_ARTIFACTS/dist/artifact.txt"
                 SCRIPT
 
@@ -39,13 +39,13 @@ module Apricity
                 source: <<~SCRIPT
                   set -euxo pipefail
 
-                  ls -la "$APRICITY_ARTIFACTS" || true
-                  ls -la "$APRICITY_ARTIFACTS/dist" || true
-                  cat "$APRICITY_ARTIFACTS/dist/artifact.txt" || true
-                  mkdir -p "$APRICITY_ARTIFACTS/dist"
+                  # ls -la "$APRICITY_ARTIFACTS" || true
+                  # ls -la "$APRICITY_ARTIFACTS/dist" || true
+                  # cat "$APRICITY_ARTIFACTS/dist/artifact.txt" || true
+                  # mkdir -p "$APRICITY_ARTIFACTS/dist"
                   echo build > "$APRICITY_ARTIFACTS/dist/artifact.txt"
-                  ls -la "$APRICITY_ARTIFACTS/dist"
-                  cat "$APRICITY_ARTIFACTS/dist/artifact.txt"
+                  # ls -la "$APRICITY_ARTIFACTS/dist"
+                  # cat "$APRICITY_ARTIFACTS/dist/artifact.txt"
                 SCRIPT
               ))
             end

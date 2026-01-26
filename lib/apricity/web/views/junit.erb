@@ -102,18 +102,18 @@
             <div>
               <p class="text-sm font-medium text-frost-500">Passed</p>
 
-              <p class="text-3xl font-bold text-green-600 mt-1">
+              <p class="text-3xl font-bold text-success-600 mt-1">
                 <%= @report[:totals][:passed] %>
               </p>
             </div>
 
             <div
               class="
-                w-12 h-12 rounded-full bg-green-100 flex items-center
+                w-12 h-12 rounded-full bg-success-100 flex items-center
                 justify-center
               "
             >
-              <i class="fas fa-check text-green-600 text-xl"></i>
+              <i class="fas fa-check text-success-600 text-xl"></i>
             </div>
           </div>
         </div>
@@ -123,13 +123,13 @@
             <div>
               <p class="text-sm font-medium text-frost-500">Failed</p>
 
-              <p class="text-3xl font-bold <%= @report[:totals][:failures] + @report[:totals][:errors] > 0 ? 'text-red-600' : 'text-gray-900' %> mt-1">
+              <p class="text-3xl font-bold <%= @report[:totals][:failures] + @report[:totals][:errors] > 0 ? 'text-danger-600' : 'text-frost-500' %> mt-1">
                 <%= @report[:totals][:failures] + @report[:totals][:errors] %>
               </p>
             </div>
 
-            <div class="w-12 h-12 rounded-full <%= @report[:totals][:failures] + @report[:totals][:errors] > 0 ? 'bg-red-100' : 'bg-gray-100' %> flex items-center justify-center">
-              <i class="fas fa-times <%= @report[:totals][:failures] + @report[:totals][:errors] > 0 ? 'text-red-600' : 'text-gray-400' %> text-xl"></i>
+            <div class="w-12 h-12 rounded-full <%= @report[:totals][:failures] + @report[:totals][:errors] > 0 ? 'bg-danger-100' : 'bg-frost-100' %> flex items-center justify-center">
+              <i class="fas fa-times <%= @report[:totals][:failures] + @report[:totals][:errors] > 0 ? 'text-danger-600' : 'text-frost-400' %> text-xl"></i>
             </div>
           </div>
         </div>
@@ -139,7 +139,7 @@
             <div>
               <p class="text-sm font-medium text-frost-500">Skipped</p>
 
-              <p class="text-3xl font-bold text-gray-500 mt-1">
+              <p class="text-3xl font-bold text-frost-500 mt-1">
                 <%= @report[:totals][:skipped] %>
               </p>
             </div>
@@ -171,47 +171,50 @@
           <% total = [@report[:totals][:tests], 1].max %>
 
           <div
-            class="bg-green-500 h-full"
+            class="bg-success-500 h-full transition-all duration-500"
             style="width: <%= (@report[:totals][:passed].to_f / total * 100) %>%"
+            title="<%= @report[:totals][:passed] %> passed"
           ></div>
 
           <div
-            class="bg-red-500 h-full"
+            class="bg-danger-500 h-full transition-all duration-500"
             style="width: <%= ((@report[:totals][:failures] + @report[:totals][:errors]).to_f / total * 100) %>%"
+            title="<%= @report[:totals][:failures] + @report[:totals][:errors] %> failed"
           ></div>
 
           <div
-            class="bg-gray-400 h-full"
+            class="bg-frost-400 h-full transition-all duration-500"
             style="width: <%= (@report[:totals][:skipped].to_f / total * 100) %>%"
+            title="<%= @report[:totals][:skipped] %> skipped"
           ></div>
         </div>
 
         <div class="flex items-center gap-4 mt-2 text-xs text-frost-500">
           <span class="flex items-center gap-1">
-            <span class="w-2 h-2 rounded-full bg-green-500"></span>
+            <span class="w-2 h-2 rounded-full bg-success-500"></span>
             Passed
           </span>
 
           <span class="flex items-center gap-1">
-            <span class="w-2 h-2 rounded-full bg-red-500"></span>
+            <span class="w-2 h-2 rounded-full bg-danger-500"></span>
             Failed
           </span>
 
           <span class="flex items-center gap-1">
-            <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+            <span class="w-2 h-2 rounded-full bg-frost-400"></span>
             Skipped
           </span>
         </div>
       </div>
 
       <!-- Search and Filters -->
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
+      <div class="bg-white rounded-xl border border-frost-200 shadow-sm p-4 mb-6">
         <div class="flex items-center space-x-4">
           <div class="flex-1 relative">
             <i
               class="
                 fas fa-search absolute left-3 top-1/2 transform
-                -translate-y-1/2 text-gray-400
+                -translate-y-1/2 text-frost-400
               "
             ></i>
 
@@ -221,8 +224,9 @@
               placeholder="Search test names, classnames..."
               autocomplete="off"
               class="
-                w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg
-                focus:ring-2 focus:ring-green-500 focus:border-transparent
+                w-full pl-10 pr-4 py-2 border border-frost-200 rounded-lg
+                focus:ring-2 focus:ring-sun-500/20 focus:border-sun-400 transition-all
+                text-frost-800 placeholder:text-frost-400
               "
             >
           </div>
@@ -230,8 +234,8 @@
           <select
             id="statusFilter"
             class="
-              px-4 py-2 border border-gray-300 rounded-lg focus:ring-2
-              focus:ring-green-500
+              px-4 py-2 border border-frost-200 rounded-lg focus:ring-2
+              focus:ring-sun-500/20 focus:border-sun-400 text-frost-700 bg-white
             "
           >
             <option value="">All Status</option>
@@ -247,35 +251,35 @@
       <% @report[:suites].each do |suite| %>
         <div
           class="
-            bg-white rounded-xl border border-gray-200 shadow-sm
+            bg-white rounded-xl border border-frost-200 shadow-sm
             overflow-hidden mb-6
           "
         >
           <!-- Suite Header -->
-          <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+          <div class="px-6 py-4 border-b border-frost-200 bg-frost-50/50">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3">
-                <i class="fas fa-folder text-gray-400"></i>
-                <h2 class="font-semibold text-gray-800"><%= suite[:name] %></h2>
+                <i class="fas fa-folder text-frost-400"></i>
+                <h2 class="font-semibold text-frost-800"><%= suite[:name] %></h2>
               </div>
 
               <div class="flex items-center gap-4 text-sm">
-                <span class="text-green-600">
+                <span class="text-success-600">
                   <i class="fas fa-check mr-1"></i>
                   <%= suite[:tests] - suite[:failures] - suite[:errors] - suite[:skipped] %>
                 </span>
 
-                <span class="<%= suite[:failures] + suite[:errors] > 0 ? 'text-red-600' : 'text-gray-400' %>">
+                <span class="<%= suite[:failures] + suite[:errors] > 0 ? 'text-danger-600' : 'text-frost-400' %>">
                   <i class="fas fa-times mr-1"></i>
                   <%= suite[:failures] + suite[:errors] %>
                 </span>
 
-                <span class="text-gray-400">
+                <span class="text-frost-400">
                   <i class="fas fa-forward mr-1"></i>
                   <%= suite[:skipped] %>
                 </span>
 
-                <span class="text-gray-500">
+                <span class="text-frost-500">
                   <i class="fas fa-stopwatch mr-1"></i>
                   <%= "%.2fs" % suite[:time] %>
                 </span>
@@ -285,13 +289,13 @@
 
           <!-- Test Cases Table -->
           <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
+            <table class="min-w-full divide-y divide-frost-200">
+              <thead class="bg-frost-50/50">
                 <tr>
                   <th
                     class="
                       px-6 py-3 text-left text-xs font-semibold
-                      text-gray-600 uppercase tracking-wider w-8
+                      text-frost-600 uppercase tracking-wider w-8
                     "
                   >
                     Status
@@ -300,7 +304,7 @@
                   <th
                     class="
                       px-6 py-3 text-left text-xs font-semibold
-                      text-gray-600 uppercase tracking-wider
+                      text-frost-600 uppercase tracking-wider
                     "
                   >
                     Test Name
@@ -309,7 +313,7 @@
                   <th
                     class="
                       px-6 py-3 text-left text-xs font-semibold
-                      text-gray-600 uppercase tracking-wider
+                      text-frost-600 uppercase tracking-wider
                     "
                   >
                     Class
@@ -318,7 +322,7 @@
                   <th
                     class="
                       px-6 py-3 text-right text-xs font-semibold
-                      text-gray-600 uppercase tracking-wider w-24
+                      text-frost-600 uppercase tracking-wider w-24
                     "
                   >
                     Duration
@@ -326,11 +330,11 @@
                 </tr>
               </thead>
 
-              <tbody class="bg-white divide-y divide-gray-200">
+              <tbody class="bg-white divide-y divide-frost-200">
                 <% suite[:test_cases].each_with_index do |tc, idx| %>
                   <% failure_id = "failure-#{suite[:name].gsub(/[^a-zA-Z0-9]/, '_')}-#{idx}" %>
                   <tr
-                    class="test-row hover:bg-gray-50 transition-colors <%= tc[:status] != :passed ? 'cursor-pointer' : '' %>"
+                    class="test-row hover:bg-frost-50 transition-colors <%= tc[:status] != :passed ? 'cursor-pointer' : '' %>"
                     data-name="<%= ERB::Util.html_escape(tc[:name].downcase) %>"
                     data-classname="<%= ERB::Util.html_escape(tc[:classname].downcase) %>"
                     data-status="<%= tc[:status] %>"
@@ -339,60 +343,60 @@
                       <% if tc[:status] == :passed %>
                         <span
                           class="
-                            w-6 h-6 rounded-full bg-green-100 flex
+                            w-6 h-6 rounded-full bg-success-100 flex
                             items-center justify-center
                           "
                         >
-                          <i class="fas fa-check text-green-600 text-xs"></i>
+                          <i class="fas fa-check text-success-600 text-xs"></i>
                         </span>
                       <% elsif tc[:status] == :failure %>
                         <span
                           class="
-                            w-6 h-6 rounded-full bg-red-100 flex
+                            w-6 h-6 rounded-full bg-danger-100 flex
                             items-center justify-center
                           "
                         >
-                          <i class="fas fa-times text-red-600 text-xs"></i>
+                          <i class="fas fa-times text-danger-600 text-xs"></i>
                         </span>
                       <% elsif tc[:status] == :error %>
                         <span
                           class="
-                            w-6 h-6 rounded-full bg-red-100 flex
+                            w-6 h-6 rounded-full bg-danger-100 flex
                             items-center justify-center
                           "
                         >
-                          <i class="fas fa-exclamation text-red-600 text-xs"></i>
+                          <i class="fas fa-exclamation text-danger-600 text-xs"></i>
                         </span>
                       <% elsif tc[:status] == :skipped %>
                         <span
                           class="
-                            w-6 h-6 rounded-full bg-gray-100 flex
+                            w-6 h-6 rounded-full bg-frost-100 flex
                             items-center justify-center
                           "
                         >
-                          <i class="fas fa-forward text-gray-400 text-xs"></i>
+                          <i class="fas fa-forward text-frost-400 text-xs"></i>
                         </span>
                       <% end %>
                     </td>
 
                     <td class="px-6 py-3">
-                      <div class="text-sm text-gray-900"><%= tc[:name] %></div>
+                      <div class="text-sm text-frost-800"><%= tc[:name] %></div>
 
                       <% if tc[:file] %>
-                        <div class="text-xs text-gray-400 font-mono">
+                        <div class="text-xs text-frost-500 font-mono">
                           <%= tc[:file] %>
                         </div>
                       <% end %>
                     </td>
 
                     <td class="px-6 py-3 whitespace-nowrap">
-                      <span class="text-sm text-gray-500 font-mono">
+                      <span class="text-sm text-frost-600 font-mono">
                         <%= tc[:classname].split('.').join('/') %>.rb
                       </span>
                     </td>
 
                     <td class="px-6 py-3 whitespace-nowrap text-right">
-                      <span class="text-sm text-gray-500">
+                      <span class="text-sm text-frost-500 font-mono tabular-nums">
                         <%= "%.3fs" % tc[:time] %>
                       </span>
                     </td>

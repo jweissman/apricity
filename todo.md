@@ -21,6 +21,7 @@
   - [~] Heartbeats -- last_output_at
   - [ ] Step timeouts?
   - [ ] Buffer stdout/stderr
+  - [ ] Snapshotting run state?
 - [ ] Job control (stop/rerun/rerun failing jobs etc)
 - [ ] Repo/ref cold start endpoint
 - [ ] JUnit + coverage verification on a smaller repo first

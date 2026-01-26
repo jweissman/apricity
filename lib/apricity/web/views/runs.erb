@@ -4,13 +4,13 @@
       <a href="/runs/<%= run.id %>" class="block group" data-status="<%= run.status %>">
         <div class="flex items-center justify-between p-4 bg-white rounded-xl border border-frost-200/60 hover:border-sun-300 hover:bg-sun-50/30 transition-all duration-200">
           <div class="flex items-center space-x-4">
-            <div class="w-10 h-10 rounded-lg flex items-center justify-center <%= run.status == 'running' ? 'bg-amber-50' : run.status == 'success' ? 'bg-emerald-50' : run.status == 'failure' ? 'bg-red-50' : 'bg-frost-100' %>">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center <%= run.status == 'running' ? 'bg-warning-50' : run.status == 'success' ? 'bg-success-50' : run.status == 'failure' ? 'bg-danger-50' : 'bg-frost-100' %>">
               <% if run.status == 'running' %>
-                <i class="fas fa-circle-notch fa-spin text-amber-600"></i>
+                <i class="fas fa-circle-notch fa-spin text-warning-600"></i>
               <% elsif run.status == 'success' %>
-                <i class="fas fa-check text-emerald-600"></i>
+                <i class="fas fa-check text-success-600"></i>
               <% elsif run.status == 'failure' %>
-                <i class="fas fa-times text-red-500"></i>
+                <i class="fas fa-times text-danger-600"></i>
               <% else %>
                 <i class="far fa-clock text-frost-400"></i>
               <% end %>
@@ -28,7 +28,7 @@
                 <span class="text-frost-400">Queued</span>
               <% end %>
             </div>
-            <div class="text-xs mt-1 font-medium <%= run.status == 'running' ? 'text-amber-600' : run.status == 'success' ? 'text-emerald-600' : run.status == 'failure' ? 'text-red-600' : 'text-frost-500' %>">
+            <div class="text-xs mt-1 font-medium <%= run.status == 'running' ? 'text-warning-600' : run.status == 'success' ? 'text-success-600' : run.status == 'failure' ? 'text-danger-600' : 'text-frost-500' %>">
               <%= run.status == 'running' ? 'Running' : run.status == 'success' ? 'Passed' : run.status == 'failure' ? 'Failed' : run.status&.capitalize %>
             </div>
           </div>

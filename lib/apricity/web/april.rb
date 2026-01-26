@@ -649,6 +649,7 @@ module Apricity
         erb :run
       end
 
+      # GET /runs/:id/events - Server-Sent Events stream of run events
       get "/runs/:id/events", provides: "text/event-stream" do
         headers(
           "Content-Type" => "text/event-stream",
@@ -677,6 +678,13 @@ module Apricity
         end
 
         stream(:keep_open) { stream_events(run, it) }
+      end
+
+      get "/runs/:id/output_tails" do
+        run_id = params[:id]
+        content_type "application/json"
+        tails = Apricity::Run::EventStore.output_tails(run_id)
+        JSON.generate(tails)
       end
 
       post "/pipelines/:slug/run" do
