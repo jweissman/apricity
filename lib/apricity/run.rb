@@ -31,7 +31,7 @@ module Apricity
       # Redis backend implementation
       class RedisBackend
         RUN_TTL_SECONDS = 7 * 24 * 60 * 60 # 7 days
-        MAX_TAIL = 32 * 1024 # 32 KB
+        MAX_TAIL = 512 * 1024 # 960 KB
 
         def initialize(redis:)
           @redis = redis
@@ -53,7 +53,7 @@ module Apricity
           redis.append(k, event.chunk)
           redis.expire(k, RUN_TTL_SECONDS) if redis.ttl(k).negative?
           size = redis.strlen(k)
-          return unless size > MAX_TAIL
+          return unless size > MAX_TAIL * 2
 
           # trimmed = redis.getrange(k, size - MAX_TAIL, size)
           trimmed = redis.getrange(k, size - MAX_TAIL, size - 1)
