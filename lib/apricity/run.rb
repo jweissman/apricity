@@ -43,7 +43,8 @@ module Apricity
 
         def append_tail(run_id, event)
           stream = event.type == :stdout_chunk ? "stdout" : "stderr"
-          k = "apricity:step_#{stream}:#{run_id}:#{event.node.id}:#{event.step.name}"
+          # k = "apricity:step_#{stream}:#{run_id}:#{event.node.id}:#{event.step.name}"
+          k = "apricity:step_#{stream}:#{run_id}:#{event.node.id}:#{event.step.name.sub(/^:.*?:/, "")}"
 
           redis.append(k, event.chunk)
           redis.expire(k, RUN_TTL_SECONDS)
@@ -119,7 +120,11 @@ module Apricity
       def self.get_events_json(run_id) = instance.get_events_json(run_id)
       def self.append_event(run_id, event) = instance.append_event(run_id, event)
 
-      private
+      def self.output_tails(run_id)
+        instance.backend.output_tails(run_id) if instance.backend.respond_to?(:output_tails)
+      end
+
+      # private
 
       attr_reader :backend
     end

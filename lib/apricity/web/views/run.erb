@@ -71,7 +71,8 @@
     id: "<%= @run.id %>",
     pipeline: "<%= @pipeline.name %>",
     eventsUrl: "/runs/<%= @run.id %>/events",
-    dag: <%= dag_data(@pipeline) %>
+    dag: <%= dag_data(@pipeline) %>,
+    outputTails: <%= Apricity::Run::EventStore.output_tails(@run.id).to_json %>
   };
 </script>
 
