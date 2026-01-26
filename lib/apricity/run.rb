@@ -41,13 +41,17 @@ module Apricity
           redis.lrange(key(run_id), 0, -1)
         end
 
+        def step_key_name(step_name)
+          step_name.to_s.delete_prefix(":").delete_suffix(":")
+        end
+
         def append_tail(run_id, event)
           stream = event.type == :stdout_chunk ? "stdout" : "stderr"
           # k = "apricity:step_#{stream}:#{run_id}:#{event.node.id}:#{event.step.name}"
           k = "apricity:step_#{stream}:#{run_id}:#{event.node.id}:#{event.step.name.sub(/^:.*?:/, "")}"
 
           redis.append(k, event.chunk)
-          redis.expire(k, RUN_TTL_SECONDS)
+          redis.expire(k, RUN_TTL_SECONDS) if redis.ttl(k).negative?
           size = redis.strlen(k)
           return unless size > MAX_TAIL
 
