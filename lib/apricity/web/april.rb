@@ -32,7 +32,7 @@ module Apricity
 
     # Helper methods for pipeline management
     module Pipelines
-      DEFAULT_PIPELINES = %w[echo sleep vets-api-sbom vets-api-test].map do |example_name|
+      DEFAULT_PIPELINES = %w[echo sleep vets-api-sbom vets-api-test cpu_bench].map do |example_name|
         path = File.expand_path(File.join(__dir__, "../../../example/#{example_name}/apricity.yaml"))
         Apricity::Model::Pipeline.from_file(path)
       end.freeze

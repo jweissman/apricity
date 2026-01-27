@@ -1,0 +1,38 @@
+name: CPU Benchmark
+actions:
+  benchmark:
+    jobs:
+      - check:
+          name: CPU Benchmark
+          runs-on: ruby:3.3
+          steps:
+            - name: CPU Info
+              run: |
+                echo "== CPU INFO =="
+                nproc
+                cat /sys/fs/cgroup/cpu.max || true
+                grep . /sys/fs/cgroup/cpu.stat || true
+                cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us 2>/dev/null || true
+                cat /sys/fs/cgroup/cpu/cpu.cfs_period_us 2>/dev/null || true
+
+            - name: Ruby CPU Burn
+              run: |
+                echo "== Ruby CPU Burn =="
+                time ruby -e '
+                  require "benchmark"
+                  t = Benchmark.measure {
+                    x = 0.0
+                    100_000_000.times { |i| x += Math.sqrt(i) }
+                  }
+                  puts t
+                '
+            
+            - name: GC Stress
+              run: |
+                echo "== GC Stress Test =="
+                ruby -e '
+                  GC.disable
+                  a = []
+                  5_000_000.times { a << "x" * 100 }
+                  puts "done"
+                '

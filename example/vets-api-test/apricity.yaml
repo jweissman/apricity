@@ -72,10 +72,6 @@ actions:
 
                 bundle install --jobs 4 --retry 3
 
-            # - name: Package gems for caching
-            #   run: |
-            #     bundle package --all --no-prune --path vendor/cache
-
             - name: Cache Bundled Gems
               uses: apricity/cache@v0
               with:
@@ -88,10 +84,6 @@ actions:
             - name: Prepare Test Database
               run: |
                 bundle exec rails db:test:prepare
-
-            # - name: Run some specs (dev/null)
-            #   run: |
-            #     bundle exec rspec --fail-fast spec/models spec/lib > /dev/null || true
 
             - name: Run some specs
               run: |
